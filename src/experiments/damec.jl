@@ -210,7 +210,7 @@ end
 
             info(GPForecasting.LOGGER, "Training GP...")
             gp = GP(κs[q]);
-            θ_opt, gp = learn(gp, x_train, log_y_train .- log_y_train_mean, objective, its=its, trace=false, summary=true)
+            θ_opt, gp = learn_summary(gp, x_train, log_y_train .- log_y_train_mean, objective, its=its, trace=false)
 
             pos = condition(gp, x_train, log_y_train .- log_y_train_mean);
             log_means = pos.m(x_test);

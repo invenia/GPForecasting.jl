@@ -1,4 +1,4 @@
-export minimise, learn
+export minimise, learn, learn_summary, minimise_summary
 
 """
     minimise(f::Function,
@@ -23,7 +23,6 @@ function minimise(
     trace=true,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
-    summary = false,
 )
 
     ∇grad   = ∇(f)
@@ -47,7 +46,52 @@ function minimise(
     )
 
     # Return the full result or just the minimizer
-    return (summary ? res : res.minimizer)
+    return res.minimizer
+end
+
+"""
+    minimise_summary(f::Function,
+        x_init::Vector;
+        its=200,
+        trace=true,
+        alphaguess=LineSearches.InitialStatic(scaled=true),
+        linesearch=LineSearches.BackTracking(),
+        summary = false,
+    ) -> Optim.jl Optimization Object
+
+Like `minmise()`, but returns a summary of the optimization results.
+"""
+function minimise_summary(
+    f::Function,
+    x_init::Vector;
+    its=200,
+    trace=true,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+)
+
+    ∇grad   = ∇(f)
+    function grad!(storage::Vector, x::Vector)
+        storage[:] = ∇grad(x)[1]
+    end
+    res = optimize(
+        f,
+        grad!,
+        x_init,
+        LBFGS(alphaguess = alphaguess, linesearch = linesearch),
+        Optim.Options(
+            x_tol = 1.0e-8,
+            f_tol = 1.0e-8,
+            g_tol = 1.0e-5,
+            f_calls_limit = its,
+            g_calls_limit = its,
+            iterations = its,
+            show_trace = trace,
+        ),
+    )
+
+    # Return the full result or just the minimizer
+    return res
 end
 
 """
@@ -81,7 +125,6 @@ function learn(
     trace=true,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
-    summary = false,
 )
     Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
     Θ_opt = minimise(
@@ -91,16 +134,52 @@ function learn(
         trace=trace,
         alphaguess=alphaguess,
         linesearch=linesearch,
-        summary = summary,
     )
 
     # Again, assuming we are only optimising kernels
     # Got to overload if we want parameters in the means as well
-    if summary == true
-        return Θ_opt, GP(gp.m, set(gp.k, Θ_opt.minimizer))
-    elseif summary == false
-        return GP(gp.m, set(gp.k, Θ_opt))
-    end
+    return GP(gp.m, set(gp.k, Θ_opt))
+end
+
+"""
+    learn(gp::GP,
+        x,
+        y,
+        obj::Function;
+        Θ_init::Array=[],
+        its=200,
+        trace=true,
+        alphaguess=LineSearches.InitialStatic(scaled=true),
+        linesearch=LineSearches.BackTracking(),
+        summary = false,
+    ) -> Optim.jl Optimization Object, GP
+
+Like `learn()`, but returns a tuple with the summary of the optimization procedure and the learned GP.
+"""
+function learn_summary(
+    gp::GP,
+    x,
+    y,
+    obj::Function;
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+)
+    Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
+    Θ_opt = minimise_summary(
+        obj(gp, x, y),
+        Θ_init,
+        its=its,
+        trace=trace,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+    )
+
+    # Again, assuming we are only optimising kernels
+    # Got to overload if we want parameters in the means as well
+    return Θ_opt, GP(gp.m, set(gp.k, Θ_opt.minimizer))
 end
 
 #NOTE: The code below currently breaks due to Nabla issues. TODO: Fix it.
