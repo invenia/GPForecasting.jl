@@ -99,6 +99,7 @@ Zero mean. Returns zero.
 type ZeroMean <: Mean; end
 (::ZeroMean)(x) = zeros(size(x, 1))
 show(io::IO, k::ZeroMean) = print(io, "𝟎")
+(f::Operation)(z::ZeroMean, z̄::ZeroMean) = isa(unwrap(f.f), /) ? NaN : z
 (f::Operation)(z::Union{Parameter, Real}, z̄::ZeroMean) = (f)(ConstantMean(z), z̄)
 (f::Operation)(z::ZeroMean, z̄::Union{Parameter, Real}) = (f)(z, ConstantMean(z̄))
 function (f::Operation)(z::ZeroMean, m::Mean)
