@@ -1,8 +1,8 @@
 # GPForecasting
 
-[![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://doc.invenia.ca/research/GPForecasting.jl/develop)
-[![Build Status](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/develop/build.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/develop)
-[![Coverage](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/develop/coverage.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/develop)
+[![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://doc.invenia.ca/research/GPForecasting.jl/master)
+[![Build Status](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/develop/build.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
+[![Coverage](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/develop/coverage.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
 
 ## Data format
 
