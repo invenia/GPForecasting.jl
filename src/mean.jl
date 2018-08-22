@@ -9,11 +9,11 @@ type Operation
     f::Fixed
     Operation(f::Function) = new(Fixed(f))
 end
-(*)(m, m̄) = Operation(*)(m, m̄)
-(/)(m, m̄) = Operation(/)(m, m̄)
-(+)(m, m̄) = Operation(+)(m, m̄)
-(-)(m, m̄) = Operation(-)(m, m̄)
-(^)(m, m̄) = (isa(m̄, Real) && m̄ ≈ 0) ? ConstantMean() : Operation(^)(m, m̄)
+(*)(m...) = Operation(*)(m...)
+(/)(m...) = Operation(/)(m...)
+(+)(m...) = Operation(+)(m...)
+(-)(m...) = Operation(-)(m...)
+(^)(m...) = (isa(m[2], Real) && m[2] ≈ 0) ? ConstantMean() : Operation(^)(m[1], m[2])
 # Special cases for exponentiation: Convert integers to floats.
 (^)(n::Integer, m̄::Mean) = (^)(Float64(n), m̄::Mean)
 (^)(m̄::Mean, n::Integer) = (^)(m̄::Mean, Float64(n))
@@ -99,11 +99,8 @@ Zero mean. Returns zero.
 type ZeroMean <: Mean; end
 (::ZeroMean)(x) = zeros(size(x, 1))
 show(io::IO, k::ZeroMean) = print(io, "𝟎")
-(f::Operation)(z::ZeroMean, z̄) = z # Note: Does not raise error if divide zero by zero
-(f::Operation)(z, z̄::ZeroMean) = (f)(z̄, z) # Note: Does not raise error if divide zero by zero
-(f::Operation)(z::Union{Parameter, Real}, z̄::ZeroMean) = z̄
-(f::Operation)(z::ZeroMean, z̄::Union{Parameter, Real}) = (f)(z̄, z)
-(f::Operation)(z::ZeroMean, z̄::ZeroMean) = z̄ # Can also raise error if divide zero by zero, what do you think?
+(f::Operation)(z::Union{Parameter, Real}, z̄::ZeroMean) = (f)(ConstantMean(z), z̄)
+(f::Operation)(z::ZeroMean, z̄::Union{Parameter, Real}) = (f)(z, ConstantMean(z̄))
 function (f::Operation)(z::ZeroMean, m::Mean)
     if (unwrap(f.f) == *) return z
     elseif (unwrap(f.f) == /) return z
@@ -115,7 +112,7 @@ function (f::Operation)(m::Mean, z::ZeroMean)
     if (unwrap(f.f) == *) return f(z, m)
     elseif (unwrap(f.f) == /) return ConstantMean(Inf) # Depends on what behaviour we want for this.
     elseif (unwrap(f.f) == ^) return ConstantMean(1.0)
-    elseif (unwrap(f.f) == +)  return m
+    elseif (unwrap(f.f) == +)  return f(z, m)
     elseif (unwrap(f.f) == -)  return m end
 end
 
@@ -132,6 +129,7 @@ end
 show(io::IO, m::VariableMean) = print(io, "$(m.μ) $(unwrap(m.f)) $(m.μ̄)")
 (m::VariableMean)(x) = broadcast(unwrap(m.f), m.μ(x), m.μ̄(x))
 (f::Operation)(m::Mean, m̄::Mean) = VariableMean(m, m̄, f.f)
+(f::Operation)(m::Mean) = VariableMean(ConstantMean(unwrap(f.f)(1.0)), m, Fixed(*)) # Unitary operations on means
 function (f::Operation)(m::Union{Real, Parameter}, m̄::Mean)
     return unwrap(m) == 0 ? (f)(ZeroMean(), m̄) : VariableMean(ConstantMean(m), m̄, f.f)
 end

@@ -75,52 +75,8 @@ end
     return y[end-23:end]
 end
 
-# Temporary implementations
-# regularised covariance matrix using the more sophisticated Ledoit-Wolf approach
-@everywhere function cov_LW(X)
-    n = size(X)[1]
-    p = size(X)[2]
-
-    S = cov(X, 1, false)
-    Y = X .- mean(X, 1)
-    m = trace(S) / p
-    d2 = vecnorm(S .- m .* eye(S))^2 / p
-    b2 = 0.0
-    for k=1:n
-        y = Y[k,:]
-        b2 += vecnorm(y*y' .- S)^2
-    end
-    b2 = b2 / n^2 / p
-    b2 = min(b2, d2)
-    if b2 == d2
-        println("WARNING: a2 is zero!")
-    end
-    a2 = d2 - b2
-    return (b2 / d2 * m) .* eye(S) .+ (a2 / d2) .* S
-end
-
 @everywhere function mse(means, y_true)
     return mean((y_true .- means).^2)
-end
-
-@everywhere function mll_var(means, vars, y_true)
-    return 0.5 * mean(log.(2π .* vars)) .+ 0.5 * mean((y_true .- means).^2 ./ vars)
-end
-
-@everywhere function mll_cov(means, covs, y_true)
-    h = size(means)[1]
-    n = size(means)[2]
-    mll = 0.0
-    for i=1:h
-        C = covs[i,:,:]
-        for j=1:n
-            C[j,j] += GPForecasting._EPSILON_
-        end
-        L = chol(Symmetric(C))'
-        z = L \ (y_true[i,:] .- means[i,:])
-        mll += 0.5 * (n * log(2π) + 2.0 * sum(log.(diag(L))) + dot(z,z))
-    end
-    return mll / h
 end
 
 @everywhere function damec_exp(
