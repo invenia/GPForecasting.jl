@@ -7,14 +7,15 @@ export minimise, learn
         trace=true,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
+        summary = false,
     ) -> Vector
 
 Minimise objective funcion `f`, starting with initial configuration `x_init`, for a miaximum
 `its` iterations. If `trace`, runs verbose version. `alphaguess` and `linesearch` are the
 initial and optimisation linesearches. Returns the optimised parameters. `f`
-must be a function of `x` only.
+must be a function of `x` only. If `summary` is set to true, then the entire output of the
+optimizer is returned (for debugging/experimental purposes). Else, simply the minimizer is returned.
 """
-
 function minimise(
     f::Function,
     x_init::Vector;
@@ -22,13 +23,14 @@ function minimise(
     trace=true,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
+    summary = false,
 )
 
     ∇grad   = ∇(f)
     function grad!(storage::Vector, x::Vector)
         storage[:] = ∇grad(x)[1]
     end
-    return optimize(
+    res = optimize(
         f,
         grad!,
         x_init,
@@ -42,8 +44,10 @@ function minimise(
             iterations = its,
             show_trace = trace,
         ),
-    ).minimizer
+    )
 
+    # Return the full result or just the minimizer
+    return (summary ? res : res.minimizer)
 end
 
 """
@@ -56,6 +60,7 @@ end
         trace=true,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
+        summary = false,
     ) -> GP
 
 Obtain the parameters that minimise the `obj` of a `gp` over points `x` with observation
@@ -63,6 +68,8 @@ values `y`. `obj` can be any function of `gp`, `x`, `y` and `Θ_init` (only). `�
 determines the starting point. `its` is the miaximum number of iterations. If `trace`,
 runs verbose version. `alphaguess` and `linesearch` are the
 initial and optimisation linesearches. Returns a `GP` with the optimised parameters.
+If `summary` is set to true, then the entire output of the optimizer is returned
+(for debugging/experimental purposes). Else, simply the minimizer is returned.
 """
 function learn(
     gp::GP,
@@ -74,6 +81,7 @@ function learn(
     trace=true,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
+    summary = false,
 )
     Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
     Θ_opt = minimise(
@@ -83,9 +91,16 @@ function learn(
         trace=trace,
         alphaguess=alphaguess,
         linesearch=linesearch,
+        summary = summary,
     )
-    return GP(gp.m, set(gp.k, Θ_opt)) # Again, assuming we are only optimising kernels
+
+    # Again, assuming we are only optimising kernels
     # Got to overload if we want parameters in the means as well
+    if summary == true
+        return Θ_opt, GP(gp.m, set(gp.k, Θ_opt.minimizer))
+    elseif summary == false
+        return GP(gp.m, set(gp.k, Θ_opt))
+    end
 end
 
 #NOTE: The code below currently breaks due to Nabla issues. TODO: Fix it.

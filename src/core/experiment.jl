@@ -23,7 +23,11 @@ function experiment(
     exp_fn = exp_config["experiment_function"]
     try srand(exp_config["seed"]) catch srand(seed) end # Set the seed for pseudorandomness
 
-    results = pmap(product(parameters...), on_error = ex -> string(ex)) do param
+    results = pmap(
+                product(parameters...),
+                on_error = ex -> (info(GPForecasting.LOGGER, string(ex)); string(ex)),
+                ) do param
+
         if trace info(LOGGER, "Testing Parameter Configuration: $param") end
         tic()
         res = Dict{String, Any}(
