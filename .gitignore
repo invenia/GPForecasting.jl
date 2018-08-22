@@ -1,0 +1,34 @@
+.DS_Store
+/docs/build/
+/docs/site/
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+*.png
+# *.gif # Allow gifs, because they will automatically be tracked by git-lfs
+*.jld2
+*.cov
+*.orig # Ignore original files created by vimdiff
+/*/*.orig
+/*/*/*.orig
+*.jl.orig* # Ignore original files created by vimdiff
+/Icon*
+/scripts/Data/
+/scripts/TestPlots/
+/.smt/
+/bin/Test_Plots/
+/bin/gifs/
+/bin/Data/
+/load_analysis/Data/
+/*/Icon*
+/*/*/Icon*
+*.dat
+/*/*.dat
+/datasets/DF_train.csv
+
+# From Jan 26 2018 code review by Curtis
+/src/Icon*
+/test/Icon*
+/notes/Experimentation/MEC Forecasting Experiments/Icon*
+/notes/Model Description/Icon*
+/notes/Experimentation/GPU Experiments/Icon*
