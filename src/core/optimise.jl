@@ -7,7 +7,6 @@ export minimise, learn, learn_summary, minimise_summary
         trace=true,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
-        summary = false,
     ) -> Vector
 
 Minimise objective funcion `f`, starting with initial configuration `x_init`, for a miaximum
@@ -56,7 +55,6 @@ end
         trace=true,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
-        summary = false,
     ) -> Optim.jl Optimization Object
 
 Like `minmise()`, but returns a summary of the optimization results.
@@ -104,7 +102,6 @@ end
         trace=true,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
-        summary = false,
     ) -> GP
 
 Obtain the parameters that minimise the `obj` of a `gp` over points `x` with observation
@@ -142,7 +139,7 @@ function learn(
 end
 
 """
-    learn(gp::GP,
+    learn_summary(gp::GP,
         x,
         y,
         obj::Function;
@@ -151,7 +148,6 @@ end
         trace=true,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
-        summary = false,
     ) -> Optim.jl Optimization Object, GP
 
 Like `learn()`, but returns a tuple with the summary of the optimization procedure and the learned GP.
