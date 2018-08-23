@@ -144,12 +144,12 @@ end
             tic()
             info(GPForecasting.LOGGER, "Split $split, Kernel $(q)")
 
-            # Clean up the x matrix from missing values
+            # Remove type "Missing"
             for ξ in 1:size(dat[split]["train_x"], 2)
                 dat[split]["train_x"][ξ] = disallowmissing(dat[split]["train_x"][ξ])
                 dat[split]["test_x"][ξ] = disallowmissing(dat[split]["test_x"][ξ])
             end
-            # Clean up the y matrix
+            # Remove type "Missing"
             dat[split]["train_y"][1] = disallowmissing(dat[split]["train_y"][1])
             dat[split]["test_y"][1] = disallowmissing(dat[split]["test_y"][1])
 
