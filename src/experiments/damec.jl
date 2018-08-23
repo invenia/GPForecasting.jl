@@ -8,23 +8,23 @@ end
 
 source_damec() = "damec.jl"
 
-@everywhere log_transform(x) = sign.(x).*log.(abs.(x) .+ 1)
-@everywhere inv_log_transform(x) = sign.(x).*(exp.(abs.(x)) .- 1)
+log_transform(x) = sign.(x).*log.(abs.(x) .+ 1)
+inv_log_transform(x) = sign.(x).*(exp.(abs.(x)) .- 1)
 
 # Function computing weights for the exponential model
-@everywhere function w(t::Union{AbstractArray}, n_w::Integer)
-    λ = 1-exp(-4/(7*n_w))
+function w(t::AbstractArray, n_w::Integer)
+    λ = 1-exp(-4/(7*n_w)) # Only tested for n_w = 3
     weights = λ.*(1 .- λ).^(1.-t)
     return weights / sum(weights)
 end
 
 # Calculates the weighted mean from data and weights, used in the exponential model
-@everywhere function wmean(y, w)
+function wmean(y, w)
     return sum(y .* w, 1)[:]
 end
 
 # The weighted exponential model by letif, as used in MCC experiments.
-@everywhere function weighted_exponential_model(y_train, n_w::Integer)
+function weighted_exponential_model(y_train, n_w::Integer)
 
     y_pred_mean = zeros(24, size(y_train)[2])
     for hour = 1:24
@@ -35,7 +35,7 @@ end
 end
 
 # A simple quadratic model trained over the data, returning a 24 hour forecast
-@everywhere function quadratic_model(x_train, x_test, y_train; train_hours = 12)
+function quadratic_model(x_train, x_test, y_train; train_hours = 12)
 
     # Prepare data
     x1 = float.(reshape(x_train[:time][end-(train_hours - 1):end], :, 1))
@@ -51,7 +51,7 @@ end
     return f_test(res)
 end
 
-@everywhere function quadratic_model_load(x_train, x_test, y_train; train_hours = 12)
+function quadratic_model_load(x_train, x_test, y_train; train_hours = 12)
 
     # Prepare data
     x1 = float.(reshape(x_train[:time][end-(train_hours - 1):end], :, 1))
@@ -70,16 +70,16 @@ end
 end
 
 # A simple model that forecasts the previous day as the next
-@everywhere function previous_day_model(y_train)
+function previous_day_model(y_train)
     y = disallowmissing(reshape(y_train, :, 1))
     return y[end-23:end]
 end
 
-@everywhere function mse(means, y_true)
+function mse(means, y_true)
     return mean((y_true .- means).^2)
 end
 
-@everywhere function damec_exp(
+function damec_exp(
     n_w::Int, # number of training weeks
     group::Int, # which group to run
     its::Int = 200, #Number of maximum optimization iterations
@@ -125,7 +125,7 @@ end
         (kl3 ← :day_ahead_load_ID3) *
         (kl4 ← :day_ahead_load_ID4)
     )
-    κs = [κ₁, κ₂, κ₃, κ₄]
+    κs = [κ₁, κ₂]
 
     # Run the experiment
     out = Dict(
@@ -230,7 +230,7 @@ dictionary references the `experiment_function`, which should contain your exper
 """
 function damec()
     parameters = [
-        [3],
+        [2],
         [1],
         ]
 
@@ -239,6 +239,8 @@ function damec()
         "parameters" => parameters,
         "experiment_function" => damec_exp,
         "seed" => 42,
+        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
+        "date" => now(),
     )
     return configuration
 end

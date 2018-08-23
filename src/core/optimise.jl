@@ -44,7 +44,6 @@ function minimise(
         ),
     )
 
-    # Return the full result or just the minimizer
     return res.minimizer
 end
 
@@ -88,7 +87,6 @@ function minimise_summary(
         ),
     )
 
-    # Return the full result or just the minimizer
     return res
 end
 
