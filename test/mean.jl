@@ -44,6 +44,14 @@
     @test isa(μ8, ZeroMean)
     @test isa(μ8 * μ1, ZeroMean)
     @test μ8 + μ1 == μ1
+    @test μ1 + μ8 == μ1
+    @test 3μ8 == μ8
+    @test (3 + μ8)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_
+    @test (μ8 + 3)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_
+    @test (μ8 - 3)(x) ≈ ConstantMean(-3.)(x) atol = _ATOL_
+    @test (3 - μ8)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_
+    @test (3 ^ μ8)(x) ≈ ConstantMean(1.)(x) atol = _ATOL_
+    @test (μ8 ^ 3)(x) ≈ ConstantMean(0.0)(x) atol = _ATOL_
 
     # @test_throws ErrorException μ11 = μ6 / μ8
     # Altered to the default julia behaviour: 1/0 = Inf
@@ -62,10 +70,11 @@
     x = 0:0.1:1
     μ₁ = ConstantMean(Positive(5.0)) ^ (-1.0)
     μ₂ = FunctionMean(sin) ^ (-1.0)
-    μ₃ = μ₁ + μ₂
+    μ₃ = μ₁ + μ₂ + (3.0 ^ ScaledMean(2.0))
     @test μ₁(x) ≈ (5.0 ^ (-1.0))*ones(size(x, 1)) atol = _ATOL_
     @test μ₂(x) ≈ (sin.(x)).^(-1.0) atol = _ATOL_
-    @test μ₃(x) ≈ μ₁(x) + μ₂(x) atol = _ATOL_
+    @test μ₃(x) ≈ μ₁(x) + μ₂(x) + (3.0 ^ ScaledMean(2.0))(x) atol = _ATOL_
+    @test ConstantMean(2.0)(x) ≈ ScaledMean(2.0)(x) atol = _ATOL_
 
     # Test Matrix Multiplication
     x = 0:1:5

@@ -27,4 +27,9 @@
     ngp = learn(gp, x, y, objective, its=3, K_U_cycles=2, trace=false)
     Ug = GPForecasting.unwrap(gp.k.U)
     @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_
+
+    # Test that the summary is outputted when called
+    out = learn_summary(gp, x, y, objective, its=3, trace=false)
+    @test size(out, 1) == 2
+    @test isa(out[2], GP) == true
 end

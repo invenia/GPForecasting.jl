@@ -13,6 +13,7 @@ include("experiment_template.jl")
 include("basicLMM.jl")
 include("basicOLMM.jl")
 include("hour_loadLMM.jl")
+include("damec.jl")
 # include("indep.jl")
 include("initialisedLMM.jl")
 include("utils.jl")
@@ -33,6 +34,7 @@ function list_experiments()
         :hour_load,
         :indep,
         :initialisedLMM,
+        :damec,
     ]
 end
 
