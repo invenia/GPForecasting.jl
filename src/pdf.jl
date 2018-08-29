@@ -136,11 +136,11 @@ end
     # These decouple amongst different latent processes, so we can compute one at time.
     yl = y * P'
     for i in 1:m
-        proj_noise = (unwrap(gp.k.σ²)/S_sqrt[i] + D[i]) * eye(n)
+        proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i]) * eye(n)
         Σlk = gp.k.ks[i](x)
         glk = Gaussian(zeros(n), proj_noise + Σlk)
-        gln = Gaussian(zeros(n), Σlk)
-        lpdf += logpdf(glk, y[:, i]) - logpdf(gln, y[:, i])
+        gln = Gaussian(zeros(n), proj_noise)
+        lpdf += logpdf(glk, yl[:, i]) - logpdf(gln, yl[:, i])
     end
     return lpdf
 end
