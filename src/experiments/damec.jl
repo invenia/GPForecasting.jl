@@ -12,8 +12,8 @@ log_transform(x) = sign.(x).*log.(abs.(x) .+ 1)
 inv_log_transform(x) = sign.(x).*(exp.(abs.(x)) .- 1)
 
 # Function computing weights for the exponential model
-function w(t::AbstractArray, n_w::Integer)
-    λ = 1-exp(-4/(7*n_w)) # Only tested for n_w = 3
+function w(t::Union{AbstractArray}, n_w::Integer)
+    λ = 1-exp(-4/(7*n_w))
     weights = λ.*(1 .- λ).^(1.-t)
     return weights / sum(weights)
 end
@@ -79,6 +79,64 @@ function mse(means, y_true)
     return mean((y_true .- means).^2)
 end
 
+function polynomial_model(x_train, x_test, y_train)
+
+    # Prepare data
+    t = float.(reshape(y_train, :, 1))[2:end-23]
+    he = float.(reshape(x_train[:HE], :, 1))[25:end]
+    L = float.(reshape(x_train[:day_ahead_load_ID2], :, 1))[25:end]
+    t_test = reshape(y_train[end-23:end], :, 1)
+    he_test = reshape(x_test[:HE], :, 1)
+    L_test = float.(reshape(x_test[:day_ahead_load_ID2], :, 1))
+    hod = collect(0:23)
+    y = disallowmissing(reshape(y_train, :, 1))[25:end]
+
+    # Standardise load
+    L_mean = mean(L)
+    L_std = std(L)
+    L = (L - L_mean) / L_std
+
+    # Standardise y
+    y_mean = mean(y)
+    y_std = std(y)
+    y = (y - y_mean) ./ y_std
+    t = (t - y_mean) ./ y_std
+
+    # Standardise test load and y
+    L_test = (L_test - L_mean) ./ L_std
+    t_test = (t_test - y_mean) ./ y_std
+
+    # Have to train 24 separate models, one for each hour of the day. So make an array?
+    he = collect(0:23)
+    models = []
+    for h in he
+        model = Dict(
+            "t" => reshape(t[x_train[2:end-23, :][:HE] .== h], :, 1),
+            "L" => reshape(L[x_train[25:end, :][:HE] .== h], :, 1), # (if size(reshape(L[x_train[25:end, :][:HE] .== h], :, 1), 1) == 21 return reshape(L[x_train[24:end, :][:HE] .== h], :, 1)[1:20] else return reshape(L[x_train[24:end, :][:HE] .== h], :, 1) end ),
+            "t_test" => reshape(t_test[x_train[end-23:end, :][:HE] .== h], :, 1),
+            "L_test" => reshape(L_test[x_test[:HE] .== h], :, 1),
+            "y" => reshape(y[x_train[25:end, :][:HE] .== h], :, 1),
+        )
+        push!(models, model)
+    end
+
+    # Now train each model and concatenate the predictions:
+    ŷ_test = []
+    for model in models
+        ξ = hcat(ones(model["t"]), model["t"], model["L"], model["L"].^2, model["L"].^3)'
+        ξ_test = hcat(ones(model["t_test"]), model["t_test"], model["L_test"], model["L_test"].^2, model["L_test"].^3)'
+        model["θ"] = model["y"]' * pinv(ξ)
+        model["ŷ_test"] = (model["θ"] * ξ_test)'
+        # model["ŷ"] = (model["θ"] * ξ)' # Used for debugging, seeing if training properly
+        push!(ŷ_test, model["ŷ_test"][1])
+    end
+
+    return ŷ_test .* y_std + y_mean
+end
+# The asymmetric linex loss: https://warwick.ac.uk/fac/soc/wbs/subjects/finance/research/wpaperseries/1999/99-82.pdf
+# e = truth - forecast. Underforecasting should be penalized more than overforecasting, so α should be negative.
+linex(e, α::Real=-0.2) = mean(exp.(-α .* e) .+ α .* e .- 1)
+
 function damec_exp(
     n_w::Int, # number of training weeks
     group::Int, # which group to run
@@ -97,6 +155,7 @@ function damec_exp(
     k2 = 0.4 * stretch(EQ(), 50.1*2.5*2) * periodicise(stretch(EQ(), 1.01*7), Fixed(24.0*7))
     k3 = 0.05 * stretch(RQ(5.11), 1.01*5)
     k4 = 0.05 * stretch(MA(1/2), 1.01)
+    k5 = 0.05 * DiagonalKernel()
     kl1 = 2.1 * stretch(EQ(), 30.05)
     kl2 = 2.1 * stretch(EQ(), 30.05)
     kl3 = 2.1 * stretch(EQ(), 30.05)
@@ -104,28 +163,28 @@ function damec_exp(
 
     # Define model
     κ₁ = (
-        ((k0 + k1 + k2 + k3 + k4) ← :time) +
+        ((k0 + k1 + k2 + k3 + k4 + k5) ← :time) +
         (kl1 ← :day_ahead_load_ID2)
     )
     κ₂ = (
-        ((k0 + k1 + k2 + k3 + k4) ← :time) *
+        ((k0 + k1 + k2 + k3 + k4 + k5) ← :time) *
         (kl1 ← :day_ahead_load_ID2)
     )
     κ₃ = (
-        ((k0 + k1 + k2 + k3 + k4) ← :time) +
+        ((k0 + k1 + k2 + k3 + k4 + k5) ← :time) +
         (kl1 ← :day_ahead_load_ID1) +
         (kl2 ← :day_ahead_load_ID2) +
         (kl3 ← :day_ahead_load_ID3) +
         (kl4 ← :day_ahead_load_ID4)
     )
     κ₄ = (
-        ((k0 + k1 + k2 + k3 + k4) ← :time) *
+        ((k0 + k1 + k2 + k3 + k4 + k5) ← :time) *
         (kl1 ← :day_ahead_load_ID1) *
         (kl2 ← :day_ahead_load_ID2) *
         (kl3 ← :day_ahead_load_ID3) *
         (kl4 ← :day_ahead_load_ID4)
     )
-    κs = [κ₁, κ₂]
+    κs = [κ₁, κ₂, κ₃, κ₄]
 
     # Run the experiment
     out = Dict(
@@ -144,12 +203,12 @@ function damec_exp(
             tic()
             info(GPForecasting.LOGGER, "Split $split, Kernel $(q)")
 
-            # Remove type "Missing"
+            # Clean up the x matrix from missing values
             for ξ in 1:size(dat[split]["train_x"], 2)
                 dat[split]["train_x"][ξ] = disallowmissing(dat[split]["train_x"][ξ])
                 dat[split]["test_x"][ξ] = disallowmissing(dat[split]["test_x"][ξ])
             end
-            # Remove type "Missing"
+            # Clean up the y matrix
             dat[split]["train_y"][1] = disallowmissing(dat[split]["train_y"][1])
             dat[split]["test_y"][1] = disallowmissing(dat[split]["test_y"][1])
 
@@ -182,11 +241,19 @@ function damec_exp(
             inverted_var = var(inverted_posterior_samples, 2);
 
             # Calculate alternative model metrics
+            ŷ_test = polynomial_model(x_train, x_test, y_train)
             other_model_metrics = Dict{String, Any}(
                 "mse_quad" => mse(quadratic_model(x_train, x_test, y_train, train_hours = 24*7), y_test),
                 "mse_quad_load" => mse(quadratic_model_load(x_train, x_test, y_train, train_hours = 24*7*2), y_test),
                 "mse_prev_day" => mse(previous_day_model(y_train), y_test),
                 "mse_weighted" => mse(weighted_exponential_model(y_train, n_w), y_test),
+                "mse_polynomial" => mse(ŷ_test, y_test),
+                "linex_quad" => linex(y_test .- quadratic_model(x_train, x_test, y_train, train_hours = 24*7)),
+                "linex_quad_load" => linex(y_test .- quadratic_model_load(x_train, x_test, y_train, train_hours = 24*7*2)),
+                "linex_prev_day" => linex(y_test .- previous_day_model(y_train)),
+                "linex_weighted" => linex(y_test .- weighted_exponential_model(y_train, n_w)),
+                "linex_polynomial" => linex(y_test .- ŷ_test),
+
             );
 
             # Calculate gp metrics
@@ -197,6 +264,7 @@ function damec_exp(
                 "mll_joint_log" => ModelAnalysis.mll_joint(log_means, pos.k(x_test), (log_transform(y_test) .- log_y_train_mean)[:]),
                 "mll_marginal_log" => ModelAnalysis.mll_marginal(log_means, log_vars[:], (log_transform(y_test) .- log_y_train_mean)[:]),
                 "picp" => ModelAnalysis.picp(q05, q95, y_test[:]),
+                "linex" => linex(y_test - inverted_μ)
             );
 
             # Save results
@@ -218,7 +286,7 @@ function damec_exp(
 end
 
 """
-    set_parameters()
+    damec()
 
 This function sets the parameters of your experiment.
 The first dictionary, `parameters`, should be populated with `string => AbstractArray`
