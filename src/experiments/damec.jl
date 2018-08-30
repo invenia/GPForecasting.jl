@@ -13,7 +13,7 @@ inv_log_transform(x) = sign.(x).*(exp.(abs.(x)) .- 1)
 
 # Function computing weights for the exponential model
 function w(t::Union{AbstractArray}, n_w::Integer)
-    λ = 1-exp(-4/(7*n_w))
+    λ = 1-exp(-4/(7*n_w)) # Only tested for n_w = 3
     weights = λ.*(1 .- λ).^(1.-t)
     return weights / sum(weights)
 end
@@ -203,12 +203,12 @@ function damec_exp(
             tic()
             info(GPForecasting.LOGGER, "Split $split, Kernel $(q)")
 
-            # Clean up the x matrix from missing values
+            # Remove type "Missing"
             for ξ in 1:size(dat[split]["train_x"], 2)
                 dat[split]["train_x"][ξ] = disallowmissing(dat[split]["train_x"][ξ])
                 dat[split]["test_x"][ξ] = disallowmissing(dat[split]["test_x"][ξ])
             end
-            # Clean up the y matrix
+            # Remove type "Missing"
             dat[split]["train_y"][1] = disallowmissing(dat[split]["train_y"][1])
             dat[split]["test_y"][1] = disallowmissing(dat[split]["test_y"][1])
 
