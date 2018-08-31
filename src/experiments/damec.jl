@@ -12,7 +12,7 @@ log_transform(x) = sign.(x).*log.(abs.(x) .+ 1)
 inv_log_transform(x) = sign.(x).*(exp.(abs.(x)) .- 1)
 
 # Function computing weights for the exponential model
-function w(t::Union{AbstractArray}, n_w::Integer)
+function w(t::AbstractArray, n_w::Integer)
     λ = 1-exp(-4/(7*n_w)) # Only tested for n_w = 3
     weights = λ.*(1 .- λ).^(1.-t)
     return weights / sum(weights)
