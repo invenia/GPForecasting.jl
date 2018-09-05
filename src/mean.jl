@@ -5,7 +5,7 @@ using Nabla
 using Missings
 import Base: *, +, /, -, \, ^
 
-type Operation
+struct Operation
     f::Fixed
     Operation(f::Function) = new(Fixed(f))
 end
@@ -23,7 +23,7 @@ end
 
 Mean that follows function `m`.
 """
-type FunctionMean <: Mean
+struct FunctionMean <: Mean
     m::Fixed
     FunctionMean(m::Union{Fixed, Function}) = isa(m, GPForecasting.Fixed) ? new(m) : new(Fixed(m))
 end
@@ -41,7 +41,7 @@ Posterior mean for a GP.
 - `U`: Cholesky decomposition of the covariance matrix.
 - `y`: values corresponding to the points `x`.
 """
-type PosteriorMean <: Mean
+struct PosteriorMean <: Mean
     k::Kernel
     m::Mean
     x
@@ -67,7 +67,7 @@ end
 
 The most primitive building block of a Mean.
 """
-type ConstantMean <: Mean
+struct ConstantMean <: Mean
     ConstantMean() = new()
     ConstantMean(x) = unwrap(x) == 0 ? ZeroMean() : ScaledMean(x, ConstantMean())
 end
@@ -79,7 +79,7 @@ end
 
 Corresponds to a primitive mean `\mu` multiplied by a `scale`
 """
-type ScaledMean <: Mean
+struct ScaledMean <: Mean
     scale
     μ::Mean
     ScaledMean(s) = ScaledMean(s, ConstantMean())
@@ -96,7 +96,7 @@ end
 
 Zero mean. Returns zero.
 """
-type ZeroMean <: Mean; end
+struct ZeroMean <: Mean; end
 (::ZeroMean)(x) = zeros(size(x, 1))
 show(io::IO, k::ZeroMean) = print(io, "𝟎")
 (f::Operation)(z::ZeroMean, z̄::ZeroMean) = isa(unwrap(f.f), typeof(/)) ? 0/0 : z # Return default julia behaviour if division
@@ -122,7 +122,7 @@ end
 
 A mean that cannot be reduced to a ConstantMean.
 """
-type VariableMean <: Mean
+struct VariableMean <: Mean
     μ::Union{Mean, Parameter, Real}
     μ̄::Union{Mean, Parameter, Real}
     f::Fixed

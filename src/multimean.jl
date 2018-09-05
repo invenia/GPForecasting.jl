@@ -8,7 +8,7 @@ abstract type MultiOutputMean <: Mean end
 Mean for multi-output problems. Takes in a vector of `Mean`s, with each representing a
 different output.
 """
-type MultiMean <: MultiOutputMean
+struct MultiMean <: MultiOutputMean
     m::Vector{Mean}
 end
 (mm::MultiMean)(x) = hcat([m(x) for m in mm.m]...)
@@ -20,7 +20,7 @@ show(io::IO, k::MultiMean) = print(io, "$(k.m)")
 
 Posterior mean for the Linear Mixing Model.
 """
-type LMMPosMean <: MultiOutputMean
+struct LMMPosMean <: MultiOutputMean
     k::LMMKernel
     x
     Z
@@ -64,7 +64,7 @@ end
 
 Posterior mean for the Orthogonal Linear Mixing Model.
 """
-type OLMMPosMean <: MultiOutputMean
+struct OLMMPosMean <: MultiOutputMean
     k::OLMMKernel
     ms::Vector{PosteriorMean}
     x

@@ -83,7 +83,7 @@ isconstrained(x::Parameter) = isconstrained(x.p)
 
 Type for parameters that should not be optimised.
 """
-type Fixed{T} <: Parameter
+mutable struct Fixed{T} <: Parameter
     p::T
 end
 pack(x::Fixed) = Float64[]
@@ -96,7 +96,7 @@ isconstrained(x::Fixed) = true
 Type for parameters that should be kept positive during the optimisation process. Will be
 transformed to the log space before optimisation.
 """
-type Positive{T} <: Parameter
+mutable struct Positive{T} <: Parameter
     p::T
     ε::Float64
 end
@@ -113,7 +113,7 @@ isconstrained(x::Positive) = true
 Type for parameters that should be kept within `lb` and `ub` during the optimisation process.
 Optional `ε` is used to map [lb, ub] to [lb + ε, ub - ε] for numerical stability.
 """
-type Bounded{T} <: Parameter
+mutable struct Bounded{T} <: Parameter
     p::T
     lb
     ub
@@ -155,7 +155,7 @@ isconstrained(x::Bounded) = true
 Type for allowing moving bounds for `Bounded` types. Calls a function `f` over the unwrapped
 arguments `args`.
 """
-type DynamicBound
+mutable struct DynamicBound
     f::Function
     args::Vector
 end
@@ -166,7 +166,7 @@ unwrap(db::DynamicBound) = db.f(unwrap.(db.args)...)
 
 Type for parameters that can be identified by a `name`.
 """
-type Named{T} <: Parameter
+mutable struct Named{T} <: Parameter
     p::T
     name::String
 end

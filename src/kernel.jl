@@ -56,7 +56,7 @@ Build covariance matrix between `x` and `y`.
 
     (k::PosteriorKernel)(x) = k(x, x)
 """
-type PosteriorKernel <: Kernel
+mutable struct PosteriorKernel <: Kernel
     k::Kernel
     x
     U
@@ -92,7 +92,7 @@ end
 
 Squared exponential kernel. Computes exp((-1/2) * |x - x′|²).
 """
-type EQ <: Kernel end
+mutable struct EQ <: Kernel end
 (::EQ)(x, y) = exp.((-0.5) .* sq_pairwise_dist(x, y))
 (k::EQ)(x) = k(x, x)
 show(io::IO, k::EQ) = print(io, "EQ()")
@@ -102,7 +102,7 @@ show(io::IO, k::EQ) = print(io, "EQ()")
 
 Rational quadratic kernel. Computes (1 + ((x - x′)² / (2α)))^α.
 """
-type RQ <: Kernel
+mutable struct RQ <: Kernel
     α
     RQ(α) = isconstrained(α) ? new(α) : new(Positive(α))
 end
@@ -110,7 +110,7 @@ end
 (k::RQ)(x) = k(x, x)
 show(io::IO, k::RQ) = print(io, "RQ($(k.α))")
 
-type SimilarHourKernel <: Kernel
+mutable struct SimilarHourKernel <: Kernel
     hdeltas::Fixed{Int}
     coeffs
     function SimilarHourKernel(hdeltas::Union{Fixed{Int}, Int}, coeffs)
@@ -152,7 +152,7 @@ end
 
 Matérn kernel. Implemented only for ν in [1/2, 3/2, 5/2].
 """
-type MA <: Kernel
+mutable struct MA <: Kernel
     ν::Fixed
 end
 MA(n::Real) = MA(Fixed(n))
@@ -177,7 +177,7 @@ show(io::IO, k::MA) = print(io, "MA($(k.ν))")
 Kernel for binary inputs. Has three possible outcomes: Θ₁ if x = y = 1, Θ₂ if x = y = 0 and
 Θ₃ if x ≠ y. Naturally, this only accepts unidimensional inputs.
 """
-type BinaryKernel <: Kernel
+mutable struct BinaryKernel <: Kernel
     Θ₁
     Θ₂
     Θ₃
@@ -209,7 +209,7 @@ BinaryKernel(a::Real, b::Real) = BinaryKernel(Positive(a), Positive(b), Fixed(0)
 Result from the multiplication of a `Kernel` by a number or `Parameter`.
 Scales the kernel variance.
 """
-type ScaledKernel <: Kernel
+mutable struct ScaledKernel <: Kernel
     scale
     k::Kernel
 end
@@ -250,7 +250,7 @@ show(io::IO, k::ScaledKernel) = print(io, "($(k.scale) * $(k.k))")
 
 Represent any `Kernel` with length scale stretched to `stretch`.
 """
-type StretchedKernel <: Kernel
+mutable struct StretchedKernel <: Kernel
     stretch
     k::Kernel
 end
@@ -289,7 +289,7 @@ show(io::IO, k::StretchedKernel) = print(io, "($(k.k) ▷ $(k.stretch))")
 
 Kernel built by adding two kernels, `k1` and `k2`.
 """
-type SumKernel <: Kernel
+mutable struct SumKernel <: Kernel
     k1::Kernel
     k2::Kernel
 end
@@ -304,7 +304,7 @@ isMulti(k::SumKernel) = isMulti(k.k1) || isMulti(k.k2)
 
 Kernel built by multiplying two kernels, `k1` and `k2`.
 """
-type ProductKernel <: Kernel
+mutable struct ProductKernel <: Kernel
     k1::Kernel
     k2::Kernel
 end
@@ -334,7 +334,7 @@ isMulti(k::ProductKernel) = isMulti(k.k1) || isMulti(k.k2)
 
 Kernel built by defining a period `T` for kernel `k`.
 """
-type PeriodicKernel <: Kernel
+mutable struct PeriodicKernel <: Kernel
     T
     k::Kernel
 end
@@ -360,7 +360,7 @@ periodicise(k::Kernel, l) = PeriodicKernel(isconstrained(l) ? l : Positive(l), k
 
 A kernel `k` that acts on the column `col` of a dataframe. Allows for input selection.
 """
-type SpecifiedQuantityKernel <: Kernel
+mutable struct SpecifiedQuantityKernel <: Kernel
     col::Fixed
     k::Kernel
 end
@@ -377,7 +377,7 @@ isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 
 Kernel that returns 1.0 for every pair of points.
 """
-type ConstantKernel <: Kernel end
+mutable struct ConstantKernel <: Kernel end
 (k::ConstantKernel)(x, y) = ones(Float64, size(x, 1), size(y, 1))
 (k::ConstantKernel)(x) = k(x, x)
 (k::ConstantKernel)(x::Real, y::Real) = 1.0
@@ -395,7 +395,7 @@ show(io::IO, k::ConstantKernel) = print(io, "𝟏")
 
 Zero kernel. Returns zero.
 """
-type ZeroKernel <: Kernel; end
+mutable struct ZeroKernel <: Kernel; end
 (::ZeroKernel)(x, y) = zeros(size(x, 1), size(y, 1))
 (k::ZeroKernel)(x) = k(x, x)
 (+)(k::Kernel, z::ZeroKernel) = k
@@ -417,7 +417,7 @@ show(io::IO, z::ZeroKernel) = print(io, "𝟎")
 
 Diagonal kernel. Has unitary variance.
 """
-type DiagonalKernel <: Kernel end
+mutable struct DiagonalKernel <: Kernel end
 function (::DiagonalKernel)(x, y)
     xl = [x[i, :] for i in 1:size(x, 1)]
     yl = [y[i, :]' for i in 1:size(y, 1)]
