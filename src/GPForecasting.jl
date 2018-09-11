@@ -64,7 +64,7 @@ Return GP with constant mean `n`.
 
 Return GP with zero mean.
 """
-type GP{K<:Kernel, M<:Mean} <: Process
+mutable struct GP{K<:Kernel, M<:Mean} <: Process
     m::M
     k::K
 end

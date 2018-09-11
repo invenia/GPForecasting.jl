@@ -15,7 +15,7 @@ size(x::Input, i::Int) = size(x.val, i)
 
 Type for inputs that correspond to noisy observations.
 """
-type Observed <: Input
+struct Observed <: Input
     val
 end
 
@@ -24,6 +24,6 @@ end
 
 Type for inputs that correspond to non-noisy observations.
 """
-type Latent <: Input
+struct Latent <: Input
     val
 end

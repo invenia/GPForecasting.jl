@@ -23,7 +23,7 @@ function reconstruct(x, others, children)
     return typeof(x)([_reconstruct!(field, others, children) for field in getfields(x)]...)
 end
 
-type TreeNode <: AbstractNode
+struct TreeNode <: AbstractNode
     x
     children::Vector{TreeNode}
 end

@@ -9,7 +9,7 @@ diag_outer, Js, Ms, sum_kron_J_ut, sum_kron_M, eye_sum_kron_M_ut, BlockDiagonal,
 import Base: size, diag, Matrix, chol, show, display, *, +, /, isapprox, transpose, Ac_mul_B,
 A_mul_Bc, getindex, ctranspose, det, eigvals, trace
 
-type BlockDiagonal{T} <: AbstractMatrix{T}
+struct BlockDiagonal{T} <: AbstractMatrix{T}
     blocks::Vector{<:AbstractMatrix{T}}
 end
 

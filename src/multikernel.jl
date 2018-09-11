@@ -27,7 +27,7 @@ Kernel that treats noisy and noise-free measurements. If both inputs are of the 
 - `k_true`: Kernel for noise-free measurements.
 - `k_noise`: Kernel to be added to `k_true` in case of noisy observations.
 """
-type NoiseKernel <: MultiOutputKernel
+mutable struct NoiseKernel <: MultiOutputKernel
     k_true::Kernel
     k_noise::Kernel
 end
@@ -175,7 +175,7 @@ General multi-output kernel.
 Create a kernel that computes the full covariance matrix for each of the kernels, as a block
 matrix.
 """
-type MultiKernel <: MultiOutputKernel
+mutable struct MultiKernel <: MultiOutputKernel
     k::Matrix{Kernel}
 end
 show(io::IO, k::MultiKernel) = print(io, "$(k.k)")
@@ -224,7 +224,7 @@ end
 Kernel for the naive implementation of the LMM. Stores a MultiKernel, but only uses the
 mixing matrix after the covariance has been computed. Still inefficient, but better.
 """
-type NaiveLMMKernel <: MultiOutputKernel
+mutable struct NaiveLMMKernel <: MultiOutputKernel
     H
     σ²
     k::MultiKernel
@@ -274,7 +274,7 @@ Default constructor.
 Make `m`, `p` and `H` `Fixed` and `σ²` `Positive`, while repeating `k` for all latent
 processes.
 """
-type LMMKernel <: MultiOutputKernel
+mutable struct LMMKernel <: MultiOutputKernel
     m # Number of latent processes
     p # Number of outputs
     σ² # Variance. Same for all latent processes if float, otherwise, vector of floats.
@@ -303,7 +303,7 @@ isMulti(k::LMMKernel) = unwrap(k.p) > 1
 
 Posterior kernel for the Linear Mixing Model.
 """
-type LMMPosKernel <: MultiOutputKernel
+mutable struct LMMPosKernel <: MultiOutputKernel
     k::LMMKernel
     x
     Z
@@ -432,7 +432,7 @@ Default constructor.
 Make `m`, `p` and `H` `Fixed` and `σ²` `Positive`, while repeating `k` for all latent
 processes.
 """
-type OLMMKernel <: MultiOutputKernel
+mutable struct OLMMKernel <: MultiOutputKernel
     m # Number of latent processes
     p # Number of outputs
     σ² # Observation noise
