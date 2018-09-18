@@ -97,12 +97,12 @@ function condition(
     S_sqrt = unwrap(gp.k.S_sqrt)
     yp = y * P'
     # condition gp.k.ks on y
-    Ks = []                                                                                  
-    for (k, s, d) in zip(gp.k.ks, S_sqrt, D)                                                 
-        kx = k(x)                                                                            
-        push!(Ks, kx + (σ²/s^2 + d) * eye(kx))                                               
+    Ks = []
+    for (k, s, d) in zip(gp.k.ks, S_sqrt, D)
+        kx = k(x)
+        push!(Ks, kx + (σ²/s^2 + d) * eye(kx))
     end
-    Us = [chol(K + _EPSILON_^2 * eye(K)) for K in Ks]
+    Us = [chol(Hermitian(K + _EPSILON_^2 * eye(K))) for K in Ks]
     ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
     ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
     # create the posterior mean
