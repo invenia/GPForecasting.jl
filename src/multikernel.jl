@@ -280,6 +280,40 @@ mutable struct LMMKernel <: MultiOutputKernel
     σ² # Variance. Same for all latent processes if float, otherwise, vector of floats.
     H # Mixing matrix, (p x m)
     ks::Vector{Kernel} # Kernels for the latent processes, m-long
+
+    function LMMKernel(
+        m, # Number of latent processes
+        p, # Number of outputs
+        σ², # Variance. Same for all latent processes if float, otherwise, vector of floats.
+        H, # Mixing matrix, (p x m)
+        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+    )
+        # Bunch of consistency checks
+        n_m = unwrap(m)
+        n_p = unwrap(p)
+        s_H = size(unwrap(H))
+        n_k = length(ks)
+
+        s_H == (0, 0) && warn("Initialising LMMKernel with placeholder `H`.")
+        n_k == 0 && warn("Initialising LMMKernel with placeholder `ks`.")
+
+        (s_H != (0, 0) && s_H != (n_p, n_m)) && throw(
+            ArgumentError("Expected `H` of size ($n_p, $n_m), got $s_H.")
+        )
+        (n_k != 0 && n_k != n_m) && throw(
+            ArgumentError("""
+                Expected $n_m kernels, got $n_k. Every latent process should have a kernel.
+            """)
+        )
+
+        return new(
+            m, # Number of latent processes
+            p, # Number of outputs
+            σ², # Variance. Same for all latent processes if float, otherwise, vector of floats.
+            H, # Mixing matrix, (p x m)
+            ks, # Kernels for the latent processes, m-long
+        )
+    end
 end
 size(k::LMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
 function show(io::IO, k::LMMKernel)
@@ -442,6 +476,74 @@ mutable struct OLMMKernel <: MultiOutputKernel
     U # Orthogonal component of the mixing matrix. This is already truncated!
     S_sqrt # Eigenvalues of the latent processes. This is already truncated!
     ks::Vector{Kernel} # Kernels for the latent processes, m-long
+
+    function OLMMKernel(
+        m, # Number of latent processes
+        p, # Number of outputs
+        σ², # Observation noise
+        D, # latent noise(s)
+        H, # Mixing matrix, (p x m)
+        P, # Projection matrix, (m x p)
+        U, # Orthogonal component of the mixing matrix. This is already truncated!
+        S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+    )
+        # Do a bunch of consistency checks
+        s_H = size(unwrap(H))
+        n_m = unwrap(m)
+        n_p = unwrap(p)
+        s_P = size(unwrap(P))
+        s_U = size(unwrap(U))
+        l_S_sqrt = length(unwrap(S_sqrt))
+        n_k = length(ks)
+
+        s_H == (0, 0) && warn("Initialising OLMMKernel with placeholder `H`.")
+        s_P == (0, 0) && warn("Initialising OLMMKernel with placeholder `P`.")
+        s_U == (0, 0) && warn("Initialising OLMMKernel with placeholder `U`.")
+        !isa(unwrap(S_sqrt), Vector) && throw(
+            ArgumentError("`S_sqrt` must be a `Vector` with the norms of the columns of `H`.")
+        )
+        l_S_sqrt == 0 && warn("Initialising OLMMKernel with placeholder `S_sqrt`.")
+        n_k == 0 && warn("Initialising OLMMKernel with placeholder `ks`.")
+
+        (n_k != 0 && n_k != n_m) && throw(
+            ArgumentError("""
+                Expected $n_m kernels, got $(n_k). Each latent process needs a kernel.
+            """)
+        )
+        (s_H != (0, 0) && s_H != (n_p, n_m)) && throw(
+            ArgumentError("""
+                Expected `H` of size ($n_p, $n_m), got $s_H.
+            """)
+        )
+        (s_P != (0, 0) && s_P != (n_m, n_p)) && throw(
+            ArgumentError("""
+                Expected `P` of size ($n_m, $n_p), got $s_P.
+            """)
+        )
+        (s_U != (0, 0) && s_U != (n_p, n_m)) && throw(
+            ArgumentError("""
+                Expected `U` of size ($n_p, $n_m), got $s_U.
+            """)
+        )
+        (l_S_sqrt != 0 && l_S_sqrt != n_m) && throw(
+            ArgumentError("""
+                Expected $n_m eigenvalues, got $(n_k). Each latent process needs a value.
+            """)
+        )
+
+        return new(
+            m, # Number of latent processes
+            p, # Number of outputs
+            σ², # Observation noise
+            D, # latent noise(s)
+            H, # Mixing matrix, (p x m)
+            P, # Projection matrix, (m x p)
+            U, # Orthogonal component of the mixing matrix. This is already truncated!
+            S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+            ks, # Kernels for the latent processes, m-long
+        )
+    end
 end
 function build_H_and_P(U, S_sqrt)
     H = U * diagm(S_sqrt)
