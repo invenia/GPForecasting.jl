@@ -84,14 +84,19 @@ end
 
     # composite kernel
     k = NoiseKernel(
-                    ( k_time ← :time ) * ( k_load ← :day_ahead_load_ID2 ),
-                    lat_noise * DiagonalKernel() ← :time)
+        ( k_time ← :time ) * ( k_load ← :day_ahead_load_ID2 ),
+        lat_noise * DiagonalKernel() ← :time,
+       )
 
     # Run the experiment
     # save results before (pre) and after (opt) optimisation
-    out = Dict("MSE_pre" => [], "MLL_COV_pre" => [], "MSEs_pre" => [], "MLL_COVs_pre" => [], "means_pre" => [], "hyper_pre" => [],
-               "MSE_opt" => [], "MLL_COV_opt" => [], "MSEs_opt" => [], "MLL_COVs_opt" => [], "means_opt" => [], "hyper_opt" => [],
-               "runtime" => [])
+    out = Dict(
+            "MSE_pre" => [], "MLL_COV_pre" => [], "MSEs_pre" => [], 
+            "MLL_COVs_pre" => [], "means_pre" => [], "hyper_pre" => [],
+            "MSE_opt" => [], "MLL_COV_opt" => [], "MSEs_opt" => [], 
+            "MLL_COVs_opt" => [], "means_opt" => [], "hyper_opt" => [],
+            "runtime" => [],
+              )
 
     info("Starting experiment...")
     for split in splits
