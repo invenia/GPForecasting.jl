@@ -7,7 +7,7 @@
     return mean((y_true .- means).^2)
 end
 
-@everywhere @unionise function log_pdf_indep(dist::Gaussian, x::AbstractArray)
+@everywhere @unionise function log_pdf_indep(dist::GPForecasting.Gaussian, x::AbstractArray)
     U = chol(dist)
     z = U' \ (x .- dist.μ)
     log_det = 2.0 * size(x, 2) * sum(log.(diag(U)))
