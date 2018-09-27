@@ -1,4 +1,5 @@
 # This is the most basic implementation of the IOLMM for MISO. Just shows how it works.
+@everywhere using GPForecasting
 @everywhere using CSV
 @everywhere using Nabla
 @everywhere using HelloBatch
@@ -7,7 +8,7 @@
     return mean((y_true .- means).^2)
 end
 
-@everywhere @unionise function log_pdf_indep(dist::GPForecasting.Gaussian, x::AbstractArray)
+@everywhere @unionise function log_pdf_indep(dist::Gaussian, x::AbstractArray)
     U = chol(dist)
     z = U' \ (x .- dist.μ)
     log_det = 2.0 * size(x, 2) * sum(log.(diag(U)))
@@ -47,7 +48,7 @@ end
     obs_noise::Float64, # observation noise (note that we are working on the standardised space)
     lat_noise::Float64, # latent noise
     its::Int, # number of gradient descent steps.
-    group::Int, # which group to run
+    splits::Vector{Int}, # which splits of the data to run for.
     datafile::AbstractString = "", # filename of data
     datapath::AbstractString = "", # path for the data.
 )
@@ -93,7 +94,7 @@ end
                "runtime" => [])
 
     info("Starting experiment...")
-    for split in collect( (group - 1)*10 + 43 + 90 : group*10 + 42 + 90 )
+    for split in splits
         tic();
         info("Split $split...")
         # get training and test outputs
@@ -245,7 +246,7 @@ function basicIOLMM()
         [0.1], # observation noise (std)
         [5.0], # latent noise
         [25],  # number of iterations
-        [1],   # group number, goes from 1-5 
+        [[133]],   # number of splits 
         ["DF_train_deltas_90.csv"],
         ["s3://invenia-research-datasets/ProbabilisticForecasting/MISO/v1"],
         ]
