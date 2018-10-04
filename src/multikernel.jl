@@ -531,6 +531,12 @@ mutable struct OLMMKernel <: MultiOutputKernel
                 Expected $n_m eigenvalues, got $(n_k). Each latent process needs a value.
             """)
         )
+        !(unwrap(H) ≈ unwrap(U) * diagm(unwrap(S_sqrt))) && throw(ArgumentError(
+            """
+            The mixing matrix, `H`, provided is not of the form `H = U * S`, with `U`
+            orthogonal and `S` diagonal. The OLMM requires such form.
+            """
+        ))
 
         return new(
             m, # Number of latent processes
