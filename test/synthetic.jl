@@ -192,4 +192,124 @@
         @test mse(vec(b), vec(y_test)) ≈ 0.8202143612660611  atol = _TOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.20612005452907958 atol = _TOL_
     end
+
+    @testset "Comparison of LMM/OLMM/SOLMM models" begin
+        srand(314159265)
+
+        n = 100
+        p = 5
+        m = 3
+
+        obs_noise = 0.1
+        lat_noise = 0.02
+
+        C = rand(p, p)
+
+        x = sort(rand(2n))
+        y = zeros(2n, p)
+        y[1,:] = rand(p)
+        for i=2:2n
+            y[i,:] = y[i-1,:] .+ rand(p) .- 0.5
+        end
+
+        y = y*C
+        x_train = x[1:2:end]
+        x_test = x[2:2:end]
+        y_train = y[1:2:end,:]
+        y_test = y[2:2:end,:]
+        mean_y_train = mean(y_train, 1)
+        std_y_train = std(y_train, 1)
+
+        y_train_standardised = (y_train .- mean_y_train) ./ std_y_train 
+
+        U, S, V = svd(cov(y_train_standardised))
+        H = (U * diagm(sqrt.(S)))[:,1:m]  
+
+        k1 = [(EQ() ▷ 10.0) for i=1:m]
+        k2 = [(EQ() ▷ (10.0 / i)) for i=1:m]
+
+        # lat_noise = 0.0
+
+        # LMM
+        gp = GP(LMMKernel(Fixed(m), Fixed(p), Positive(obs_noise), Fixed(H), k1))
+        lmm = condition(gp, x_train, y_train_standardised)
+        m_lmm = lmm.m(x_test)
+        k_lmm = lmm.k(x_test)
+
+        # OLMM
+        gp = GP(GP(OLMMKernel(m, p, obs_noise, 0.0, H, k1)))
+        olmm = condition(gp, x_train, y_train_standardised)
+        m_olmm = olmm.m(x_test)
+        k_olmm = olmm.k(x_test)
+
+        @test m_lmm ≈ m_olmm  atol = _TOL_
+        @test k_lmm ≈ k_olmm  atol = _TOL_
+
+        # LMM
+        gp = GP(LMMKernel(Fixed(m), Fixed(p), Positive(obs_noise), Fixed(H), k2))
+        lmm = condition(gp, x_train, y_train_standardised)
+        m_lmm = lmm.m(x_test)
+        k_lmm = lmm.k(x_test)
+
+        # OLMM
+        gp = GP(GP(OLMMKernel(m, p, obs_noise, 0.0, H, k2)))
+        olmm = condition(gp, x_train, y_train_standardised)
+        m_olmm = olmm.m(x_test)
+        k_olmm = olmm.k(x_test)
+
+        @test m_lmm ≈ m_olmm  atol = _TOL_
+        @test k_lmm ≈ k_olmm  atol = _TOL_
+
+        # obs_noise = 0.0
+
+        # OLMM
+        gp = GP(GP(OLMMKernel(m, p, 0.0, lat_noise, H, k1)))
+        olmm = condition(gp, x_train, y_train_standardised)
+        m_olmm = olmm.m(x_test)
+        k_olmm = blocks(hourly_cov(olmm.k, x_test))
+
+        # SOLMM
+        y_train_transformed = (H \ y_train_standardised')'
+        gp = GP(ZeroMean(), NoiseKernel(k1[1], lat_noise*DiagonalKernel()))
+        K = gp.k(Observed(x_train))
+        U = chol(K + GPForecasting._EPSILON_ .* eye(K))
+        k_ = gp.k(Latent(x_test), Latent(x_train))
+        L_y = U' \ y_train_transformed
+        k_U = k_ / U
+        means_ = k_U * L_y
+        vars_ = repmat(diag(gp.k(Observed(x_test)) - k_U * k_U'), 1, m)
+        m_solmm = (H * means_')'
+        k_solmm = []
+        for i = 1:n
+            push!(k_solmm, Matrix(Hermitian(H * diagm(vars_[i,:]) * H')))
+        end
+
+        @test m_solmm ≈ m_olmm  atol = _TOL_
+        @test k_solmm ≈ k_olmm  atol = _TOL_
+
+        # OLMM                                                                               
+        gp = GP(GP(OLMMKernel(m, p, 0.0, lat_noise, H, k2)))                                 
+        olmm = condition(gp, x_train, y_train_standardised)                                  
+        m_olmm = olmm.m(x_test)                                                              
+        k_olmm = blocks(hourly_cov(olmm.k, x_test))
+
+        # SOLMM
+        y_train_transformed = (H \ y_train_standardised')'
+        means_ = zeros(n, m)
+        vars_ = zeros(n, m)
+        for i = 1:m
+            gp = GP(ZeroMean(), NoiseKernel(k2[i], lat_noise*DiagonalKernel()))
+            solmm = condition(gp, Observed(x_train), y_train_transformed[:,i])
+            means_[:,i] = solmm.m(Observed(x_test))
+            vars_[:,i] = diag(solmm.k(Observed(x_test)))
+        end
+        m_solmm = (H * means_')'
+        k_solmm = []
+        for i = 1:n
+            push!(k_solmm, Matrix(Hermitian(H * diagm(vars_[i,:]) * H')))
+        end
+
+        @test m_solmm ≈ m_olmm  atol = _TOL_
+        @test k_solmm ≈ k_olmm  atol = _TOL_
+    end
 end
