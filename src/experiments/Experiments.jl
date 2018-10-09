@@ -12,6 +12,7 @@ using Missings
 include("experiment_template.jl")
 include("basicLMM.jl")
 include("basicOLMM.jl")
+include("basicIOLMM.jl")
 include("hour_loadLMM.jl")
 include("damec.jl")
 # include("indep.jl")
@@ -31,6 +32,7 @@ function list_experiments()
         :experiment_template,
         :basicLMM,
         :baiscOLMM,
+        :basicIOLMM,
         :hour_load,
         :indep,
         :initialisedLMM,
