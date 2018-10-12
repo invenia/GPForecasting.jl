@@ -18,6 +18,7 @@ include("damec.jl")
 # include("indep.jl")
 include("initialisedLMM.jl")
 include("utils.jl")
+include("comparePJM.jl")
 
 """
     list_experiments()
@@ -37,6 +38,7 @@ function list_experiments()
         # indep,
         initialisedLMM,
         damec,
+        comparePJM,
     ]
 end
 
