@@ -1,4 +1,4 @@
-getfields(x) = getfield.(x, fieldnames(x))
+getfields(x) = (getfield(x, i) for i in 1:nfields(x))
 
 abstract type AbstractNode end
 
@@ -9,8 +9,20 @@ extract_children(x::AbstractArray{<:AbstractNode}) = x[:]
 extract_others(x) = [x]
 extract_others(x::AbstractNode) = []
 extract_others(x::AbstractArray{<:AbstractNode}) = []
-children(x) = vcat(extract_children.(getfields(x))...)
-others(x) = vcat(extract_others.(getfields(x))...)
+
+"""
+    children(x) -> Vector{AbstractNode}
+
+Return a vector of all nodes directly referenced by `x`, including those in arrays.
+"""
+children(x) = reduce(vcat, AbstractNode[], (extract_children(field) for field in getfields(x)))
+
+"""
+    others(x) -> Vector{Any}
+
+Return all non-node fields (leaves) of `x`, i.e., everything not returned by [`children`](@ref).
+"""
+others(x) = reduce(vcat, Any[], (extract_others(field) for field in getfields(x)))
 
 # Reconstruct an instantiated type.
 _reconstruct!(field, others, children) = pop!(others)
@@ -18,11 +30,25 @@ _reconstruct!(field::AbstractNode, others, children) = pop!(children)
 function _reconstruct!(field::AbstractArray{<:AbstractNode}, others, children)
     return reshape([pop!(children) for _ in 1:length(field)], size(field)...)
 end
+
+"""
+    reconstruct(x::T, others, children) -> T
+
+Given an example instance of `T`, construct a `T` from vectors similar to those generated
+by calling [`children`](@ref) and [`others`](@ref) on an instance of `T`.
+Used in [`set`](@ref)/[`unpack`](@ref) to reconstruct types from nodes after parameters
+have been updated.
+"""
 function reconstruct(x, others, children)
     others, children = reverse.(copy.(collect.((others, children))))
-    return typeof(x)([_reconstruct!(field, others, children) for field in getfields(x)]...)
+    return typeof(x)((_reconstruct!(field, others, children) for field in getfields(x))...)
 end
 
+"""
+    TreeNode(x, children=TreeNode[])
+
+A recursive tree structure for `AbstractNode`.
+"""
 struct TreeNode <: AbstractNode
     x
     children::Vector{TreeNode}
@@ -43,35 +69,137 @@ function Base.show(io::IO, tn::TreeNode)
     end
 end
 
+"""
+    map(f, ns::TreeNode...) -> TreeNode
+
+Recurses through parallel trees and applies a function to parallel nodes.
+
+# Example
+
+```jldoctest; setup = :(import GPForecasting: TreeNode)
+julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); map(+, a, a)
+TreeNode(2, [TreeNode(4), TreeNode(6)])
+```
+"""
 function map(f, ns::TreeNode...)
     return TreeNode(
-        f([n.x for n in ns]...),
-        [map.(f, ps...) for ps in zip(getfield.(ns, :children)...)]
+        f((n.x for n in ns)...),
+        TreeNode[map.(f, ps...) for ps in zip((n.children for n in ns)...)]
     )
 end
-zip(ns::TreeNode...) = map((xs...) -> xs, ns...)
+
+"""
+    zip(ns::TreeNode...) -> TreeNode
+
+Recurses through parallel trees and collects parallel nodes into nodes of tuples.
+Equivalent to `map(tuple, ns...)`.
+
+# Example
+
+```jldoctest; setup = :(import GPForecasting: TreeNode)
+julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); zip(a, a)
+TreeNode((1, 1), [TreeNode((2, 2)), TreeNode((3, 3))])
+```
+"""
+zip(ns::TreeNode...) = map(tuple, ns...)
 reduce(op, n::TreeNode) = op(n.x, _reduce(op, n)...)
-_reduce(op, n::TreeNode) = [op(p.x, _reduce(op, p)...) for p in n.children]
+_reduce(op, n::TreeNode) = (op(p.x, _reduce(op, p)...) for p in n.children)
+
+"""
+    reduce(f, ns::TreeNode...) -> TreeNode
+
+Calls [`zip`](@ref zip(::Vararg{TreeNode})) on the `TreeNode` arguments, then applies `f` to
+the splatted root node data and the non-splatted results of `reduce(f, child)` for each
+child node.
+
+Unlike other `reduce` methods, the function passed in must expect varargs and may have to
+handle both splatted and non-splatted arguments. This method is likely only useful for
+implementing `set`.
+
+# Examples
+
+```jldoctest; setup = :(import GPForecasting: TreeNode)
+julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); reduce(+, a, a)
+12
+
+julia> reduce(tuple, a)
+(1, (2,), (3,))
+
+julia> reduce(tuple, a, a)
+(1, 1, (2, 2), (3, 3))
+```
+"""
 function reduce(op, ns::TreeNode...)
     return reduce((xs, children...) -> op(xs..., children...), zip(ns...))
 end
 
+"""
+    StackedVector(vector)
+
+A vector representing multiple concatenated vector variables, which can be extracted one by
+one using [`get_next!`](@ref) and the length to extract.
+`StackedVector` keeps track of the current extraction position in its `offset` field.
+"""
 mutable struct StackedVector
     v
     offset::Integer
 end
 StackedVector(v) = StackedVector(v, 0)
+
+"""
+    get_next!(sv::StackedVector, len::Integer) -> Vector
+
+Retrieve `len` elements from `sv`, starting at `sv`'s `offset`, then increasing the
+`offset`.
+"""
 function get_next!(sv::StackedVector, len::Integer)
     res = sv.v[sv.offset + 1:sv.offset + len]
     sv.offset += len
     return res
 end
 
-function flatten(t::TreeNode, res::Vector=Any([]))
-    append!(res, t.x)
-    foreach(p -> flatten(p, res), t.children)
-    return res
+"""
+    flatten(t::TreeNode, result::Vector=[]) -> Vector
+
+Performs a pre-order depth-first traversal of `t`, appending each node's data to `result`,
+then return `result`.
+
+# Examples
+
+```jldoctest; setup = :(import GPForecasting: TreeNode, flatten)
+julia> b = TreeNode([1, 2], [TreeNode([3, 4]), TreeNode([5, 6])]); flatten(b, Int64[])
+6-element Array{Int64,1}:
+ 1
+ 2
+ 3
+ 4
+ 5
+ 6
+
+julia> c = TreeNode([[1, 2], [3, 4]],
+               [TreeNode([[5, 6], [7, 8]]), TreeNode([[9, 10], [11, 12]])]); flatten(c)
+6-element Array{Any,1}:
+ [1, 2]
+ [3, 4]
+ [5, 6]
+ [7, 8]
+ [9, 10]
+ [11, 12]
+```
+"""
+function flatten(t::TreeNode, result::Vector=[])
+    append!(result, t.x)
+    foreach(p -> flatten(p, result), t.children)
+    return result
 end
+
+"""
+    interpret(t::TreeNode, v::Vector) -> TreeNode
+
+Returns a tree parallel to `t` where corresponding parameters have been extracted from `v`
+and reconstructed into their original node forms.
+`interpret` is the inverse of [`flatten`](@ref flatten(::TreeNode)).
+"""
 @unionise interpret(t::TreeNode, v::Vector) = interpret(t, StackedVector(v))
 @unionise function interpret(t::TreeNode, sv::StackedVector)
     return TreeNode(get_next!(sv, length(t.x)), [interpret(p, sv) for p in t.children])
@@ -79,11 +207,54 @@ end
 
 # This is a "two-dimensional" flattening, where it is assumed that nodes contain `Vector`s
 # of items, and we would like to also reconstruct those `Vector`s upon interpretation.
-function flatten2(t::TreeNode, res::Vector=[])
-    foreach(x -> append!(res, x), t.x)
-    foreach(p -> flatten2(p, res), t.children)
-    return res
+"""
+    flatten2(t::TreeNode, result::Vector=[]) -> Vector
+
+Performs a pre-order depth-first traversal of `t`, appending each element of each node's
+data to `result`, then return `result`.
+
+# Examples
+
+```jldoctest; setup = :(import GPForecasting: TreeNode, flatten2)
+julia> b = TreeNode([1, 2], [TreeNode([3, 4]), TreeNode([5, 6])]); flatten2(b, Int64[])
+6-element Array{Int64,1}:
+ 1
+ 2
+ 3
+ 4
+ 5
+ 6
+
+julia> c = TreeNode([[1, 2], [3, 4]],
+               [TreeNode([[5, 6], [7, 8]]), TreeNode([[9, 10], [11, 12]])]); flatten2(c)
+12-element Array{Any,1}:
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+ 10
+ 11
+ 12
+```
+"""
+function flatten2(t::TreeNode, result::Vector=[])
+    foreach(x -> append!(result, x), t.x)
+    foreach(p -> flatten2(p, result), t.children)
+    return result
 end
+
+"""
+    interpret2(t::TreeNode, v::Vector) -> TreeNode
+
+Returns a tree parallel to `t` where corresponding parameters have been extracted from `v`
+and reconstructed into their original node forms.
+`interpret2` is the inverse of [`flatten2`](@ref flatten2(::TreeNode)).
+"""
 @unionise interpret2(t::TreeNode, v::Vector) = interpret2(t, StackedVector(v))
 @unionise function interpret2(t::TreeNode, sv::StackedVector)
     return TreeNode(
@@ -93,19 +264,71 @@ end
 end
 
 # Get set for AbstractNode, might have to also dispatch this for Random
+"""
+    tree(m) -> TreeNode
+
+Construct an explicit tree structure from a node which references other nodes.
+"""
 tree(m::Union{AbstractNode, Random}) = TreeNode(m, tree.(children(m)))
+
+"""
+    pack(m) -> Vector{Vector}
+
+Get packed parameters for a node, by packing each element of `others(m)`.
+This is used by [`get`](@ref get(::AbstractNode)), where the result is flattened into a
+single vector.
+"""
 pack(m::Union{AbstractNode, Random}) = pack.(others(m))
+
+"""
+    unpack(original::T, data, children...) -> T
+
+Recursively (depth-first) reconstruct a node/tree from a similar node/tree containing
+packed leaves.
+"""
 unpack(original::Union{AbstractNode, Random}, data, children::Union{AbstractNode, Random}...) =
     reconstruct(original, unpack.(others(original), data), children)
+
+"""
+    get(m) -> Vector{Float64}
+
+Make a node into a tree and extract all parameters into a single vector for optimization.
+"""
 get(m::Union{AbstractNode, Random}) = flatten2(map(pack, tree(m)), Float64[])
+
+"""
+    get(m, n::String) -> Vector{Float64}
+
+Make a node into a tree and extract all parameters named (the value of) `n` into a single
+vector for optimization.
+If there is only one element in the vector, return the first element (this should be
+changed).
+It is likely that this function is used when there is only one expected element.
+"""
 function get(m::Union{AbstractNode, Random}, n::String)
     θ = unwrap.(filter(x -> name(x) == n, flatten(map(others, tree(m)))))
     return length(θ) == 1 ? θ[1] : θ
 end
+
+"""
+    set(m, θ::Vector) -> AbstractNode
+
+Reconstruct the original structure of `m` with the modified parameters from `θ`, by first
+converting to a `TreeNode`.
+"""
 @unionise function set(m::Union{AbstractNode, Random}, θ::Vector)
     t = tree(m)
     return reduce(unpack, t, interpret2(map(pack, t), θ))
 end
+
+"""
+    set(m, updates::Pair...) -> AbstractNode
+
+Reconstruct the original structure of `m`, updating nodes named `k` with the modified
+parameters from `v`, for each `k => v` in `updates`.
+
+See also [`set(m, updates::Pair...)`](@ref set(m, update::Pair)).
+"""
 @unionise function set(m::Union{AbstractNode, Random}, updates::Pair...)
     d, t = Dict(updates...), tree(m)
     update(x) = haskey(d, name(x)) ? set(x, d[name(x)]) : x

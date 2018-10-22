@@ -4,17 +4,6 @@ export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel
     SimilarHourKernel
 
 # Default kernel behaviour:
-"""
-    tree(k::Kernel) -> TreeNode
-
-Build tree structure for kernel `k` and its children.
-"""
-tree(k::Kernel) = TreeNode(k, tree.(children(k)))
-
-pack(k::Kernel) = pack.(others(k))
-unpack(original::Kernel, data, children::Kernel...) =
-    reconstruct(original, unpack.(others(original), data), children)
-
 var(k::Kernel, x) = [k(xx) for xx in x]
 
 size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1

@@ -6,19 +6,11 @@ isconstrained(x) = false
 # Base cases of parameter recursions:
 unwrap(x) = x
 name(x) = Nullable{String}()
+
 """
     pack(k::Number) -> Vector
 
 Pack number inside a vector.
-
-    pack(k::Parameter) -> Vector
-
-Pack parameter in a vector that can be optimised. Automatically converts the parameter to
-the space in which it should be optimised.
-
-    pack(k::Kernel) -> Vector
-
-Pack kernel parameters in a vector that can be optimised.
 """
 pack(x::Number) = [x]
 
@@ -26,14 +18,6 @@ pack(x::Number) = [x]
     unpack(x::Number, y::Vector) -> Number
 
 Unpack number from inside a vector.
-
-    unpack(k::Parameter, y) -> Parameter
-
-Unpack a vector value into a `Parameter`. Used for updating parameter values.
-
-    unpack(k::Kernel, y) -> Kernel
-
-Unpack a vector value into a `Kernel`. Used for updating kernel parameter values.
 """
 @unionise unpack(x::Number, y::Vector) = y[1]
 pack(x::AbstractArray) = x[:]
@@ -50,16 +34,30 @@ abstract type Parameter end
 # The following two lines assert that each subtype of parameter has its wrapped value as the
 # first field. We could do something similar to the kernels to make this fully flexible,
 # but I think this suffices.
-parameter(p::Parameter) = getfields(p)[1]
-others(p::Parameter) = getfields(p)[2:end]
+parameter(p::Parameter) = getfield(p, 1)
+others(p::Parameter) = collect(Iterators.rest(getfields(p), 2))
 
 # Default parameter behaviour:
 reconstruct(p::Parameter, parameter, others) = typeof(p)(parameter, others...)
 unwrap(p::Parameter) = unwrap(parameter(p))
 name(p::Parameter) = name(parameter(p))
 show(io::IO, p::Parameter) = showcompact(io, parameter(p))
+
+"""
+    pack(k::Parameter) -> Vector
+
+Pack parameter in a vector that can be optimised.
+Automatically converts the parameter to the space in which it should be optimised.
+"""
 pack(p::Parameter) = pack(parameter(p))
 @unionise unpack(x::T, y::T) where T <: Parameter = y
+
+"""
+    unpack(k::Parameter, y) -> Parameter
+
+Unpack a vector value into a `Parameter`.
+Used for updating parameter values.
+"""
 @unionise unpack(x::Parameter, y::Vector) =
     reconstruct(x, unpack(parameter(x), y), others(x))
 set(x::Parameter, y) = reconstruct(x, set(parameter(x), y), others(x))
