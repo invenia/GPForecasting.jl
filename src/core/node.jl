@@ -277,6 +277,8 @@ tree(m::Union{AbstractNode, Random}) = TreeNode(m, tree.(children(m)))
 Get packed parameters for a node, by packing each element of `others(m)`.
 This is used by [`get`](@ref get(::AbstractNode)), where the result is flattened into a
 single vector.
+
+`pack` and [`unpack`](@ref) are usually defined specially for a given node type.
 """
 pack(m::Union{AbstractNode, Random}) = pack.(others(m))
 
@@ -285,6 +287,8 @@ pack(m::Union{AbstractNode, Random}) = pack.(others(m))
 
 Recursively (depth-first) reconstruct a node/tree from a similar node/tree containing
 packed leaves.
+
+[`pack`](@ref) and `unpack` are usually defined specially for a given node type.
 """
 unpack(original::Union{AbstractNode, Random}, data, children::Union{AbstractNode, Random}...) =
     reconstruct(original, unpack.(others(original), data), children)
@@ -327,7 +331,7 @@ end
 Reconstruct the original structure of `m`, updating nodes named `k` with the modified
 parameters from `v`, for each `k => v` in `updates`.
 
-See also [`set(m, updates::Pair...)`](@ref set(m, update::Pair)).
+See also [`set(m, θ::Vector)`](@ref set(m, ::Vector)).
 """
 @unionise function set(m::Union{AbstractNode, Random}, updates::Pair...)
     d, t = Dict(updates...), tree(m)
