@@ -108,7 +108,7 @@ function condition(
     # create the posterior mean
     pos_m = OLMMPosMean(gp.k, ms, x, yp)
     # create another OLMMKernel
-    pos_k = OLMMKernel(
+    pos_k = _unsafe_OLMMKernel(
         gp.k.m,
         gp.k.p,
         gp.k.σ²,

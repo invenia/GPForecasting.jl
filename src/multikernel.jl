@@ -281,6 +281,23 @@ mutable struct LMMKernel <: MultiOutputKernel
     H # Mixing matrix, (p x m)
     ks::Vector{Kernel} # Kernels for the latent processes, m-long
 
+    global _unsafe_LMMKernel(
+        m, # Number of latent processes
+        p, # Number of outputs
+        σ², # Variance. Same for all latent processes if float, otherwise, vector of floats.
+        H, # Mixing matrix, (p x m)
+        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+    )
+
+        return new(
+            m, # Number of latent processes
+            p, # Number of outputs
+            σ², # Variance. Same for all latent processes if float, otherwise, vector of floats.
+            H, # Mixing matrix, (p x m)
+            ks, # Kernels for the latent processes, m-long
+        )
+    end
+
     function LMMKernel(
         m, # Number of latent processes
         p, # Number of outputs
@@ -476,6 +493,30 @@ mutable struct OLMMKernel <: MultiOutputKernel
     U # Orthogonal component of the mixing matrix. This is already truncated!
     S_sqrt # Eigenvalues of the latent processes. This is already truncated!
     ks::Vector{Kernel} # Kernels for the latent processes, m-long
+
+    global function _unsafe_OLMMKernel(
+        m, # Number of latent processes
+        p, # Number of outputs
+        σ², # Observation noise
+        D, # latent noise(s)
+        H, # Mixing matrix, (p x m)
+        P, # Projection matrix, (m x p)
+        U, # Orthogonal component of the mixing matrix. This is already truncated!
+        S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+    )
+        return new(
+            m, # Number of latent processes
+            p, # Number of outputs
+            σ², # Observation noise
+            D, # latent noise(s)
+            H, # Mixing matrix, (p x m)
+            P, # Projection matrix, (m x p)
+            U, # Orthogonal component of the mixing matrix. This is already truncated!
+            S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+            ks, # Kernels for the latent processes, m-long
+        )
+    end
 
     function OLMMKernel(
         m, # Number of latent processes
