@@ -660,18 +660,28 @@ function greedy_U(k::OLMMKernel, x, y)
     σ² = unwrap(k.σ²)
     m = unwrap(k.m)
     S_sqrt = unwrap(k.S_sqrt)
+    D = unwrap(k.D)
+    D = isa(D, Vector) ? D : ones(m) .* D
 
-    Ks = [(σ² * eye(n) + S_sqrt[i] * k.ks[i](x)) for i in 1:length(k.ks)]
-    Σs = [(y' * y / σ² - y' * (K \ y)) for K in Ks]
+    K = k.ks[1](x) + (σ² / S_sqrt[1]^2 + D[1]) * I
+    Uk = chol(K)
+    Z = Uk' \ y ./ S_sqrt[1]
+    Σ = Z' * Z
 
-    U, _, _ = svd(Σs[1])
-    us = [U[:, 1]]
-    V = U[:, 2:end]
+    U, _, _ = svd(Σ)
+    us = [U[:, end]]
+    V = U[:, 1:end - 1]
+
     for i in 2:m
-        U, _, _ = svd(V' * Σs[i] * V)
-        push!(us, V * U[:, 1])
-        V = V * U[:, 2:end]
+        K = k.ks[i](x) + (σ² / S_sqrt[i]^2 + D[i]) * I
+        Uk = chol(K)
+        Z = Uk' \ y ./ S_sqrt[i]
+        Σ = Z' * Z
+        U, _, _ = svd(V' * Σ * V)
+        push!(us, V * U[:, end])
+        V = V * U[:, 1:end - 1]
     end
+
     return hcat(us...)
 end
 function (k::OLMMKernel)(x)
