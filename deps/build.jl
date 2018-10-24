@@ -24,7 +24,7 @@ end
 # Same for CI files
 #Pkg.build("PyCall")
 #
-Pkg.checkout("Nabla")
+# Pkg.checkout("Nabla")
 # Pkg.checkout("Impute")
 Pkg.checkout("ModelAnalysis")
 Pkg.build("ModelAnalysis")
