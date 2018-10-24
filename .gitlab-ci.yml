@@ -17,7 +17,7 @@ stages:
   script:
     - source julia-ci export
     - export PYTHON=""  # Configure PyCall to use the Conda.jl package's Python
-    - julia --compilecache=no -e "Pkg.clone(\"DiffRules\"); Pkg.clone(\"https://github.com/invenia/Nabla.jl\"); Pkg.clone(pwd());  Pkg.build(\"$PKG_NAME\"); Pkg.test(\"$PKG_NAME\"; coverage=true)"
+    - julia --compilecache=no -e "Pkg.clone(\"DiffRules\"); Pkg.clone(pwd());  Pkg.build(\"$PKG_NAME\"); Pkg.test(\"$PKG_NAME\"; coverage=true)"
     - ./julia-ci coverage
   after_script:
     - ./julia-ci clean
@@ -34,7 +34,7 @@ stages:
     - aws configure set region us-east-1
   script:
     - export PYTHON=""  # Configure PyCall to use the Conda.jl package's Python
-    - julia --compilecache=no -e 'Pkg.clone("DiffRules"); Pkg.clone("https://github.com/invenia/Nabla.jl"); Pkg.clone(pwd());  Pkg.build("GPForecasting"); Pkg.test("GPForecasting"; coverage=true)'
+    - julia --compilecache=no -e 'Pkg.clone("DiffRules"); Pkg.clone(pwd());  Pkg.build("GPForecasting"); Pkg.test("GPForecasting"; coverage=true)'
     - julia-coverage GPForecasting
   artifacts:
     name: "$CI_JOB_NAME coverage"
