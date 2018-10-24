@@ -24,6 +24,8 @@ Return all non-node fields (leaves) of `x`, i.e., everything not returned by [`c
 """
 others(x) = reduce(vcat, Any[], (extract_others(field) for field in getfields(x)))
 
+create_instance(T::Type, args...) = T(args...)
+
 # Reconstruct an instantiated type.
 _reconstruct!(field, others, children) = pop!(others)
 _reconstruct!(field::AbstractNode, others, children) = pop!(children)
@@ -41,7 +43,12 @@ have been updated.
 """
 function reconstruct(x, others, children)
     others, children = reverse.(copy.(collect.((others, children))))
-    return typeof(x)((_reconstruct!(field, others, children) for field in getfields(x))...)
+    # return typeof(x)((_reconstruct!(field, others, children) for field in getfields(x))...)
+
+    return create_instance(
+        typeof(x),
+        (_reconstruct!(field, others, children) for field in getfields(x))...
+    )
 end
 
 """
