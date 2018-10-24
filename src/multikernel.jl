@@ -281,7 +281,7 @@ mutable struct LMMKernel <: MultiOutputKernel
     H # Mixing matrix, (p x m)
     ks::Vector{Kernel} # Kernels for the latent processes, m-long
 
-    global _unsafe_LMMKernel(
+    global function _unsafe_LMMKernel(
         m, # Number of latent processes
         p, # Number of outputs
         σ², # Variance. Same for all latent processes if float, otherwise, vector of floats.
@@ -332,6 +332,7 @@ mutable struct LMMKernel <: MultiOutputKernel
         )
     end
 end
+create_instance(T::Type{LMMKernel}, args...) = _unsafe_LMMKernel(args...)
 size(k::LMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
 function show(io::IO, k::LMMKernel)
     print(io, "$(unwrap(k.H)) * $(k.ks) * $(ctranspose(unwrap(k.H)))")
@@ -592,6 +593,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         )
     end
 end
+create_instance(T::Type{OLMMKernel}, args...) = _unsafe_OLMMKernel(args...)
 function build_H_and_P(U, S_sqrt)
     H = U * diagm(S_sqrt)
     P = diagm(S_sqrt.^(-1.0)) * U'
