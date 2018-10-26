@@ -281,6 +281,23 @@ mutable struct LMMKernel <: MultiOutputKernel
     H # Mixing matrix, (p x m)
     ks::Vector{Kernel} # Kernels for the latent processes, m-long
 
+    global function _unsafe_LMMKernel(
+        m, # Number of latent processes
+        p, # Number of outputs
+        σ², # Variance. Same for all latent processes if float, otherwise, vector of floats.
+        H, # Mixing matrix, (p x m)
+        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+    )
+
+        return new(
+            m, # Number of latent processes
+            p, # Number of outputs
+            σ², # Variance. Same for all latent processes if float, otherwise, vector of floats.
+            H, # Mixing matrix, (p x m)
+            ks, # Kernels for the latent processes, m-long
+        )
+    end
+
     function LMMKernel(
         m, # Number of latent processes
         p, # Number of outputs
@@ -315,6 +332,7 @@ mutable struct LMMKernel <: MultiOutputKernel
         )
     end
 end
+create_instance(T::Type{LMMKernel}, args...) = _unsafe_LMMKernel(args...)
 size(k::LMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
 function show(io::IO, k::LMMKernel)
     print(io, "$(unwrap(k.H)) * $(k.ks) * $(ctranspose(unwrap(k.H)))")
@@ -477,6 +495,30 @@ mutable struct OLMMKernel <: MultiOutputKernel
     S_sqrt # Eigenvalues of the latent processes. This is already truncated!
     ks::Vector{Kernel} # Kernels for the latent processes, m-long
 
+    global function _unsafe_OLMMKernel(
+        m, # Number of latent processes
+        p, # Number of outputs
+        σ², # Observation noise
+        D, # latent noise(s)
+        H, # Mixing matrix, (p x m)
+        P, # Projection matrix, (m x p)
+        U, # Orthogonal component of the mixing matrix. This is already truncated!
+        S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+    )
+        return new(
+            m, # Number of latent processes
+            p, # Number of outputs
+            σ², # Observation noise
+            D, # latent noise(s)
+            H, # Mixing matrix, (p x m)
+            P, # Projection matrix, (m x p)
+            U, # Orthogonal component of the mixing matrix. This is already truncated!
+            S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+            ks, # Kernels for the latent processes, m-long
+        )
+    end
+
     function OLMMKernel(
         m, # Number of latent processes
         p, # Number of outputs
@@ -551,6 +593,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         )
     end
 end
+create_instance(T::Type{OLMMKernel}, args...) = _unsafe_OLMMKernel(args...)
 function build_H_and_P(U, S_sqrt)
     H = U * diagm(S_sqrt)
     P = diagm(S_sqrt.^(-1.0)) * U'

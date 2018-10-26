@@ -11,10 +11,11 @@ ModelAnalysis 0.0.0
 #PyCall 1.15.0 # For the LBFGS-B Optimization
 Memento 0.5.0
 #Conda 0.7.1
-Nabla 0.1.0
+Nabla 0.1.1 0.1.9
 # BinDeps 0.8.7
 FDM 0.1.0
 IterTools 0.2.1
+DualNumbers 0.4.0 0.4.9
 
 # For Impute.jl
 # Impute
