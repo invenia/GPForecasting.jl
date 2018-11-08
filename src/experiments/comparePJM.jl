@@ -17,8 +17,10 @@ function comparePJM_exp(
     lat_noise::Float64, # noise for the latent processes
     its::Int, # number of gradient descent steps.
     θ::Float64, # theta value
+    opt_U::Bool, # Use greedy_U for the OLMM
     splits::Vector{Int}, # which splits of the data to run for.
     datapath::AbstractString = "", # path for the data.
+    skip_stage::Vector{Bool} = [false, false, false] # PO, LMM, OLMM
 )
 
     function wmean(y, w)
@@ -35,7 +37,7 @@ function comparePJM_exp(
 
     # Truncate dat and translate it to coincide with Hdat
     d_cut = n_dH - n_d + 1
-    dat = dat[d_cut:end]
+    dat = dat[d_cut:end];
 
     p = size(dat[1]["train_y"], 2) # Number of prices
 
@@ -79,8 +81,13 @@ function comparePJM_exp(
         :lmm_mse => [],
         :lmm_joint_mll => [],
         :lmm_marginal_mll => [],
+        :po_time => [],
+        :lmm_time => [],
+        :olmm_time => [],
     )
 
+    splits = splits == [-1] ? collect(1:length(dat)) : splits
+    splits = splits[2] == -1 ? collect((length(dat) - splits[1] + 1):length(dat)) : splits
     info("Starting experiment...")
     for split in splits
         tic()
@@ -93,73 +100,87 @@ function comparePJM_exp(
         x_test = stdata[split]["test_x"];
 
         # Naive Model
-        means = zeros(24, p)
-        covs = Matrix{Float64}[]
-        for h = 1:24
-            y = y_train[h:24:end, :]
-            means[h,:] = wmean(y, weights)
-            push!(covs, cov_LW(y))
+        if !skip_stage[1]
+            tic()
+            means = zeros(24, p)
+            covs = Matrix{Float64}[]
+            for h = 1:24
+                y = y_train[h:24:end, :]
+                means[h,:] = wmean(y, weights)
+                push!(covs, cov_LW(y))
+            end
+
+            gaus = Gaussian(
+                Matrix{Float64}(means),
+                BlockDiagonal(covs)
+            )
+
+            push!(out[:po_mse], ModelAnalysis.mse(gaus, y_test))
+            push!(out[:po_joint_mll], ModelAnalysis.mll_joint(gaus, y_test))
+            push!(out[:po_marginal_mll], ModelAnalysis.mll_marginal(gaus, y_test))
+            push!(out[:po_time], toc())
         end
-
-        gaus = Gaussian(
-            Matrix{Float64}(means),
-            BlockDiagonal(covs)
-        )
-
-        push!(out[:po_mse], ModelAnalysis.mse(gaus, y_test))
-        push!(out[:po_joint_mll], ModelAnalysis.mll_joint(gaus, y_test))
-        push!(out[:po_marginal_mll], ModelAnalysis.mll_marginal(gaus, y_test))
 
         # gaus = 0
 
         # # LMM
-        U, S, V = svd(cov_LW(y_trainH))
-        m_lmm = min(m_lmm, p)
-        H_lmm = U * diagm(sqrt.(S))[:, 1:m_lmm];
-        σs = σ²_lmm .* var(y_train, 1)[:];
-        gp = GP(LMMKernel(Fixed(m_lmm), Fixed(p), Positive(σs), Fixed(H_lmm), fill(k, m_lmm)));
-        println("Time to start training the LMM")
-        gp = learn(gp, x_train, y_train, objective, its=its, trace=true);
-        pos = condition(gp, x_train, y_train);
-        gaus = pos(x_test; hourly = true)
+        if !skip_stage[2]
+            tic()
+            U, S, V = svd(cov_LW(y_trainH))
+            m_lmm = min(m_lmm, p)
+            H_lmm = U * diagm(sqrt.(S))[:, 1:m_lmm];
+            σs = σ²_lmm .* var(y_train, 1)[:];
+            gp = GP(LMMKernel(Fixed(m_lmm), Fixed(p), Positive(σs), Fixed(H_lmm), fill(k, m_lmm)));
+            println("Time to start training the LMM")
+            gp = learn(gp, x_train, (y_train .- orig[split]["mean_train"]), objective, its=its, trace=true);
+            pos = condition(gp, x_train, (y_train .- orig[split]["mean_train"]));
+            gaus = pos(x_test; hourly = true)
+            gaus.μ = gaus.μ .+ orig[split]["mean_train"];
 
-        push!(out[:lmm_mse], ModelAnalysis.mse(gaus, y_test))
-        push!(out[:lmm_joint_mll], ModelAnalysis.mll_joint(gaus, y_test))
-        push!(out[:lmm_marginal_mll], ModelAnalysis.mll_marginal(gaus, y_test))
-
-        # gaus = 0
-        println("LMM done")
+            push!(out[:lmm_mse], ModelAnalysis.mse(gaus, y_test))
+            push!(out[:lmm_joint_mll], ModelAnalysis.mll_joint(gaus, y_test))
+            push!(out[:lmm_marginal_mll], ModelAnalysis.mll_marginal(gaus, y_test))
+            push!(out[:lmm_time], toc())
+        end
+        # # gaus = 0
+        # println("LMM done")
         # OLMM
-        stds = orig[split]["std_train"]' * orig[split]["std_train"];
-        U, S, V = svd(cov_LW(y_trainH) ./ stds) # standardise the covariance
-        m_olmm = min(m_olmm, p)
-        H_olmm = U * diagm(sqrt.(S))[:, 1:m_olmm];
-        S_sqrt = sqrt.(diag(H_olmm' * H_olmm));
-        U = H_olmm * diagm(S_sqrt.^(-1.0));
-        _, P = GPForecasting.build_H_and_P(U, S_sqrt);
-        gp = GP(OLMMKernel(
-            Fixed(m_olmm),
-            Fixed(p),
-            Positive(σ²_olmm),
-            Positive(lat_noise),
-            Fixed(H_olmm),
-            Fixed(P),
-            Fixed(U),
-            Fixed(S_sqrt),
-            [k for i in 1:m_olmm]
-        ));
-        println("Time to start training the OLMM")
-        gp = learn(gp, x_train, sy_train, objective, its=its, trace=true);
-        pos = condition(gp, x_train, sy_train);
-        gaus = pos(x_test; hourly = true)
+        if !skip_stage[3]
+            tic()
+            stds = orig[split]["std_train"]' * orig[split]["std_train"];
+            U, S, V = svd(cov_LW(
+                (y_trainH .- orig[split]["mean_train"]) ./ orig[split]["std_train"]
+            ))
+            m_olmm = min(m_olmm, p)
+            H_olmm = U * diagm(sqrt.(S))[:, 1:m_olmm];
+            S_sqrt = sqrt.(diag(H_olmm' * H_olmm));
+            U = H_olmm * diagm(S_sqrt.^(-1.0));
+            _, P = GPForecasting.build_H_and_P(U, S_sqrt);
+            gp = GP(OLMMKernel(
+                Fixed(m_olmm),
+                Fixed(p),
+                Positive(σ²_olmm),
+                Positive(lat_noise),
+                Fixed(H_olmm),
+                Fixed(P),
+                Fixed(U),
+                Fixed(S_sqrt),
+                [k for i in 1:m_olmm]
+            ));
+            println("Time to start training the OLMM")
+            gp = learn(gp, x_train, sy_train, objective, its=its, trace=true, opt_U=opt_U);
+            pos = condition(gp, x_train, sy_train);
+            gaus = pos(x_test; hourly = true)
 
-        # Un-normalise the predictions
-        gaus.μ = orig[split]["std_train"] .* gaus.μ .+ orig[split]["mean_train"];
-        gaus.Σ = BlockDiagonal([Hermitian(b .* stds) for b in blocks(gaus.Σ)]);
+            # Un-normalise the predictions
+            gaus.μ = orig[split]["std_train"] .* gaus.μ .+ orig[split]["mean_train"];
+            gaus.Σ = BlockDiagonal([Hermitian(b .* stds) for b in blocks(gaus.Σ)]);
 
-        push!(out[:olmm_mse], ModelAnalysis.mse(gaus, y_test))
-        push!(out[:olmm_joint_mll], ModelAnalysis.mll_joint(gaus, y_test))
-        push!(out[:olmm_marginal_mll], ModelAnalysis.mll_marginal(gaus, y_test))
+            push!(out[:olmm_mse], ModelAnalysis.mse(gaus, y_test))
+            push!(out[:olmm_joint_mll], ModelAnalysis.mll_joint(gaus, y_test))
+            push!(out[:olmm_marginal_mll], ModelAnalysis.mll_marginal(gaus, y_test))
+            push!(out[:olmm_time], toc())
+        end
     end
 
     info("Done!")
@@ -180,16 +201,18 @@ dictionary references the `experiment_function`, which should contain your exper
 function comparePJM()
     parameters = [
         [3 * 7],
-        [90],
+        [30],
         [48],
         [20],
-        [0.1],
-        [0.01],
-        [1.0],
+        [0.15],
+        [0.15],
+        [5.0],
         [15],
         [21. / 4.],
+        [false],
         [[1]],
         [""],
+        [[false, false, false]]
         ]
 
     # -- Do not edit below this line -- #
