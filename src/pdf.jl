@@ -107,11 +107,50 @@ end
     return -.5(n_d * p * log(2π) + log_det + dot(yiσ², yt) - dot(z, z))
 end
 
+@unionise function optlogpdf(
+    gp::GP{K, U},
+    x,
+    y::AbstractArray
+) where {K <: OLMMKernel, U <: Mean}
+    n = size(x, 1)
+    p = unwrap(gp.k.p)
+    m = unwrap(gp.k.m)
+    σ² = ones(p) .* unwrap(gp.k.σ²)
+    H = float.(unwrap(gp.k.H)) # Prevents Nabla from breaking in case H has Ints.
+    D = unwrap(gp.k.D)
+    D = isa(D, Vector) ? D : ones(m) .* D
+    P = unwrap(gp.k.P)
+    S_sqrt = unwrap(gp.k.S_sqrt)
+
+    Σn = diagm(σ²) .+ H * diagm(D) * H'
+    gn = Gaussian(zeros(p), Σn)
+    lpdf = 0.0
+
+    # Noise contributions
+    # These decouple timestamps, so we can compute one at a time.
+    for i in 1:n
+        lpdf += logpdf(gn, y[i, :])
+    end
+
+    # Latent process contributions
+    # These decouple amongst different latent processes, so we can compute one at time.
+    yl = y * P'
+    Σlk = gp.k.ks(x)
+    for i in 1:m
+        proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i]) * eye(n)
+        glk = Gaussian(zeros(n), proj_noise + Σlk)
+        gln = Gaussian(zeros(n), proj_noise)
+        lpdf += logpdf(glk, yl[:, i]) - logpdf(gln, yl[:, i])
+    end
+    return lpdf
+end
+
 @unionise function logpdf(
     gp::GP{K, U},
     x,
     y::AbstractArray
 ) where {K <: OLMMKernel, U <: Mean}
+    isa(gp.k.ks, Kernel) && return optlogpdf(gp, x, y)
     n = size(x, 1)
     p = unwrap(gp.k.p)
     m = unwrap(gp.k.m)

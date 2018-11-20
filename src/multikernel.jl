@@ -680,7 +680,7 @@ function greedy_U(k::OLMMKernel, x, y)
 
     return hcat(us...)
 end
-function optk(k, x) # This is an optimised implementation of the OLMM for when all kernels
+@unionise function optk(k, x) # This is an optimised implementation of the OLMM for when all kernels
 # are the same
     # compute latent covariances
     K = k.ks(x)
