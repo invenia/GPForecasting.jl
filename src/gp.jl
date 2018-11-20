@@ -91,19 +91,16 @@ function optcondition(
     P = unwrap(gp.k.P)
     m = unwrap(gp.k.m)
     σ² = unwrap(gp.k.σ²)
-    D = unwrap(gp.k.D)
-    D = isa(D, Float64) ? fill(D, m) : D
-    S_sqrt = unwrap(gp.k.S_sqrt)
+    d = unwrap(gp.k.D)
+    D = fill(d, m)
     yp = y * P'
     # condition gp.k.ks on y
-    Ks = []
     kx = gp.k.ks(x)
-    for (k, s, d) in zip(S_sqrt, D)
-        push!(Ks, kx + (σ²/s^2 + d) * eye(kx))
-    end
-    Us = [chol(Hermitian(K + _EPSILON_^2 * eye(K))) for K in Ks]
-    ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
-    ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
+    K = kx + (σ² + d) * I
+
+    U = chol(Hermitian(K + _EPSILON_^2 * eye(K)))
+    ms = [PosteriorMean(gp.k.ks, ZeroMean(), x, U, yp[:, i]) for i in 1:m]
+    ks = PosteriorKernel(gp.k.ks, x, U)
     # create the posterior mean
     pos_m = OLMMPosMean(gp.k, ms, x, yp)
     # create another OLMMKernel
@@ -132,8 +129,9 @@ function condition(
     m = unwrap(gp.k.m)
     σ² = unwrap(gp.k.σ²)
     D = unwrap(gp.k.D)
-    D = isa(D, Float64) ? fill(D, m) : D
     S_sqrt = unwrap(gp.k.S_sqrt)
+    isa(gp.k.ks, Kernel) && !isa(D, Vector) && S_sqrt ≈ ones(m) && return optcondition(gp, x, y)
+    D = isa(D, Float64) ? fill(D, m) : D
     yp = y * P'
     # condition gp.k.ks on y
     Ks = []

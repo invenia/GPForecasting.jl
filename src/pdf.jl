@@ -177,9 +177,6 @@ end
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
     lpdf += logpdf(gn, [y[i, :] for i in 1:n])
-    # for i in 1:n
-    #     lpdf += logpdf(gn, y[i, :])
-    # end
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
