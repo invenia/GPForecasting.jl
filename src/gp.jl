@@ -83,11 +83,50 @@ function condition(
     return condition(GP(gp.k.k), new_x, new_y)
 end
 
+function optcondition(
+    gp::GP{T, G},
+    x,
+    y
+) where {T <: OLMMKernel, G <: Mean}
+    P = unwrap(gp.k.P)
+    m = unwrap(gp.k.m)
+    σ² = unwrap(gp.k.σ²)
+    D = unwrap(gp.k.D)
+    D = isa(D, Float64) ? fill(D, m) : D
+    S_sqrt = unwrap(gp.k.S_sqrt)
+    yp = y * P'
+    # condition gp.k.ks on y
+    Ks = []
+    kx = gp.k.ks(x)
+    for (k, s, d) in zip(S_sqrt, D)
+        push!(Ks, kx + (σ²/s^2 + d) * eye(kx))
+    end
+    Us = [chol(Hermitian(K + _EPSILON_^2 * eye(K))) for K in Ks]
+    ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
+    ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
+    # create the posterior mean
+    pos_m = OLMMPosMean(gp.k, ms, x, yp)
+    # create another OLMMKernel
+    pos_k = _unsafe_OLMMKernel(
+        gp.k.m,
+        gp.k.p,
+        gp.k.σ²,
+        gp.k.D,
+        gp.k.H,
+        gp.k.P,
+        gp.k.U,
+        gp.k.S_sqrt,
+        ks
+    )
+    return GP(pos_m, pos_k)
+end
+
 function condition(
     gp::GP{T, G},
     x,
     y
 ) where {T <: OLMMKernel, G <: Mean}
+    isa(gp.k.ks, Kernel) && return optlogpdf(gp, x, y)
     # project y
     P = unwrap(gp.k.P)
     m = unwrap(gp.k.m)
