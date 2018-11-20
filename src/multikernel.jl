@@ -493,7 +493,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
     P # Projection matrix, (m x p)
     U # Orthogonal component of the mixing matrix. This is already truncated!
     S_sqrt # Eigenvalues of the latent processes. This is already truncated!
-    ks::Vector{Kernel} # Kernels for the latent processes, m-long
+    ks::Union{Kernel, Vector{Kernel}} # Kernels for the latent processes, m-long or the same for all
 
     global function _unsafe_OLMMKernel(
         m, # Number of latent processes
@@ -504,7 +504,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         P, # Projection matrix, (m x p)
         U, # Orthogonal component of the mixing matrix. This is already truncated!
         S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
-        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+        ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
     )
         return new(
             m, # Number of latent processes
@@ -515,7 +515,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
             P, # Projection matrix, (m x p)
             U, # Orthogonal component of the mixing matrix. This is already truncated!
             S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
-            ks, # Kernels for the latent processes, m-long
+            ks, # Kernels for the latent processes, m-long or the same for all
         )
     end
 
@@ -528,7 +528,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         P, # Projection matrix, (m x p)
         U, # Orthogonal component of the mixing matrix. This is already truncated!
         S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
-        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+        ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
     )
         # Do a bunch of consistency checks
         s_H = size(unwrap(H))
@@ -537,7 +537,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         s_P = size(unwrap(P))
         s_U = size(unwrap(U))
         l_S_sqrt = length(unwrap(S_sqrt))
-        n_k = length(ks)
+        n_k = isa(ks, Kernel) ? 1 : length(ks)
 
         s_H == (0, 0) && warn("Initialising OLMMKernel with placeholder `H`.")
         s_P == (0, 0) && warn("Initialising OLMMKernel with placeholder `P`.")
@@ -548,7 +548,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         l_S_sqrt == 0 && warn("Initialising OLMMKernel with placeholder `S_sqrt`.")
         n_k == 0 && warn("Initialising OLMMKernel with placeholder `ks`.")
 
-        (n_k != 0 && n_k != n_m) && throw(
+        (n_k != 0 && n_k != 1 && n_k != n_m) && throw(
             ArgumentError("""
                 Expected $n_m kernels, got $(n_k). Each latent process needs a kernel.
             """)
@@ -589,7 +589,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
             P, # Projection matrix, (m x p)
             U, # Orthogonal component of the mixing matrix. This is already truncated!
             S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
-            ks, # Kernels for the latent processes, m-long
+            ks, # Kernels for the latent processes, m-long or the same for all
         )
     end
 end
