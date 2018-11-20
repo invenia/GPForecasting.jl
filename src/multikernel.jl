@@ -493,7 +493,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
     P # Projection matrix, (m x p)
     U # Orthogonal component of the mixing matrix. This is already truncated!
     S_sqrt # Eigenvalues of the latent processes. This is already truncated!
-    ks::Union{Kernel, Vector{Kernel}} # Kernels for the latent processes, m-long or the same for all
+    ks::Union{<:Kernel, Vector{<:Kernel}} # Kernels for the latent processes, m-long or the same for all
 
     global function _unsafe_OLMMKernel(
         m, # Number of latent processes
