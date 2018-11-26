@@ -108,8 +108,3 @@ end
 (*)(μ::Array{T} where T<:Mean, m::Matrix) = m * μ
 (*)(m::Array, μ::Mean) = MultiMean(broadcast(*, m, μ))
 (*)(μ::Mean, m::Array) = m * μ
-
-# (*)(m::Matrix, μ::Array{T} where T<:Mean) = MultiMean(m * convert(Array{Any, 1}, μ))
-# (*)(μ::Array{T} where T<:Mean, m::Matrix) = m * μ
-# (f::Operation)(m::Array, μ::Mean) = MultiMean(broadcast(f, m, μ))
-# (f::Operation)(μ::Mean, m::Array) = m * μ
