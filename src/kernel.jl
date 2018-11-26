@@ -209,10 +209,16 @@ function (*)(x, k::Kernel)
         (unwrap(x) ≈ zero(unwrap(x)) ? ZeroKernel() : ScaledKernel(Positive(x), k))
 end
 function (*)(x, k::ScaledKernel)
-    return ScaledKernel(
-        isconstrained(x) ? x * unwrap(k.scale) : Positive(x * unwrap(k.scale)),
-        k.k
-    )
+    if isconstrained(x)
+        return ScaledKernel(x, k)
+    else
+        return unwrap(x) * unwrap(k.scale) ≈ zero(unwrap(x)) ? ZeroKernel() :
+            (
+                (isconstrained(k.scale) && !isa(k.scale, Positive))?
+                ScaledKernel(Positive(x), k) :
+                ScaledKernel(Positive(unwrap(x) * unwrap(k.scale)), k.k)
+            )
+    end
 end
 (*)(k::Kernel, x) = (*)(x, k::Kernel)
 function (+)(k1::Kernel, k2::ScaledKernel)
