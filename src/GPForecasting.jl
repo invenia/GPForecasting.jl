@@ -1,6 +1,6 @@
 module GPForecasting
 
-import Base: *, +, reduce, map, zip, show, getindex, get, isapprox, convert, chol, zero,
+import Base: *, +, -, reduce, map, zip, show, getindex, get, isapprox, convert, chol, zero,
 size, var, diag, hcat
 import Distributions: MvNormal, sample, logpdf
 export sample

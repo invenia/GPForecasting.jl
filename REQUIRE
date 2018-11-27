@@ -1,29 +1,20 @@
 julia 0.6.4 # .6.4 due to the compiler errors
 CSV 0.2.5
 Distributions 0.15.0
-#StatsBase 0.19.5
 Distances 0.6.0
 LineSearches 3.2.5
 Optim 0.14.1
 Missings 0.2.9
-#TimeZones 0.6.0
 ModelAnalysis 0.0.2
-#PyCall 1.15.0 # For the LBFGS-B Optimization
 Memento 0.5.0
-#Conda 0.7.1
 Nabla 0.1.1
-# BinDeps 0.8.7
 FDM 0.1.0
 IterTools 0.2.1
 DualNumbers 0.4.0 0.4.9
-
-# For Impute.jl
-# Impute
-#RDatasets 0.3.0
+HelloBatch
+DiffRules 0.0.7
 
 # Experiment Requirements
-#IterTools 0.2.1
-#JLD2 0.0.5
 ArgParse 0.5.0 #Parse arguments for experiments
 
 DataFrames 0.11.5
