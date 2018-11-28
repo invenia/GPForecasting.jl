@@ -7,8 +7,8 @@ options = Dict{String, Any}(
     ]
 )
 
-function mock_params(exp::Symbol, opt::Dict)
+function mock_params(exp::Function, opt::Dict)
     return GPForecasting.Experiments.get_parameters(exp, opt)
 end
 
-mock_params(:experiment_template, options)
+mock_params(GPForecasting.Experiments.experiment_template, options)
