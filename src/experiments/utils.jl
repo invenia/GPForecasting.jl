@@ -5,7 +5,7 @@ Retrieves the parameter for the experiment specified by `configuration`, overrid
 default settings as specified in `options`. See `update_exper_def!` for the mechanics.
 
 # Input
-- `configuration::String`: the name of the model that will be used
+- `configuration::Function`: the name of the model that will be used
 - `options::Associative=Dict()`: a dictionary with options, if needed, to override the
 defaults
 
@@ -17,20 +17,11 @@ defaults
     - `revision`: revision information
     - `date`: date in which the experiment was ran
 """
-function get_parameters(configuration::Symbol, options::Associative=Dict())
+function get_parameters(configuration::Function, options::Associative=Dict())
 
-    # Look for the case
-    try
-        global param_function = Symbol(configuration)
-    catch e
-        throw(ArgumentError("Unknown experiment specification. $e"))
-    end
-    # Create the dict
-    try
-        global exper_params = eval(param_function)()
-    catch e
-        throw(ArgumentError("Unknown param_function. $e"))
-    end
+    # Load configuration
+    global exper_params = configuration()
+
     # Update the parameters, if needed.
     length(options) > 0 && update_exper!(exper_params, options)
 
@@ -58,23 +49,21 @@ function get_parameters(experiment_path::AbstractString)
 end
 
 """
-    describe(configuration::Union{String, Symbol})
+    describe(configuration)
 
 Description of a given experiment `configuration`.
 """
-function describe(configuration::Symbol)
-    f = Symbol("describe_" * String(configuration))
-    eval(f)()
+function describe(configuration)
+    return "Unknown experiment $configuration"
 end
 
 """
-    source(configuration::Union{String, Symbol})
+    source(configuration)
 
 Source code location for a given experiment `configuration`.
 """
-function source(configuration::Symbol)
-    f = Symbol("source_" * String(configuration))
-    eval(f)()
+function source(configuration)
+    return "Unknown experiment $configuration"
 end
 
 """
