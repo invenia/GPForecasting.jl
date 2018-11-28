@@ -1,3 +1,37 @@
+"""
+    set_parameters()
+
+This function sets the parameters of your experiment.
+The first dictionary, `parameters`, should be populated with `string => AbstractArray`
+key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
+iterate over. The array could also only contain one element if you would like to use one
+constant parameter.
+The second dictionary should not be altered, it is used in the experiment execution. This
+dictionary references the `experiment_function`, which should contain your experiment.
+"""
+function basicIOLMM()
+    parameters = [
+        [3],   # number of weeks
+        [300], # number of latent processes
+        [0.1], # observation noise (std)
+        [5.0], # latent noise
+        [25],  # number of iterations
+        [[133]],   # number of splits
+        ["DF_train_deltas_90.csv"],
+        ["s3://invenia-research-datasets/ProbabilisticForecasting/MISO/v1"],
+        ]
+
+        # -- Do not edit below this line -- #
+    configuration = Dict{String, Any}(
+        "parameters" => parameters,
+        "experiment_function" => basicIOLMM_exp,
+        "seed" => 42,
+        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
+        "date" => now(),
+    )
+    return configuration
+end
+
 # This is the most basic implementation of the IOLMM for MISO. Just shows how it works.
 @everywhere using GPForecasting
 @everywhere using CSV
@@ -35,12 +69,14 @@ end
     end
 end
 
-function describe_basicIOLMM()
+function describe(x::typeof(basicIOLMM))
     d = """
         This is the most basic implementation of the IOLMM for MISO. Just shows how it works.
         """
-    println(d)
+    return d 
 end
+
+source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
 
 @everywhere function basicIOLMM_exp(
     n_w::Int, # number of training weeks.
@@ -91,9 +127,9 @@ end
     # Run the experiment
     # save results before (pre) and after (opt) optimisation
     out = Dict(
-            "MSE_pre" => [], "MLL_COV_pre" => [], "MSEs_pre" => [], 
+            "MSE_pre" => [], "MLL_COV_pre" => [], "MSEs_pre" => [],
             "MLL_COVs_pre" => [], "means_pre" => [], "hyper_pre" => [],
-            "MSE_opt" => [], "MLL_COV_opt" => [], "MSEs_opt" => [], 
+            "MSE_opt" => [], "MLL_COV_opt" => [], "MSEs_opt" => [],
             "MLL_COVs_opt" => [], "means_opt" => [], "hyper_opt" => [],
             "runtime" => [],
               )
@@ -105,7 +141,7 @@ end
         # get training and test outputs
         y_train = convert.(Float64, Matrix(data[(split-n_w*7-2)*24+1:(split-2)*24, 8:end]))
         y_test = convert.(Float64, Matrix(data[(split-1)*24+1:split*24, 8:end]))
-        # get training and test inputs 
+        # get training and test inputs
         x_train = data[(split-n_w*7-2)*24+1:(split-2)*24, 1:7]
         x_test = data[(split-1)*24+1:split*24,1:7]
 
@@ -118,7 +154,7 @@ end
         y_train_std = std(y_train, 1)
         y_train_var = y_train_std.^2
 
-        p = size(y_train, 2) 
+        p = size(y_train, 2)
 
         # compute standardised training output
         y_train_standardised = (y_train .- y_train_mean) ./ y_train_std
@@ -133,7 +169,7 @@ end
 
         info("Doing the OLMM...")
 
-        # training without hyperparameter optimisation 
+        # training without hyperparameter optimisation
         # (identical kernels for all latent processes)
         info("=> Pre")
 
@@ -156,7 +192,7 @@ end
 
         # transform latent processes back to original space
         means = (H * means_')' .* y_train_std .+ y_train_mean
-        covs = [] 
+        covs = []
         for i = 1:24
             push!(covs, Matrix(Hermitian(y_train_std .* (H * diagm(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
         end
@@ -176,8 +212,8 @@ end
         push!(out["MLL_COV_pre"], mean(mll_covs))
         push!(out["means_pre"], means)
         push!(out["hyper_pre"], exp.(gp.k[:]))
-        println("Pre results for split $split:")                                           
-        println("MSE_pre: $(out["MSE_pre"][end])")                                                   
+        println("Pre results for split $split:")
+        println("MSE_pre: $(out["MSE_pre"][end])")
         println("MLL_COV_pre: $(out["MLL_COV_pre"][end])")
 
         # training with hyperparameter optimisation
@@ -231,38 +267,4 @@ end
 
     info("Done!")
     return out
-end
-
-"""
-    set_parameters()
-
-This function sets the parameters of your experiment.
-The first dictionary, `parameters`, should be populated with `string => AbstractArray`
-key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
-iterate over. The array could also only contain one element if you would like to use one
-constant parameter.
-The second dictionary should not be altered, it is used in the experiment execution. This
-dictionary references the `experiment_function`, which should contain your experiment.
-"""
-function basicIOLMM()
-    parameters = [
-        [3],   # number of weeks
-        [300], # number of latent processes
-        [0.1], # observation noise (std)
-        [5.0], # latent noise
-        [25],  # number of iterations
-        [[133]],   # number of splits 
-        ["DF_train_deltas_90.csv"],
-        ["s3://invenia-research-datasets/ProbabilisticForecasting/MISO/v1"],
-        ]
-
-        # -- Do not edit below this line -- #
-    configuration = Dict{String, Any}(
-        "parameters" => parameters,
-        "experiment_function" => basicIOLMM_exp,
-        "seed" => 42,
-        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
-        "date" => now(),
-    )
-    return configuration
 end

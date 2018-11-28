@@ -1,12 +1,40 @@
-function describe_damec()
+"""
+    damec()
+
+This function sets the parameters of your experiment.
+The first dictionary, `parameters`, should be populated with `string => AbstractArray`
+key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
+iterate over. The array could also only contain one element if you would like to use one
+constant parameter.
+The second dictionary should not be altered, it is used in the experiment execution. This
+dictionary references the `experiment_function`, which should contain your experiment.
+"""
+function damec()
+    parameters = [
+        [2],
+        [1],
+        ]
+
+    # -- Do not edit below this line -- #
+    configuration = Dict{String, Any}(
+        "parameters" => parameters,
+        "experiment_function" => damec_exp,
+        "seed" => 42,
+        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
+        "date" => now(),
+    )
+    return configuration
+end
+
+function describe(x::typeof(damec))
     d = """
         This is a basic implementation of GPs for forecasting DAMEC in MISO. It involves kernel
         engineering.
         """
-    println(d)
+    return d
 end
 
-source_damec() = "damec.jl"
+source(x::typeof(damec)) = "damec.jl"
 
 log_transform(x) = sign.(x).*log.(abs.(x) .+ 1)
 inv_log_transform(x) = sign.(x).*(exp.(abs.(x)) .- 1)
@@ -283,32 +311,4 @@ function damec_exp(
 
     info(GPForecasting.LOGGER, "Experiment Complete")
     return out
-end
-
-"""
-    damec()
-
-This function sets the parameters of your experiment.
-The first dictionary, `parameters`, should be populated with `string => AbstractArray`
-key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
-iterate over. The array could also only contain one element if you would like to use one
-constant parameter.
-The second dictionary should not be altered, it is used in the experiment execution. This
-dictionary references the `experiment_function`, which should contain your experiment.
-"""
-function damec()
-    parameters = [
-        [2],
-        [1],
-        ]
-
-    # -- Do not edit below this line -- #
-    configuration = Dict{String, Any}(
-        "parameters" => parameters,
-        "experiment_function" => damec_exp,
-        "seed" => 42,
-        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
-        "date" => now(),
-    )
-    return configuration
 end

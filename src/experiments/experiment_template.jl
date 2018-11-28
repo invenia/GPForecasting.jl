@@ -1,21 +1,3 @@
-function describe_experiment_template()
-    d = """
-        A basic experiment that serves as template.
-        """
-    println(d)
-end
-
-source_experiment_template() = "experiment_template.jl"
-
-function experiment_template_exp(train_set_size, num_sample)
-    # -- Define your experiment here, return the desired result to be saved, can be anything --#
-
-    p = GP(EQ())
-    x = collect(1:1:train_set_size)
-    y = sample(p(x), num_sample)
-    return y
-end
-
 """
     set_parameters()
 
@@ -44,4 +26,22 @@ function experiment_template()
         "date" => now(),
     )
     return configuration
+end
+
+function describe(x::typeof(experiment_template))
+    d = """
+        A basic experiment that serves as template.
+        """
+    return d
+end
+
+source(x::typeof(experiment_template)) = "experiment_template.jl"
+
+function experiment_template_exp(train_set_size, num_sample)
+    # -- Define your experiment here, return the desired result to be saved, can be anything --#
+
+    p = GP(EQ())
+    x = collect(1:1:train_set_size)
+    y = sample(p(x), num_sample)
+    return y
 end

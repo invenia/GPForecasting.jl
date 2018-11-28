@@ -1,13 +1,47 @@
+
+"""
+    set_parameters()
+
+This function sets the parameters of your experiment.
+The first dictionary, `parameters`, should be populated with `string => AbstractArray`
+key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
+iterate over. The array could also only contain one element if you would like to use one
+constant parameter.
+The second dictionary should not be altered, it is used in the experiment execution. This
+dictionary references the `experiment_function`, which should contain your experiment.
+"""
+function basicOLMM()
+    parameters = [
+        [3*7],
+        [100],
+        [0.1],
+        [5.0],
+        [[1]],
+        [""],
+    ]
+
+    # -- Do not edit below this line -- #
+    configuration = Dict{String, Any}(
+        "parameters" => parameters,
+        "experiment_function" => basicOLMM_exp,
+        "seed" => 42,
+        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
+        "date" => now(),
+    )
+    return configuration
+end
+
+
 # This is the most basic implementation of the OLMM for MISO. Just shows how it works.
-function describe_basicOLMM()
+function describe(x::typeof(basicOLMM))
     d = """
         This is the most basic implementation of the OLMM for MISO. Just shows how it works.
         No learning is done.
         """
-    println(d)
+    return d
 end
 
-source_basicOLMM() = "basicOLMM.jl"
+source(x::typeof(basicOLMM)) = "basicOLMM.jl"
 
 function basicOLMM_exp(
     n_d::Int, # number of training days.
@@ -69,36 +103,4 @@ function basicOLMM_exp(
     end
 
     return out
-end
-
-"""
-    set_parameters()
-
-This function sets the parameters of your experiment.
-The first dictionary, `parameters`, should be populated with `string => AbstractArray`
-key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
-iterate over. The array could also only contain one element if you would like to use one
-constant parameter.
-The second dictionary should not be altered, it is used in the experiment execution. This
-dictionary references the `experiment_function`, which should contain your experiment.
-"""
-function basicOLMM()
-    parameters = [
-        [3*7],
-        [100],
-        [0.1],
-        [5.0],
-        [[1]],
-        [""],
-    ]
-
-    # -- Do not edit below this line -- #
-    configuration = Dict{String, Any}(
-        "parameters" => parameters,
-        "experiment_function" => basicOLMM_exp,
-        "seed" => 42,
-        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
-        "date" => now(),
-    )
-    return configuration
 end

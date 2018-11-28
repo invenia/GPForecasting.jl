@@ -1,14 +1,51 @@
+"""
+    set_parameters()
+
+This function sets the parameters of your experiment.
+The first dictionary, `parameters`, should be populated with `string => AbstractArray`
+key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
+iterate over. The array could also only contain one element if you would like to use one
+constant parameter.
+The second dictionary should not be altered, it is used in the experiment execution. This
+dictionary references the `experiment_function`, which should contain your experiment.
+"""
+function basicLMM()
+    parameters = [
+        [7],
+        [10],
+        [30],
+        [[1]],
+        [""],
+            # [7, 2*7, 3*7],
+            # [10, 20, 30],
+            # [30],
+            # [[1, 5, 25]],
+            # [""],
+        ]
+
+    # -- Do not edit below this line -- #
+    configuration = Dict{String, Any}(
+        "parameters" => parameters,
+        "experiment_function" => basicLMM_exp,
+        "seed" => 42,
+        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
+        "date" => now(),
+    )
+    return configuration
+end
+
+
 # This is the most basic implementation of the LMM for MISO, in the sense that we are not
 # playing around with kernel or anything.
-function describe_basicLMM()
+function describe(x::typeof(basicLMM))
     d = """
         This is a basic implementation of the LMM for MISO. It does not involve kernel
         engineering.
         """
-    println(d)
+    return d
 end
 
-source_basicLMM() = "basicLMM.jl"
+source(x::typeof(basicLMM)) = "basicLMM.jl"
 
 function basicLMM_exp(
     n_d::Int, # number of training days.
@@ -95,40 +132,4 @@ function basicLMM_exp(
     end
 
     return out
-end
-
-"""
-    set_parameters()
-
-This function sets the parameters of your experiment.
-The first dictionary, `parameters`, should be populated with `string => AbstractArray`
-key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
-iterate over. The array could also only contain one element if you would like to use one
-constant parameter.
-The second dictionary should not be altered, it is used in the experiment execution. This
-dictionary references the `experiment_function`, which should contain your experiment.
-"""
-function basicLMM()
-    parameters = [
-        [7],
-        [10],
-        [30],
-        [[1]],
-        [""],
-            # [7, 2*7, 3*7],
-            # [10, 20, 30],
-            # [30],
-            # [[1, 5, 25]],
-            # [""],
-        ]
-
-    # -- Do not edit below this line -- #
-    configuration = Dict{String, Any}(
-        "parameters" => parameters,
-        "experiment_function" => basicLMM_exp,
-        "seed" => 42,
-        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
-        "date" => now(),
-    )
-    return configuration
 end
