@@ -1,15 +1,53 @@
+"""
+    set_parameters()
+
+This function sets the parameters of your experiment.
+The first dictionary, `parameters`, should be populated with `string => AbstractArray`
+key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
+iterate over. The array could also only contain one element if you would like to use one
+constant parameter.
+The second dictionary should not be altered, it is used in the experiment execution. This
+dictionary references the `experiment_function`, which should contain your experiment.
+"""
+function hour_loadLMM()
+    parameters = [
+        [7], #[14], #[21],
+        [10], #[15], #[20],
+        [50],
+        [[31, 37, 38, 47, 49, 56, 76, 77, 80, 81]],
+        #[[24, 30, 31, 40, 42, 49, 69, 70, 73, 74]], # for 2 weeks training data
+        #[[17, 23, 24, 33, 35, 42, 62, 63, 66, 67]], # for 3 weeks training data
+        [""],
+            # [7, 2*7, 3*7],
+            # [10, 20, 30],
+            # [30],
+            # [[1, 5, 25]],
+            # [""],
+        ]
+
+    # -- Do not edit below this line -- #
+    configuration = Dict{String, Any}(
+        "parameters" => parameters,
+        "experiment_function" => hour_loadLMM_exp,
+        "seed" => 42,
+        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
+        "date" => now(),
+    )
+    return configuration
+end
+
 # This is the most basic implementation of the LMM for MISO, in the sense that we are not
 # playing around with kernel or anything.
 # Here, the initialisation is more principled than in the other case.
-function describe_hour_loadLMM()
+function describe(x::typeof(hour_loadLMM))
     d = """
         This is a basic implementation of the LMM for MISO. It does not involve kernel
         engineering.
         """
-    println(d)
+    return d
 end
 
-source_hour_loadLMM() = "hour_loadLMM.jl"
+source(x::typeof(hour_loadLMM)) = "hour_loadLMM.jl"
 
 function hour_loadLMM_exp(
     n_d::Int, # number of training days.
@@ -197,42 +235,4 @@ function hour_loadLMM_exp(
 
     info("Done!")
     return out
-end
-
-"""
-    set_parameters()
-
-This function sets the parameters of your experiment.
-The first dictionary, `parameters`, should be populated with `string => AbstractArray`
-key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
-iterate over. The array could also only contain one element if you would like to use one
-constant parameter.
-The second dictionary should not be altered, it is used in the experiment execution. This
-dictionary references the `experiment_function`, which should contain your experiment.
-"""
-function hour_loadLMM()
-    parameters = [
-        [7], #[14], #[21],
-        [10], #[15], #[20],
-        [50],
-        [[31, 37, 38, 47, 49, 56, 76, 77, 80, 81]],
-        #[[24, 30, 31, 40, 42, 49, 69, 70, 73, 74]], # for 2 weeks training data
-        #[[17, 23, 24, 33, 35, 42, 62, 63, 66, 67]], # for 3 weeks training data
-        [""],
-            # [7, 2*7, 3*7],
-            # [10, 20, 30],
-            # [30],
-            # [[1, 5, 25]],
-            # [""],
-        ]
-
-    # -- Do not edit below this line -- #
-    configuration = Dict{String, Any}(
-        "parameters" => parameters,
-        "experiment_function" => hour_loadLMM_exp,
-        "seed" => 42,
-        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
-        "date" => now(),
-    )
-    return configuration
 end

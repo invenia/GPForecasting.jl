@@ -1,7 +1,7 @@
 @testset "Experiments" begin
 
     @everywhere import Memento: getlogger
-    const configuration = :experiment_template
+    const configuration = GPForecasting.Experiments.experiment_template
     res = GPForecasting.experiment(configuration, trace = false)
 
     # Check that the experiment worked
@@ -117,7 +117,13 @@
     @test res[1]["output"] == 7
     @test res[2]["output"] == 8
 
-    @test isa(GPForecasting.Experiments.describe(:experiment_template), Void)
-    @test isa(GPForecasting.Experiments.source(:experiment_template), AbstractString)
-    @test isa(GPForecasting.Experiments.list_experiments(), Vector{Symbol})
+    @test isa(
+        GPForecasting.Experiments.describe(GPForecasting.Experiments.experiment_template),
+        AbstractString
+    )
+    @test isa(
+        GPForecasting.Experiments.source(GPForecasting.Experiments.experiment_template),
+        AbstractString
+    )
+    @test isa(GPForecasting.Experiments.list_experiments(), Vector{Function})
 end

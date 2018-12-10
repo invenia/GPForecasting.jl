@@ -1,8 +1,44 @@
+"""
+    set_parameters()
+
+This function sets the parameters of your experiment.
+The first dictionary, `parameters`, should be populated with `string => AbstractArray`
+key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
+iterate over. The array could also only contain one element if you would like to use one
+constant parameter.
+The second dictionary should not be altered, it is used in the experiment execution. This
+dictionary references the `experiment_function`, which should contain your experiment.
+"""
+function initialisedLMM()
+    parameters = [
+        [3 * 7],
+        [20],
+        [40],
+        [collect(1:40)],
+        [""],
+            # [7, 2*7, 3*7],
+            # [10, 20, 30],
+            # [30],
+            # [[1, 5, 25]],
+            # [""],
+        ]
+
+    # -- Do not edit below this line -- #
+    configuration = Dict{String, Any}(
+        "parameters" => parameters,
+        "experiment_function" => initialisedLMM_exp,
+        "seed" => 42,
+        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
+        "date" => now(),
+    )
+    return configuration
+end
+
 # This is the most basic implementation of the LMM for MISO, in the sense that we are not
 # playing around with kernel or anything.
 # Here, the initialisation is more principled than in the other case.
 
-function describe_initialisedLMM()
+function describe(x::typeof(initialisedLMM))
     d = """
         This is a basic implementation of the LMM for MISO. It does not involve kernel
         engineering.
@@ -10,10 +46,10 @@ function describe_initialisedLMM()
         Here, we initialise the parameters of each individual kernel using the projected
         latent process.
         """
-    println(d)
+    return d
 end
 
-source_initialisedLMM() = "initialisedLMM.jl"
+source(x::typeof(initialisedLMM)) = "initialisedLMM.jl"
 
 function initialisedLMM_exp(
     n_d::Int, # number of training days.
@@ -144,40 +180,4 @@ function initialisedLMM_exp(
 
     info("Done!")
     return out
-end
-
-"""
-    set_parameters()
-
-This function sets the parameters of your experiment.
-The first dictionary, `parameters`, should be populated with `string => AbstractArray`
-key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
-iterate over. The array could also only contain one element if you would like to use one
-constant parameter.
-The second dictionary should not be altered, it is used in the experiment execution. This
-dictionary references the `experiment_function`, which should contain your experiment.
-"""
-function initialisedLMM()
-    parameters = [
-        [3 * 7],
-        [20],
-        [40],
-        [collect(1:40)],
-        [""],
-            # [7, 2*7, 3*7],
-            # [10, 20, 30],
-            # [30],
-            # [[1, 5, 25]],
-            # [""],
-        ]
-
-    # -- Do not edit below this line -- #
-    configuration = Dict{String, Any}(
-        "parameters" => parameters,
-        "experiment_function" => initialisedLMM_exp,
-        "seed" => 42,
-        "revision" => HelloBatch.getrevinfo(GPForecasting.packagehomedir),
-        "date" => now(),
-    )
-    return configuration
 end

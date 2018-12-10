@@ -29,14 +29,14 @@ function list_experiments()
     # NOTE: be sure to update this every time you create a new experiment. This list should
     # be kept up-to-date.
     return [
-        :experiment_template,
-        :basicLMM,
-        :baiscOLMM,
-        :basicIOLMM,
-        :hour_load,
-        :indep,
-        :initialisedLMM,
-        :damec,
+        experiment_template,
+        basicLMM,
+        basicOLMM,
+        basicIOLMM,
+        hour_loadLMM,
+        # indep,
+        initialisedLMM,
+        damec,
     ]
 end
 

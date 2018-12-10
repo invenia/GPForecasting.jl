@@ -56,7 +56,7 @@ Run the experiment specified in the script.
 - `seed::Int=42`: the seed for the RNG.
 """
 function experiment(
-    exp_path::Union{AbstractString, Symbol};
+    exp_path::Union{AbstractString, Function};
     seed::Int=42,
     trace::Bool = true,
 )
