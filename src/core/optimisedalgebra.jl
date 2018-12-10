@@ -395,7 +395,7 @@ function sum_kron_J_ut(m::Integer, K::NA...)
     end
     return res
 end
-@union_intercepts sum_kron_J_ut Tuple{Integer, Vararg{NA}} [false, true]
+@union_intercepts sum_kron_J_ut Tuple{Integer, Vararg{NA}} Tuple{Integer, Vararg{NA}}
 function Nabla.∇(::typeof(sum_kron_J_ut), ::Type{Arg{i}}, _, y, ȳ, m, K...) where i
     # TODO: Check this is okay!
     n = size(ȳ, 1)
@@ -443,7 +443,7 @@ function _eskmu_fill_triu_Lt!(res, n, m, i, j, B, L_prod)
     end
 end
 
-@union_intercepts eye_sum_kron_M_ut Tuple{NA, Vararg{NA}} [true, true]
+@union_intercepts eye_sum_kron_M_ut Tuple{NA, Vararg{NA}} Tuple{NA, Vararg{NA}}
 function Nabla.∇(
     ::typeof(eye_sum_kron_M_ut),
     ::Type{Arg{1}},
