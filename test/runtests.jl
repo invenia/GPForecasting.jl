@@ -1,18 +1,34 @@
-info("$(Pkg.installed("HelloBatch"))")
 using GPForecasting
-using Nabla
-using Base.Test
+using Compat.Test
+
+import Compat
+using Compat.Dates
+using Compat.Distributed
+using Compat.LinearAlgebra
+using CSV
 using DataFrames
-using FDM
 using Distributions
+using FDM
+using FillArrays
+using LineSearches
+using Memento
+using Nabla
+using Nullables
 
 _ATOL_ = 1e-5
+
+if isdefined(Compat.Random, :seed!)
+    using Compat.Random: seed!
+else
+    const seed! = Compat.Random.srand
+end
+
 
 # Write your own tests here.
 @testset "GPForecasting.jl" begin
 
     # Keep Logging to a minimum
-    logger = Memento.config("warn"; fmt="[{level} | {name}]: {msg}")
+    logger = Memento.config!("warn"; fmt="[{level} | {name}]: {msg}")
 
     include("core/util.jl")
     include("core/optimise.jl")

@@ -69,7 +69,7 @@ function mcc_training_data(
             s = data == :DA ? "_da" : "_rt"
             mask = endswith.(String.(names(train_y)), s)
             train_y = train_y[:, mask]
-            new_names = Symbol.(replace.(String.(names(train_y)), s, ""))
+            new_names = [Symbol(replace(String(n), s => "")) for n in names(train_y)]
             names!(train_y, new_names)
             test_y = test_y[:, mask]
             names!(test_y, new_names)
@@ -80,8 +80,8 @@ function mcc_training_data(
             train_rt = train_y[:, maskrt]
             test_da = test_y[:, maskda]
             test_rt = test_y[:, maskrt]
-            nodes_da = Symbol.(replace.(String.(names(train_da)), "_da", ""))
-            nodes_rt = Symbol.(replace.(String.(names(train_rt)), "_rt", ""))
+            nodes_da = [Symbol(replace(String(n), "_da" => "")) for n in names(train_da)]
+            nodes_rt = [Symbol(replace(String(n), "_rt" => "")) for n in names(train_rt)]
             nodes_da != nodes_rt &&
                 throw(error("Real time and day ahead node names don't match!"))
             deltas_train = Matrix(train_da) .- Matrix(train_rt)
@@ -162,8 +162,8 @@ function standardise_data(dat::Vector)
     for d in cdat
         ytr = Matrix(d["train_y"])
         yte = Matrix(d["test_y"])
-        stdtr = std(ytr, 1)
-        meantr = mean(ytr, 1)
+        stdtr = std(ytr, dims=1)
+        meantr = mean(ytr, dims=1)
         push!(originals, Dict(
                 "mean_train" => meantr,
                 "std_train" => stdtr,

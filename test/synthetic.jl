@@ -23,7 +23,7 @@
     end
 
     @testset "One dimensional problems" begin
-        srand(314159265)
+        seed!(314159265)
         n = 50
         f_1d(x) = sin.(x) .* sin.(2.0 * x) + 0.25 * rand(n)
         x_train = sort(2pi .* rand(n))
@@ -89,11 +89,11 @@
     end
 
     @testset "Multidimensional input problems" begin
-        srand(314159265)
+        seed!(314159265)
         n = 100
         d = 3
         s = collect(1.0:1.0:d)
-        f_Md(x) = prod(sin.(x .* s'), 2)[:] + 0.1 * rand(n)
+        f_Md(x) = prod(sin.(x .* s'), dims=2)[:] + 0.1 * rand(n)
         x_train = 2pi .* rand(n, d)
         x_test = 2pi .* rand(n, d)
         y_train = f_Md(x_train)
@@ -121,7 +121,7 @@
     end
 
     @testset "Multidimensional output problems" begin
-        srand(314159265)
+        seed!(314159265)
 
         n = 100
         p = 5
@@ -140,12 +140,12 @@
         x_test = x[2:2:end]
         y_train = y[1:2:end,:]
         y_test = y[2:2:end,:]
-        mean_y_train = mean(y_train, 1)
-        std_y_train = std(y_train, 1)
+        mean_y_train = mean(y_train, dims=1)
+        std_y_train = std(y_train, dims=1)
         y_train = (y_train .- mean_y_train) ./ std_y_train
         y_test = (y_test .- mean_y_train) ./ std_y_train
 
-        H = eye(p)
+        H = Eye(p)
         k = [(EQ() ▷ 10.0) for i=1:5]
         gp = GP(LMMKernel(Fixed(5), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
@@ -155,7 +155,7 @@
         @test mse(vec(a), vec(y_test)) ≈ 0.8087681056630357 atol = _TOL_
 
         U, S, V = svd(cov(y_train))
-        H = U * diagm(sqrt.(S))
+        H = U * Diagonal(sqrt.(S))
         k = [(EQ() ▷ 10.0) for i=1:5]
         gp = GP(LMMKernel(Fixed(5), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
@@ -164,7 +164,7 @@
         @test mse(vec(b), vec(y_test)) ≈ 0.8751756874359901  atol = _TOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.10721174421720554 atol = _TOL_
 
-        H = (U * diagm(sqrt.(S)))[:,1:3]
+        H = (U * Diagonal(sqrt.(S)))[:,1:3]
         k = [(EQ() ▷ 10.0) for i=1:3]
         gp = GP(LMMKernel(Fixed(3), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
@@ -173,7 +173,7 @@
         @test mse(vec(b), vec(y_test)) ≈ 0.8754142897078707  atol = _TOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.10636472286495949 atol = _TOL_
 
-        H = (U * diagm(sqrt.(S)))[:,1:1]
+        H = (U * Diagonal(sqrt.(S)))[:,1:1]
         k = [(EQ() ▷ 10.0)]
         gp = GP(LMMKernel(Fixed(1), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
@@ -182,7 +182,7 @@
         @test mse(vec(b), vec(y_test)) ≈ 0.8846475452351197  atol = _TOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.11874106402148683 atol = _TOL_
 
-        srand(314159265)
+        seed!(314159265)
         H = rand(p, 7)
         k = [(EQ() ▷ 10.0) for i=1:7]
         gp = GP(LMMKernel(Fixed(7), Fixed(p), Positive(0.001), Fixed(H), k))
@@ -194,7 +194,7 @@
     end
 
     @testset "Comparison of LMM/OLMM/SOLMM models" begin
-        srand(314159265)
+        seed!(314159265)
 
         n = 100
         p = 5
@@ -217,13 +217,13 @@
         x_test = x[2:2:end]
         y_train = y[1:2:end,:]
         y_test = y[2:2:end,:]
-        mean_y_train = mean(y_train, 1)
-        std_y_train = std(y_train, 1)
+        mean_y_train = mean(y_train, dims=1)
+        std_y_train = std(y_train, dims=1)
 
-        y_train_standardised = (y_train .- mean_y_train) ./ std_y_train 
+        y_train_standardised = (y_train .- mean_y_train) ./ std_y_train
 
         U, S, V = svd(cov(y_train_standardised))
-        H = (U * diagm(sqrt.(S)))[:,1:m]  
+        H = (U * Diagonal(sqrt.(S)))[:,1:m]
 
         k1 = [(EQ() ▷ 10.0) for i=1:m]
         k2 = [(EQ() ▷ (10.0 / i)) for i=1:m]
@@ -272,7 +272,7 @@
         y_train_transformed = (H \ y_train_standardised')'
         gp = GP(ZeroMean(), NoiseKernel(k1[1], lat_noise*DiagonalKernel()))
         K = gp.k(Observed(x_train))
-        U = chol(K + GPForecasting._EPSILON_ .* eye(K))
+        U = chol(K + GPForecasting._EPSILON_ .* Eye(K))
         k_ = gp.k(Latent(x_test), Latent(x_train))
         L_y = U' \ y_train_transformed
         k_U = k_ / U
@@ -281,16 +281,16 @@
         m_solmm = (H * means_')'
         k_solmm = []
         for i = 1:n
-            push!(k_solmm, Matrix(Hermitian(H * diagm(vars_[i,:]) * H')))
+            push!(k_solmm, Matrix(Hermitian(H * Diagonal(vars_[i,:]) * H')))
         end
 
         @test m_solmm ≈ m_olmm  atol = _TOL_
         @test k_solmm ≈ k_olmm  atol = _TOL_
 
-        # OLMM                                                                               
-        gp = GP(GP(OLMMKernel(m, p, 0.0, lat_noise, H, k2)))                                 
-        olmm = condition(gp, x_train, y_train_standardised)                                  
-        m_olmm = olmm.m(x_test)                                                              
+        # OLMM
+        gp = GP(GP(OLMMKernel(m, p, 0.0, lat_noise, H, k2)))
+        olmm = condition(gp, x_train, y_train_standardised)
+        m_olmm = olmm.m(x_test)
         k_olmm = blocks(hourly_cov(olmm.k, x_test))
 
         # SOLMM
@@ -306,7 +306,7 @@
         m_solmm = (H * means_')'
         k_solmm = []
         for i = 1:n
-            push!(k_solmm, Matrix(Hermitian(H * diagm(vars_[i,:]) * H')))
+            push!(k_solmm, Matrix(Hermitian(H * Diagonal(vars_[i,:]) * H')))
         end
 
         @test m_solmm ≈ m_olmm  atol = _TOL_

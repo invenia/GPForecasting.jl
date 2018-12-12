@@ -9,7 +9,7 @@
 
     gp = GP(0, EQ() ▷ 10)
     x = collect(1.0:10.0);
-    y = 2 .* x + 1e-1*randn();
+    y = 2 .* x .+ 1e-1 * randn()
     ngp = learn(gp, x, y, objective, trace=true)
     @test 1.5 < ngp.k.stretch.p < 3.5
 

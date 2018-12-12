@@ -16,8 +16,8 @@
     @test size(training_data[2]["test_x"], 2) == 8
     @test size(training_data[1]["test_y"], 1) == 24
     cdat, orig = standardise_data(training_data)
-    @test mean(Matrix(cdat[1]["train_y"]), 1) ≈ zeros(size(cdat[1]["train_y"], 2))' atol = _ATOL_
-    @test std(Matrix(cdat[1]["train_y"]), 1) ≈ ones(size(cdat[1]["train_y"], 2))' atol = _ATOL_
+    @test mean(Matrix(cdat[1]["train_y"]), dims=1) ≈ zeros(size(cdat[1]["train_y"], 2))' atol = _ATOL_
+    @test std(Matrix(cdat[1]["train_y"]), dims=1) ≈ ones(size(cdat[1]["train_y"], 2))' atol = _ATOL_
     idat = inverse_standardise(cdat, orig)
     @test Matrix(idat[1]["test_y"]) ≈ Matrix(training_data[1]["test_y"]) atol = _ATOL_
     @test Matrix(idat[1]["train_y"]) ≈ Matrix(training_data[1]["train_y"]) atol = _ATOL_
@@ -39,5 +39,5 @@
 
     mec_data = mec_training_data(1, "DAMEC_sample.csv", joinpath(GPForecasting.packagehomedir, "test"), 1)
     @test length(mec_data) == 1
-    @test all(in.(["test_x", "test_y", "train_x", "train_y"], keys(mec_data[1])))
+    @test all(in(keys(mec_data[1])), ["test_x", "test_y", "train_x", "train_y"])
 end

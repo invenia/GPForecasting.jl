@@ -13,7 +13,7 @@
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_
             @test diag(k([1., 2., 3.])) ≈ var(k, [1., 2., 3.]) atol = _ATOL_
-            @test hourly_cov(k, [1., 2., 3.]) ≈ diagm(var(k, [1., 2., 3.])) atol = _ATOL_
+            @test hourly_cov(k, [1., 2., 3.]) ≈ Diagonal(var(k, [1., 2., 3.])) atol = _ATOL_
             @test !isMulti(k)
         end
         @test_throws ArgumentError MA(6)([4.])
@@ -122,7 +122,7 @@
     end
 
     @testset "PosteriorKernel" begin
-        pk = PosteriorKernel(ConstantKernel(), [1,2,3], eye(3))
+        pk = PosteriorKernel(ConstantKernel(), [1,2,3], Eye(3))
         @test !isMulti(pk)
         @test pk([1,2], [1,2]) ≈ [-2. -2.; -2. -2.] atol = _ATOL_
     end

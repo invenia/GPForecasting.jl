@@ -21,7 +21,7 @@ function experiment(
 
     parameters = exp_config["parameters"]
     exp_fn = exp_config["experiment_function"]
-    try srand(exp_config["seed"]) catch srand(seed) end # Set the seed for pseudorandomness
+    try srand(exp_config["seed"]) catch err srand(seed) end # Set the seed for pseudorandomness
 
     results = pmap(
                 product(parameters...),

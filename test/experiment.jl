@@ -1,7 +1,7 @@
 @testset "Experiments" begin
 
     @everywhere import Memento: getlogger
-    const configuration = GPForecasting.Experiments.experiment_template
+    configuration = GPForecasting.Experiments.experiment_template
     res = GPForecasting.experiment(configuration, trace = false)
 
     # Check that the experiment worked
@@ -16,7 +16,7 @@
         @test isa(res[i]["output"], AbstractArray)
     end
 
-    const configuration = joinpath(
+    configuration = joinpath(
         GPForecasting.packagehomedir,
         "test/mock_experiment.jl"
     )
@@ -104,7 +104,7 @@
         )
         return configuration
     end
-    const configuration2 = dummy_set_parameters()
+    configuration2 = dummy_set_parameters()
     res = GPForecasting.experiment(configuration2, trace = false)
 
     # Check that the experiment worked

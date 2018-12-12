@@ -1,8 +1,16 @@
 export Gaussian
 
-import Base: chol, mean, cov, var, size
-import Distributions: rand, dim
+import Base: size
+import Distributions: rand, dim, mean, cov, var
 import ModelAnalysis: mll_joint
+
+if VERSION >= v"0.7"
+    import LinearAlgebra: cholesky
+    chol(x; kwargs...) = cholesky(x; kwargs...).U
+else
+    import Base: chol
+    const cholesky = Base.chol
+end
 
 """
     Gaussian <: Random
@@ -27,7 +35,7 @@ function Gaussian(
     μ::Wrapped{T},
     Σ::Wrapped{G},
 ) where {T <: AbstractArray, G <: AbstractArray}
-    return Gaussian(μ, Σ, Matrix(0, 0))
+    return Gaussian(μ, Σ, Matrix(undef, 0, 0))
 end
 
 mean(g::Gaussian) = g.μ
@@ -50,7 +58,7 @@ Get the dimensionality of a distribution `dist`.
 size(dist::Gaussian) = size(mean(dist))
 
 """
-    chol(dist::Gaussian) -> AbstractMatrix
+    cholesky(dist::Gaussian) -> AbstractMatrix
 
 Compute the Cholesky of the covariance matrix of a MVN `dist`
 
@@ -60,16 +68,16 @@ Compute the Cholesky of the covariance matrix of a MVN `dist`
 # Returns
 - `AbstractMatrix`: Computed Cholesky decomposition.
 """
-@unionise function chol(dist::Gaussian)
-    if dist.U == Matrix(0, 0)
-        dist.U = chol(Symmetric(dist.Σ) .+ _EPSILON_ .* eye(dim(dist)))
+@unionise function cholesky(dist::Gaussian)
+    if dist.U == Matrix(undef, 0, 0)
+        dist.U = chol(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist)))
     end
     return dist.U
 end
 
-@unionise function chol(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
-    if dist.U == Matrix(0, 0)
-        dist.U = BlockDiagonal(chol.(Symmetric.(blocks(dist.Σ)) .+ _EPSILON_ .* eye.(blocks(dist.Σ))))
+@unionise function cholesky(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
+    if dist.U == Matrix(undef, 0, 0)
+        dist.U = BlockDiagonal(chol.(Symmetric.(blocks(dist.Σ)) .+ _EPSILON_ .* Eye.(blocks(dist.Σ))))
     end
     return dist.U
 end
@@ -87,7 +95,7 @@ Sample `n` samples from a MVN `dist`.
 - `AbstractMatrix{<:Real}`: Samples where the columns correspond to different samples.
 """
 function sample(dist::Gaussian, n::Integer=1)
-    U = chol(dist)
+    U = cholesky(dist)
     if n > 1
         return mean(dist) .+ reshape(U' * randn(dim(dist), n), size(dist)..., n)
     else
@@ -97,7 +105,7 @@ end
 rand(dist::Gaussian) = sample(dist)
 rand(dist::Gaussian, n::Int) = sample(dist, n)
 
-MvNormal(d::Gaussian) = MvNormal(vec(d.μ[:, :]'), d.Σ)
+MvNormal(d::Gaussian) = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
 
 function mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
     if length(blocks(d.Σ)) != size(y, 1) # Not sure why one would ever do this, but anyway

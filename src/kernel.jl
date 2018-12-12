@@ -18,7 +18,7 @@ Return a sparse matrix with only the variances (at the diagonal).
 Return a block-diagonal sparse matrix with the covariances between all outputs for each
 given input value, i.e., does not compute covariances for different values of `x`.
 """
-hourly_cov(k::Kernel, x) = spdiagm(var(k, x))
+hourly_cov(k::Kernel, x) = sparse(Diagonal(var(k, x)))
 
 """
     isMulti(k::Kernel)
@@ -150,9 +150,9 @@ function (k::MA)(x, y)
     if unwrap(k.ν) ≈ 1/2
         return exp.(-d)
     elseif unwrap(k.ν) ≈ 3/2
-        return (1 + √3 .* d) .* exp.(-√3 .* d)
+        return (1 .+ √3 .* d) .* exp.(-√3 .* d)
     elseif unwrap(k.ν) ≈ 5/2
-        return (1 + √5 .* d + 5/3 .* d.^2) .* exp.(-√5 .* d)
+        return (1 .+ √5 .* d + 5/3 .* d.^2) .* exp.(-√5 .* d)
     else
         throw(ArgumentError("$(unwrap(k.ν)) is not a supported value for Matérn kernels."))
     end
@@ -214,7 +214,7 @@ function (*)(x, k::ScaledKernel)
     else
         return unwrap(x) * unwrap(k.scale) ≈ zero(unwrap(x)) ? ZeroKernel() :
             (
-                (isconstrained(k.scale) && !isa(k.scale, Positive))?
+                (isconstrained(k.scale) && !isa(k.scale, Positive)) ?
                 ScaledKernel(Positive(x), k) :
                 ScaledKernel(Positive(unwrap(x) * unwrap(k.scale)), k.k)
             )
@@ -372,7 +372,7 @@ isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 
 Kernel that returns 1.0 for every pair of points.
 """
-mutable struct ConstantKernel <: Kernel end
+struct ConstantKernel <: Kernel end
 (k::ConstantKernel)(x, y) = ones(Float64, size(x, 1), size(y, 1))
 (k::ConstantKernel)(x) = k(x, x)
 (k::ConstantKernel)(x::Real, y::Real) = 1.0
@@ -390,7 +390,7 @@ show(io::IO, k::ConstantKernel) = print(io, "𝟏")
 
 Zero kernel. Returns zero.
 """
-mutable struct ZeroKernel <: Kernel; end
+struct ZeroKernel <: Kernel; end
 (::ZeroKernel)(x, y) = zeros(size(x, 1), size(y, 1))
 (k::ZeroKernel)(x) = k(x, x)
 (+)(k::Kernel, z::ZeroKernel) = k
@@ -412,7 +412,7 @@ show(io::IO, z::ZeroKernel) = print(io, "𝟎")
 
 Diagonal kernel. Has unitary variance.
 """
-mutable struct DiagonalKernel <: Kernel end
+struct DiagonalKernel <: Kernel end
 function (::DiagonalKernel)(x, y)
     xl = [x[i, :] for i in 1:size(x, 1)]
     yl = [y[i, :]' for i in 1:size(y, 1)]

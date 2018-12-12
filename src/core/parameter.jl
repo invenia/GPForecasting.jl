@@ -35,13 +35,18 @@ abstract type Parameter end
 # first field. We could do something similar to the kernels to make this fully flexible,
 # but I think this suffices.
 parameter(p::Parameter) = getfield(p, 1)
-others(p::Parameter) = collect(Iterators.rest(getfields(p), 2))
+
+if VERSION >= v"0.7"
+    others(p::Parameter) = collect(Iterators.rest(getfields(p), 1))
+else
+    others(p::Parameter) = collect(Iterators.rest(getfields(p), 2))
+end
 
 # Default parameter behaviour:
 reconstruct(p::Parameter, parameter, others) = typeof(p)(parameter, others...)
 unwrap(p::Parameter) = unwrap(parameter(p))
 name(p::Parameter) = name(parameter(p))
-show(io::IO, p::Parameter) = showcompact(io, parameter(p))
+show(io::IO, p::Parameter) = show(IOContext(io, :compact => true), parameter(p))
 
 """
     pack(k::Parameter) -> Vector

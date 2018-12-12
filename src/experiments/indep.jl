@@ -107,7 +107,7 @@ function indep_exp(
         gp = learn(gp, Observed(x_train), y_train, objective_indep, its=its, trace=true);
 
         K = gp.k(Observed(x_train))
-        U = chol(K + GPForecasting._EPSILON_ .* eye(K))
+        U = chol(K + GPForecasting._EPSILON_ .* Eye(K))
         k_ = gp.k(Latent(x_test), Observed(x_train))
         L_y = U' \ y_train
         k_U = k_ / U

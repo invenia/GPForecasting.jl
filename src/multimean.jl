@@ -85,7 +85,7 @@ function stack(m::Vector) # This ugly, should be replaced soon
    s2 = size(m[1])
    jlim = isa(m[1], Vector) ? 1 : s2[2]
    s = (s1 * s2[1], jlim)
-   out = Array{Float64}(s...)
+   out = Array{Float64}(undef, s...)
    for j in 1:jlim # i,j loop over data points
        for i in 1:s2[1]
            for k in 1:s1

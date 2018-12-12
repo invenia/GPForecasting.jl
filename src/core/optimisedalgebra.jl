@@ -1,13 +1,74 @@
 module OptimisedAlgebra
 
+using MacroTools
 using Nabla
 
 export outer, kron_lid_lmul, kron_lid_lmul_lt_s, kron_lid_lmul_lt_m,
 kron_rid_lmul_s, kron_rid_lmul_m, kron_lmul_lr, kron_lmul_rl, diag_outer_kron,
 diag_outer, Js, Ms, sum_kron_J_ut, sum_kron_M, eye_sum_kron_M_ut, BlockDiagonal, blocks
 
-import Base: size, diag, Matrix, chol, show, display, *, +, /, isapprox, transpose, Ac_mul_B,
-A_mul_Bc, getindex, ctranspose, det, eigvals, trace
+import Base: size, Matrix, show, display, *, +, /, isapprox, getindex
+
+import Compat.LinearAlgebra: diag, eigvals, det, transpose
+using Compat.LinearAlgebra: UpperTriangular, isdiag, Diagonal
+import Compat: tr
+
+if VERSION >= v"0.7"
+    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, cholesky, mul!
+
+    A_mul_Bt!(Y, A, B) = mul!(Y, A, transpose(B))
+else
+    import Base: Ac_mul_B, A_mul_Bc
+    import Base: ctranspose, chol
+    const adjoint = ctranspose
+    const cholesky = chol
+    const mul! = Base.A_mul_B!
+end
+
+"""
+    @linalg_compat <function definition>
+
+Given a method definition for `Ac_mul_B` or `A_mul_Bc`, generate a corresponding method for
+`*` on Julia 0.7+ which is defined in terms of the original method definition.
+
+For example, a method `Ac_mul_B(b::BlockDiagonal, m::BlockDiagonal)` will generate a
+companion method
+`(*)(b::Adjoint{BlockDiagonal}, m::BlockDiagonal) = Ac_mul_B(parent(b), m)`.
+
+At some point these methods should be rewritten in terms of * on `Adjoint` types, so this
+macro can be purged from existence.
+
+!!! note
+
+    This macro currently requires a long-form unparameterized method definition where the
+    types of both arguments are specified.
+"""
+macro linalg_compat(expr)
+    if VERSION < v"0.7"
+        return esc(expr)
+    end
+
+    @capture(expr, function f_(arg1_::Type1_, arg2_::Type2_) body_ end) ||
+        error("Function definition did not match format expected by @linalg_compat")
+
+    if f === :Ac_mul_B
+        Type1 = :(Adjoint{$Type1})
+        reassignment = :($arg1 = parent($arg1))
+    elseif f === :A_mul_Bc
+        Type2 = :(Adjoint{$Type2})
+        reassignment = :($arg2 = parent($arg2))
+    else
+        error("Unrecognized method")
+    end
+
+    return quote
+        function Base.:(*)(($(arg1))::($(Type1)), ($(arg2))::($(Type2)))
+            $reassignment
+            $(f)($(arg1), $(arg2))
+        end
+        $(esc(expr))
+    end
+end
 
 struct BlockDiagonal{T} <: AbstractMatrix{T}
     blocks::Vector{<:AbstractMatrix{T}}
@@ -33,19 +94,19 @@ function isapprox(b1::AbstractMatrix, b2::BlockDiagonal; atol::Real=0)
     return isapprox(b1, Matrix(b2), atol=atol)
 end
 
-Matrix(b::BlockDiagonal) = cat([1, 2], blocks(b)...)
+Matrix(b::BlockDiagonal) = cat(blocks(b)...; dims=(1, 2))
 
-chol(b::BlockDiagonal) = BlockDiagonal(chol.(blocks(b)))
+cholesky(b::BlockDiagonal) = BlockDiagonal(cholesky.(blocks(b)))
 det(b::BlockDiagonal) = prod(det.(blocks(b)))
 function eigvals(b::BlockDiagonal)
     eigs = vcat(eigvals.(blocks(b))...)
     !isa(eigs, Vector{<:Complex}) && return sort(eigs)
     return eigs
 end
-trace(b::BlockDiagonal) = sum(trace.(blocks(b)))
+tr(b::BlockDiagonal) = sum(tr.(blocks(b)))
 
 transpose(b::BlockDiagonal) = BlockDiagonal(transpose.(blocks(b)))
-ctranspose(b::BlockDiagonal) = BlockDiagonal(ctranspose.(blocks(b)))
+adjoint(b::BlockDiagonal) = BlockDiagonal(adjoint.(blocks(b)))
 
 function getindex(b::BlockDiagonal{T}, i::Int, j::Int) where T
     cols = [size(bb, 2) for bb in blocks(b)]
@@ -95,14 +156,14 @@ function (*)(b::BlockDiagonal, m::BlockDiagonal)
         Matrix(b) * Matrix(m)
     end
 end
-function Ac_mul_B(b::BlockDiagonal, m::BlockDiagonal)
+@linalg_compat function Ac_mul_B(b::BlockDiagonal, m::BlockDiagonal)
     if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
         return BlockDiagonal(Ac_mul_B.(blocks(b), blocks(m)))
     else
         Ac_mul_B(Matrix(b), Matrix(m))
     end
 end
-function Ac_mul_B(b::BlockDiagonal, m::AbstractMatrix)
+@linalg_compat function Ac_mul_B(b::BlockDiagonal, m::AbstractMatrix)
     size(b, 1) != size(m, 1) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
     )
@@ -116,7 +177,7 @@ function Ac_mul_B(b::BlockDiagonal, m::AbstractMatrix)
     end
     return vcat(d...)
 end
-function Ac_mul_B(m::AbstractMatrix, b::BlockDiagonal)
+@linalg_compat function Ac_mul_B(m::AbstractMatrix, b::BlockDiagonal)
     size(b, 1) != size(m, 1) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
     )
@@ -130,14 +191,14 @@ function Ac_mul_B(m::AbstractMatrix, b::BlockDiagonal)
     end
     return hcat(d...)
 end
-function A_mul_Bc(b::BlockDiagonal, m::BlockDiagonal)
+@linalg_compat function A_mul_Bc(b::BlockDiagonal, m::BlockDiagonal)
     if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
         return BlockDiagonal(A_mul_Bc.(blocks(b), blocks(m)))
     else
         A_mul_Bc(Matrix(b), Matrix(m))
     end
 end
-function A_mul_Bc(b::BlockDiagonal, m::AbstractMatrix)
+@linalg_compat function A_mul_Bc(b::BlockDiagonal, m::AbstractMatrix)
     size(b, 2) != size(m, 2) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
     )
@@ -151,7 +212,7 @@ function A_mul_Bc(b::BlockDiagonal, m::AbstractMatrix)
     end
     return vcat(d...)
 end
-function A_mul_Bc(m::AbstractMatrix, b::BlockDiagonal)
+@linalg_compat function A_mul_Bc(m::AbstractMatrix, b::BlockDiagonal)
     size(b, 2) != size(m, 2) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
     )
@@ -229,7 +290,7 @@ triangular. Optimised for execution speed.
 """
 function kron_lid_lmul_lt_s(A::AbstractMatrix, B::AbstractMatrix)
     (k, l), (m, n), eye_n = check_sizes(A, B)
-    blocks = Vector{Matrix{Float64}}(eye_n)
+    blocks = Vector{Matrix{Float64}}(undef, eye_n)
     for i in 1:eye_n
         blocks[i] = create_block(A, B, k, l, m, n, i)
     end
@@ -248,9 +309,9 @@ triangular. Optmised for memory.
 """
 function kron_lid_lmul_lt_m(A::AbstractMatrix, B::AbstractMatrix)
     (k, l), (m, n), eye_n = check_sizes(A, B)
-    res = Matrix{Float64}(eye_n * k, n)
+    res = Matrix{Float64}(undef, eye_n * k, n)
     for i = 1:eye_n;
-        A_mul_B!(view(res, (i - 1) * k + 1:i * k, :), A, view(B, (i - 1) * l + 1: i * l, :))
+        mul!(view(res, (i - 1) * k + 1:i * k, :), A, view(B, (i - 1) * l + 1: i * l, :))
     end
     return res
 end
@@ -276,7 +337,7 @@ memory.
 """
 function kron_rid_lmul_m(A::AbstractMatrix, B::AbstractMatrix)
     (k, l), (m, n), eye_n = check_sizes(A, B)
-    C = Matrix{Float64}(k * eye_n, n)
+    C = Matrix{Float64}(undef, k * eye_n, n)
     for i = 1:n
         @inbounds A_mul_Bt!(
             reshape(view(C, :, i), eye_n, k),
@@ -312,7 +373,9 @@ end
 
 Efficiently compute `diag(outer(kron(A, B)))`.
 """
-diag_outer_kron(A::AbstractMatrix, B::AbstractMatrix) = kron(sum(A.^2, 2), sum(B.^2, 2))
+function diag_outer_kron(A::AbstractMatrix, B::AbstractMatrix)
+    kron(sum(A .^ 2, dims=2), sum(B .^ 2, dims=2))
+end
 
 """
     diag_outer_kron(
@@ -330,7 +393,7 @@ function diag_outer_kron(
     C::AbstractArray,
     D::AbstractArray
 )
-    return kron(sum(A .* C, 2), sum(B .* D, 2))
+    return kron(sum(A .* C, dims=2), sum(B .* D, dims=2))
 end
 
 """
@@ -338,14 +401,14 @@ end
 
 Efficiently compute `diag(outer(A, B))`.
 """
-diag_outer(A::AbstractArray, B::AbstractArray) = sum(A .* B, 2)
+diag_outer(A::AbstractArray, B::AbstractArray) = sum(A .* B, dims=2)
 
 """
     diag_outer(A::AbstractMatrix)
 
 Efficiently compute `diag(outer(A))`.
 """
-diag_outer(A::AbstractArray) = sum(A.^2, 2)
+diag_outer(A::AbstractArray) = sum(A .^ 2, dims=2)
 
 """
     Js(m::Int) -> Vector{Matrix}
@@ -358,7 +421,7 @@ function Js(m::Int)
     for i = 1:m
         J[i][i] = 1
     end
-    return diagm.(J)
+    return Diagonal.(J)
 end
 
 """
@@ -413,8 +476,8 @@ Efficiently compute and differentiate the upper triangle of
 function eye_sum_kron_M_ut(B::Mat{T}, L::UpperTriangular{T}...) where T
     # Assumes that `ȳ` is upper triangular.
     m, n = size(B, 1), size(L[1], 1)
-    res = Matrix{T}(m * n, m * n)
-    L_prod = Matrix{T}(n, n)
+    res = Matrix{T}(undef, m * n, m * n)
+    L_prod = Matrix{T}(undef, n, n)
     for i = 1:m, j = i:m
         A_mul_Bt!(L_prod, L[i], L[j])
         _eskmu_fill_triu!(res, n, m, i, j, B, L_prod)

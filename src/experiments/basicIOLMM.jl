@@ -33,52 +33,17 @@ function basicIOLMM()
 end
 
 # This is the most basic implementation of the IOLMM for MISO. Just shows how it works.
-@everywhere using GPForecasting
-@everywhere using CSV
-@everywhere using Nabla
-@everywhere using HelloBatch
-
-@everywhere function mse(means, y_true)
-    return mean((y_true .- means).^2)
-end
-
-@everywhere @unionise function log_pdf_indep(dist::Gaussian, x::AbstractArray)
-    U = chol(dist)
-    z = U' \ (x .- dist.μ)
-    log_det = 2.0 * size(x, 2) * sum(log.(diag(U)))
-    return -0.5 * (log_det + prod(size(x)) * log(2π) + sum(z .* z))
-end
-
-@everywhere @unionise function log_pdf_indep(
-    gp::GP,
-    x,
-    y::AbstractArray,
-    params::Vector{G}
-    ) where {G <: Real}
-        ngp = GP(gp.m, set(gp.k, params))
-    return log_pdf_indep(ngp::GP, x, y)
-end
-
-@everywhere @unionise function log_pdf_indep(gp::GP, x, y::AbstractArray)
-    return log_pdf_indep(gp(x), y)
-end
-
-@everywhere @unionise function objective_indep(gp::GP, x, y::AbstractArray)
-    return function f(params)
-        return -log_pdf_indep(gp::GP, x, y, params)
-    end
-end
 
 function describe(x::typeof(basicIOLMM))
     d = """
         This is the most basic implementation of the IOLMM for MISO. Just shows how it works.
         """
-    return d 
+    return d
 end
 
 source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
 
-@everywhere function basicIOLMM_exp(
+function basicIOLMM_exp(
     n_w::Int, # number of training weeks.
     m::Int, # number of latent processes.
     obs_noise::Float64, # observation noise (note that we are working on the standardised space)
@@ -88,6 +53,37 @@ source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
     datafile::AbstractString = "", # filename of data
     datapath::AbstractString = "", # path for the data.
 )
+    # define some functions for use in experiment
+    function mse(means, y_true)
+        return mean((y_true .- means).^2)
+    end
+
+    @unionise function log_pdf_indep(dist::Gaussian, x::AbstractArray)
+        U = chol(dist)
+        z = U' \ (x .- dist.μ)
+        log_det = 2.0 * size(x, 2) * sum(log.(diag(U)))
+        return -0.5 * (log_det + prod(size(x)) * log(2π) + sum(z .* z))
+    end
+
+    @unionise function log_pdf_indep(
+        gp::GP,
+        x,
+        y::AbstractArray,
+        params::Vector{G}
+        ) where {G <: Real}
+            ngp = GP(gp.m, set(gp.k, params))
+        return log_pdf_indep(ngp::GP, x, y)
+    end
+
+    @unionise function log_pdf_indep(gp::GP, x, y::AbstractArray)
+        return log_pdf_indep(gp(x), y)
+    end
+
+    @unionise function objective_indep(gp::GP, x, y::AbstractArray)
+        return function f(params)
+            return -log_pdf_indep(gp::GP, x, y, params)
+        end
+    end
 
     info("LAM: n_w = ", n_w, " m = ", m, " group = ", group)
 
@@ -181,7 +177,7 @@ source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
         # gp = learn(gp, Observed(x_train), y_train_transformed, objective_indep, its=its, trace=true)
 
         K = gp.k(Observed(x_train))
-        U = chol(K + GPForecasting._EPSILON_ .* eye(K))
+        U = chol(K + GPForecasting._EPSILON_ .* Eye(K))
         k_ = gp.k(Latent(x_test), Latent(x_train))
         L_y = U' \ y_train_transformed
         k_U = k_ / U

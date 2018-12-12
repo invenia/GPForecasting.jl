@@ -32,7 +32,7 @@ is the posterior process corresponding to the prior updated with the observation
 """
 function condition(gp::GP, x, y)
     K = gp.k(x)
-    U = chol(K + _EPSILON_ * eye(K))
+    U = chol(K + _EPSILON_ * Eye(K))
     m = PosteriorMean(gp.k, gp.m, x, U, y)
     k = PosteriorKernel(gp.k, x, U)
     return GP(m, k)
@@ -56,11 +56,11 @@ function condition(
 # convert back before returning the output.
     yt = y'
 
-    Us = [chol(k(x, x) + _EPSILON_ * eye(n)) for k in gp.k.ks]
+    Us = [chol(k(x, x) + _EPSILON_ * Eye(n)) for k in gp.k.ks]
     yiσ² = yt ./ σ²
     HiΛy = reshape(H' * yiσ², n * m, 1)
     UQ = sum_kron_J_ut(m, Us...)
-    M = chol(Symmetric(eye_sum_kron_M_ut(At_mul_B(H, H ./ σ²), Us...)))
+    M = chol(Symmetric(eye_sum_kron_M_ut(transpose(H) * (H ./ σ²), Us...)))
     Z = UQ' / M
 
     m = LMMPosMean(gp.k, x, Z, y) # NOTE: assuming here zero prior mean for the LMM.
@@ -100,9 +100,9 @@ function condition(
     Ks = []
     for (k, s, d) in zip(gp.k.ks, S_sqrt, D)
         kx = k(x)
-        push!(Ks, kx + (σ²/s^2 + d) * eye(kx))
+        push!(Ks, kx + (σ²/s^2 + d) * Eye(kx))
     end
-    Us = [chol(Hermitian(K + _EPSILON_^2 * eye(K))) for K in Ks]
+    Us = [chol(Hermitian(K + _EPSILON_^2 * Eye(K))) for K in Ks]
     ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
     ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
     # create the posterior mean
@@ -139,17 +139,17 @@ function (p::GP{K, L})(x) where {K <: NoiseKernel, L <: MultiMean}
     return Gaussian(p.m(x), p.k(x))
 end
 
-MvNormal(gp::GP, x) = MvNormal(vec(gp.m(x)[:, :]'), Matrix(Hermitian(gp.k(x))))
+MvNormal(gp::GP, x) = MvNormal(collect(vec(gp.m(x)[:, :]')), Matrix(Hermitian(gp.k(x))))
 function MvNormal(p::GP{K, M}, x::Input) where {K <: NoiseKernel, M <: Mean}
-    return MvNormal(vec(p.m(x.val)[:, :]'), Matrix(Hermitian(p.k(x))))
+    return MvNormal(collect(vec(p.m(x.val)[:, :]')), Matrix(Hermitian(p.k(x))))
 end
 function MvNormal(p::GP{K, L}, x) where {K <: NoiseKernel, L <: Mean}
     # Here we will work in the extended input space
     M = p.m(x)
-    return MvNormal(vec(stack([M, M])[:, :]'), Matrix(Hermitian(p.k(x))))
+    return MvNormal(collect(vec(stack([M, M])[:, :]')), Matrix(Hermitian(p.k(x))))
 end
 function MvNormal(p::GP{K, L}, x) where {K <: NoiseKernel, L <: MultiMean}
-    return MvNormal(vec(p.m(x)[:, :]'), Matrix(Hermitian(p.k(x))))
+    return MvNormal(collect(vec(p.m(x)[:, :]')), Matrix(Hermitian(p.k(x))))
 end
 
 """

@@ -2,6 +2,11 @@ getfields(x) = (getfield(x, i) for i in 1:nfields(x))
 
 abstract type AbstractNode end
 
+if isdefined(Base, :broadcastable)
+    # make nodes act as a scalar in broadcasting
+    Base.broadcastable(tn::AbstractNode) = Ref(tn)
+end
+
 # Extract children and not children.
 extract_children(x) = AbstractNode[]
 extract_children(x::AbstractNode) = [x]
@@ -15,14 +20,14 @@ extract_others(x::AbstractArray{<:AbstractNode}) = []
 
 Return a vector of all nodes directly referenced by `x`, including those in arrays.
 """
-children(x) = reduce(vcat, AbstractNode[], (extract_children(field) for field in getfields(x)))
+children(x) = Compat.reduce(vcat, (extract_children(field) for field in getfields(x)), init=AbstractNode[])
 
 """
     others(x) -> Vector{Any}
 
 Return all non-node fields (leaves) of `x`, i.e., everything not returned by [`children`](@ref).
 """
-others(x) = reduce(vcat, Any[], (extract_others(field) for field in getfields(x)))
+others(x) = Compat.reduce(vcat, (extract_others(field) for field in getfields(x)), init=Any[])
 
 """
     create_instance(T::Type, args...)

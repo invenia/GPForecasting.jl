@@ -3,7 +3,7 @@
 
     @test pairwise_dist(z, z) ≈ [0.0 2.8284271247461903; 2.8284271247461903 0.0] atol = _ATOL_
 
-    srand(314159265)
+    seed!(314159265)
     x = rand(10,3)
     y = rand(5,3)
     u = rand(10)
