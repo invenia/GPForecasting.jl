@@ -703,7 +703,7 @@ end
         out[j, j] += σ² * I + H * diagm(D) * H'
     end
     # build big mixed matrix
-    return fuse_equal(mix_Σs)
+    return fuse_equal(out)
 end
 
 function (k::OLMMKernel)(x)
