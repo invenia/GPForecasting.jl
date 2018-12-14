@@ -170,6 +170,23 @@ end
     H = U * diagm(S)[:, 1:3]
     y = (H * xs')'
 
+    # check optimised versions
+    sgp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, H, EQ()))
+    gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, H, [EQ() for i in 1:3]))
+    x = collect(0:0.1:2)
+    @test mean(sgp(x)) ≈ mean(gp(x)) atol = _ATOL_
+    @test cov(sgp(x)) ≈ cov(gp(x)) atol = _ATOL_
+    @test var(gp(x)) ≈ var(sgp(x)) atol = _ATOL_
+
+    sgp.k.S_sqrt = ones(3)
+    gp.k.S_sqrt = ones(3)
+    @test logpdf(gp, x, y) ≈ logpdf(sgp, x, y) atol = _ATOL_
+    pgp = condition(gp, x, y)
+    psgp = condition(sgp, x, y)
+    @test mean(psgp(x)) ≈ mean(pgp(x)) atol = _ATOL_
+    @test cov(psgp(x)) ≈ cov(pgp(x)) atol = _ATOL_
+    @test var(pgp(x)) ≈ var(psgp(x)) atol = _ATOL_
+
     gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, H, [periodicise(EQ(), i) for i in 1:3]))
     x = collect(0:0.1:2)
     ngp = condition(gp, x, y)
