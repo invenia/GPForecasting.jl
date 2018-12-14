@@ -113,7 +113,7 @@ end
     out = 0.0
     for x in xs
         z = U' \ (x .- dist.μ)
-        out -= -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+        out += -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
     end
     return out
 end
