@@ -123,7 +123,6 @@ function condition(
     x,
     y
 ) where {T <: OLMMKernel, G <: Mean}
-    isa(gp.k.ks, Kernel) && return optcondition(gp, x, y)
     # project y
     P = unwrap(gp.k.P)
     m = unwrap(gp.k.m)
