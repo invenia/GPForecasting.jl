@@ -1,4 +1,11 @@
+import Compat
 using IterTools
+
+if isdefined(Compat.Random, :seed!)
+    using Compat.Random: seed!
+else
+    const seed! = Compat.Random.srand
+end
 
 """
     function experiment(
@@ -21,7 +28,8 @@ function experiment(
 
     parameters = exp_config["parameters"]
     exp_fn = exp_config["experiment_function"]
-    try srand(exp_config["seed"]) catch err srand(seed) end # Set the seed for pseudorandomness
+    # Set the seed for pseudorandomness
+    try seed!(exp_config["seed"]) catch err seed!(seed) end
 
     results = pmap(
                 product(parameters...),

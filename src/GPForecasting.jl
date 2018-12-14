@@ -5,6 +5,7 @@ size, hcat
 using Compat: Compat, @__MODULE__, tr
 import Compat.LinearAlgebra: diag
 using Compat.LinearAlgebra
+using Compat.Random
 using Compat.SparseArrays
 import Distributions: MvNormal, sample, logpdf
 export sample
