@@ -3,14 +3,7 @@ export Gaussian
 import Base: size
 import Distributions: rand, dim, mean, cov, var
 import ModelAnalysis: mll_joint
-
-if VERSION >= v"0.7"
-    import LinearAlgebra: cholesky
-    chol(x; kwargs...) = cholesky(x; kwargs...).U
-else
-    import Base: chol
-    const cholesky = Base.chol
-end
+import Nabla: chol
 
 """
     Gaussian <: Random
@@ -58,7 +51,7 @@ Get the dimensionality of a distribution `dist`.
 size(dist::Gaussian) = size(mean(dist))
 
 """
-    cholesky(dist::Gaussian) -> AbstractMatrix
+    chol(dist::Gaussian) -> AbstractMatrix
 
 Compute the Cholesky of the covariance matrix of a MVN `dist`
 
@@ -68,14 +61,14 @@ Compute the Cholesky of the covariance matrix of a MVN `dist`
 # Returns
 - `AbstractMatrix`: Computed Cholesky decomposition.
 """
-@unionise function cholesky(dist::Gaussian)
+@unionise function chol(dist::Gaussian)
     if dist.U == Matrix(undef, 0, 0)
         dist.U = chol(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist)))
     end
     return dist.U
 end
 
-@unionise function cholesky(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
+@unionise function chol(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
     if dist.U == Matrix(undef, 0, 0)
         dist.U = BlockDiagonal(chol.(Symmetric.(blocks(dist.Σ)) .+ _EPSILON_ .* Eye.(blocks(dist.Σ))))
     end
@@ -95,7 +88,7 @@ Sample `n` samples from a MVN `dist`.
 - `AbstractMatrix{<:Real}`: Samples where the columns correspond to different samples.
 """
 function sample(dist::Gaussian, n::Integer=1)
-    U = cholesky(dist)
+    U = chol(dist)
     if n > 1
         return mean(dist) .+ reshape(U' * randn(dim(dist), n), size(dist)..., n)
     else

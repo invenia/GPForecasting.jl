@@ -2,6 +2,7 @@ module OptimisedAlgebra
 
 using MacroTools
 using Nabla
+import Nabla: chol
 
 export outer, kron_lid_lmul, kron_lid_lmul_lt_s, kron_lid_lmul_lt_m,
 kron_rid_lmul_s, kron_rid_lmul_m, kron_lmul_lr, kron_lmul_rl, diag_outer_kron,
@@ -14,14 +15,13 @@ using Compat.LinearAlgebra: UpperTriangular, isdiag, Diagonal
 import Compat: tr
 
 if VERSION >= v"0.7"
-    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, cholesky, mul!
+    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
 
     A_mul_Bt!(Y, A, B) = mul!(Y, A, transpose(B))
 else
     import Base: Ac_mul_B, A_mul_Bc
-    import Base: ctranspose, chol
+    import Base: ctranspose
     const adjoint = ctranspose
-    const cholesky = chol
     const mul! = Base.A_mul_B!
 end
 
@@ -96,7 +96,7 @@ end
 
 Matrix(b::BlockDiagonal) = cat(blocks(b)...; dims=(1, 2))
 
-cholesky(b::BlockDiagonal) = BlockDiagonal(cholesky.(blocks(b)))
+chol(b::BlockDiagonal) = BlockDiagonal(chol.(blocks(b)))
 det(b::BlockDiagonal) = prod(det.(blocks(b)))
 function eigvals(b::BlockDiagonal)
     eigs = vcat(eigvals.(blocks(b))...)

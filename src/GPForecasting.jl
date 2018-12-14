@@ -9,6 +9,7 @@ using Compat.SparseArrays
 import Distributions: MvNormal, sample, logpdf
 export sample
 using Nabla
+import Nabla: chol
 using LineSearches
 using Optim
 using Memento
@@ -24,7 +25,7 @@ const packagehomedir = dirname(@__DIR__) #dirname ascends the directory...
 const Wrapped{T} = Union{T, Node{T}}
 
 if VERSION >= v"0.7"
-    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, cholesky, mul!
+    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
 
     A_mul_Bt(A, B) = A * transpose(B)
 else

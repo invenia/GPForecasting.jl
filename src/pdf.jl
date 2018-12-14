@@ -36,7 +36,7 @@ Update `gp` parameter values with `params` and then call logpdf(ngp, x, y), wher
 the updated `GP`. Does NOT affect `gp`.
 """
 @unionise function logpdf(dist::Gaussian, x::AbstractArray)
-    U = cholesky(dist)
+    U = chol(dist)
     if size(x, 2) > 1
         z = U' \ (x .- dist.μ)'[:]
     else
@@ -50,7 +50,7 @@ end
 # to the unionise, since Distributions.jl has its own logpdf methods that can be as
 # especialised as the above.
 function logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
-    U = cholesky(dist)
+    U = chol(dist)
     z = U' \ (x .- dist.μ)'[:]
     log_det = 2 * sum(log.(diag(U)))
     return -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
@@ -96,9 +96,9 @@ end
 
     yiσ² = yt ./ σ²
     HiΛy = reshape(At_mul_B(H, yiσ²), n_d * m, 1)
-    Ls = [cholesky(Symmetric(K) .+ _EPSILON_ .* Eye(n_d)) for K in Kd]
+    Ls = [chol(Symmetric(K) .+ _EPSILON_ .* Eye(n_d)) for K in Kd]
     LQ = sum_kron_J_ut(m, Ls...)
-    M = cholesky(
+    M = chol(
         Symmetric(eye_sum_kron_M_ut(At_mul_B(H, H ./ σ²), Ls...)) .+
         _EPSILON_ .* Eye(m * n_d)
     )
