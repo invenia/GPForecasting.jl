@@ -2,6 +2,7 @@ using GPForecasting
 using Compat.Test
 
 import Compat
+using Compat: tr
 using Compat.Dates
 using Compat.Distributed
 using Compat.LinearAlgebra

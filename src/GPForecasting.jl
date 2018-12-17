@@ -2,7 +2,8 @@ module GPForecasting
 
 import Base: *, +, -, ^, reduce, map, zip, show, getindex, get, isapprox, convert, zero,
 size, hcat
-using Compat: Compat, @__MODULE__, tr
+using Compat: Compat, @__MODULE__, tr, undef
+using Compat.Distributed: pmap
 import Compat.LinearAlgebra: diag
 using Compat.LinearAlgebra
 using Compat.Random

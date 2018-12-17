@@ -11,7 +11,8 @@ import Base: size, Matrix, show, display, *, +, /, isapprox, getindex
 
 import Compat.LinearAlgebra: diag, eigvals, det, transpose
 using Compat.LinearAlgebra: UpperTriangular, isdiag, Diagonal
-import Compat: tr
+import Compat
+import Compat: tr, undef
 
 if VERSION >= v"0.7"
     import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
@@ -112,7 +113,7 @@ function isapprox(b1::AbstractMatrix, b2::BlockDiagonal; atol::Real=0)
     return isapprox(b1, Matrix(b2), atol=atol)
 end
 
-Matrix(b::BlockDiagonal) = cat(blocks(b)...; dims=(1, 2))
+Matrix(b::BlockDiagonal) = Compat.cat(blocks(b)...; dims=(1, 2))
 
 chol(b::BlockDiagonal) = BlockDiagonal(chol.(blocks(b)))
 det(b::BlockDiagonal) = prod(det.(blocks(b)))
