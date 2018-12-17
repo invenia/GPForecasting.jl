@@ -1,6 +1,5 @@
 module OptimisedAlgebra
 
-using MacroTools
 using Nabla
 import Nabla: chol
 
@@ -48,8 +47,27 @@ macro linalg_compat(expr)
         return esc(expr)
     end
 
-    @capture(expr, function f_(arg1_::Type1_, arg2_::Type2_) body_ end) ||
-        error("Function definition did not match format expected by @linalg_compat")
+    e = ArgumentError("Function definition did not match format expected by @linalg_compat")
+
+    # aggressive input checking to replace the MacroTools matcher
+    if expr.head !== :function || length(expr.args) != 2
+        throw(e)
+    end
+
+    sig, body = expr.args
+
+    if sig.head !== :call || length(sig.args) != 3
+        throw(e)
+    end
+
+    f = sig.args[1]
+
+    if sig.args[2].head !== :(::) || length(sig.args[2].args) != 2 ||
+        sig.args[3].head !== :(::) || length(sig.args[3].args) != 2
+        throw(e)
+    end
+    arg1, Type1 = sig.args[2].args
+    arg2, Type2 = sig.args[3].args
 
     if f === :Ac_mul_B
         Type1 = :(Adjoint{$Type1})
@@ -58,7 +76,7 @@ macro linalg_compat(expr)
         Type2 = :(Adjoint{$Type2})
         reassignment = :($arg2 = parent($arg2))
     else
-        error("Unrecognized method")
+        error("Unrecognized method $f")
     end
 
     return quote
