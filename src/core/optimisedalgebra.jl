@@ -1,5 +1,7 @@
 module OptimisedAlgebra
 
+import ..GPForecasting: sumdims
+
 using Nabla
 import Nabla: chol
 
@@ -393,7 +395,7 @@ end
 Efficiently compute `diag(outer(kron(A, B)))`.
 """
 function diag_outer_kron(A::AbstractMatrix, B::AbstractMatrix)
-    kron(sum(A .^ 2, dims=2), sum(B .^ 2, dims=2))
+    kron(sumdims(A .^ 2, 2), sumdims(B .^ 2, 2))
 end
 
 """
@@ -412,7 +414,7 @@ function diag_outer_kron(
     C::AbstractArray,
     D::AbstractArray
 )
-    return kron(sum(A .* C, dims=2), sum(B .* D, dims=2))
+    return kron(sumdims(A .* C, 2), sumdims(B .* D, 2))
 end
 
 """
@@ -420,14 +422,14 @@ end
 
 Efficiently compute `diag(outer(A, B))`.
 """
-diag_outer(A::AbstractArray, B::AbstractArray) = sum(A .* B, dims=2)
+diag_outer(A::AbstractArray, B::AbstractArray) = sumdims(A .* B, 2)
 
 """
     diag_outer(A::AbstractMatrix)
 
 Efficiently compute `diag(outer(A))`.
 """
-diag_outer(A::AbstractArray) = sum(A .^ 2, dims=2)
+diag_outer(A::AbstractArray) = sumdims(A .^ 2, 2)
 
 """
     Js(m::Int) -> Vector{Matrix}

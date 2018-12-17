@@ -162,8 +162,8 @@ function standardise_data(dat::Vector)
     for d in cdat
         ytr = Matrix(d["train_y"])
         yte = Matrix(d["test_y"])
-        stdtr = std(ytr, dims=1)
-        meantr = mean(ytr, dims=1)
+        stdtr = stddims(ytr, 1)
+        meantr = meandims(ytr, 1)
         push!(originals, Dict(
                 "mean_train" => meantr,
                 "std_train" => stdtr,

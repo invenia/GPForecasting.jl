@@ -1,6 +1,8 @@
 using GPForecasting
 using Compat.Test
 
+using GPForecasting: sumdims, meandims, stddims
+
 import Compat
 using Compat: tr
 using Compat.Dates
@@ -22,6 +24,12 @@ if isdefined(Compat.Random, :seed!)
     using Compat.Random: seed!
 else
     const seed! = Compat.Random.srand
+end
+
+if VERSION >= v"0.7"
+    proddims(A, dims) = prod(A, dims=dims)
+else
+    proddims(A, dims) = prod(A, dims)
 end
 
 

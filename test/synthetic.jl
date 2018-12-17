@@ -93,7 +93,7 @@
         n = 100
         d = 3
         s = collect(1.0:1.0:d)
-        f_Md(x) = prod(sin.(x .* s'), dims=2)[:] + 0.1 * rand(n)
+        f_Md(x) = proddims(sin.(x .* s'), 2)[:] + 0.1 * rand(n)
         x_train = 2pi .* rand(n, d)
         x_test = 2pi .* rand(n, d)
         y_train = f_Md(x_train)
@@ -140,8 +140,8 @@
         x_test = x[2:2:end]
         y_train = y[1:2:end,:]
         y_test = y[2:2:end,:]
-        mean_y_train = mean(y_train, dims=1)
-        std_y_train = std(y_train, dims=1)
+        mean_y_train = meandims(y_train, 1)
+        std_y_train = stddims(y_train, 1)
         y_train = (y_train .- mean_y_train) ./ std_y_train
         y_test = (y_test .- mean_y_train) ./ std_y_train
 
@@ -217,8 +217,8 @@
         x_test = x[2:2:end]
         y_train = y[1:2:end,:]
         y_test = y[2:2:end,:]
-        mean_y_train = mean(y_train, dims=1)
-        std_y_train = std(y_train, dims=1)
+        mean_y_train = meandims(y_train, 1)
+        std_y_train = stddims(y_train, 1)
 
         y_train_standardised = (y_train .- mean_y_train) ./ std_y_train
 

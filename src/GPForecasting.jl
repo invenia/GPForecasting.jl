@@ -30,8 +30,15 @@ if VERSION >= v"0.7"
     import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
 
     A_mul_Bt(A, B) = A * transpose(B)
+    sumdims(A, dims) = sum(A, dims=dims)
+    meandims(A, dims) = mean(A, dims=dims)
+    stddims(A, dims) = std(A, dims=dims)
 else
     import Base: A_mul_Bt
+
+    sumdims(A, dims) = sum(A, dims)
+    meandims(A, dims) = mean(A, dims)
+    stddims(A, dims) = std(A, dims)
 end
 
 function __init__()

@@ -11,8 +11,8 @@ end
 
 @unionise function sq_pairwise_dist(x::AbstractArray, y::AbstractArray)
     # return sum(x .^ 2, dims=2) .+ sum(y .^ 2, dims=2)' .- 2x * y'
-    sum1 = Compat.sum(x .^ 2, dims=2)
-    sum2 = adjoint(Compat.sum(y .^ 2, dims=2))
+    sum1 = sumdims(x .^ 2, 2)
+    sum2 = adjoint(sumdims(y .^ 2, 2))
     term = 2x * y'
     return sum1 .+ sum2 .- term
 end
