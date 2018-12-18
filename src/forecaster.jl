@@ -15,23 +15,13 @@ using DateOffsets
 using ElectricityMarkets
 using S3DB
 using Forecasters
+import Simulation.SIM_NOW_OFFSET
 
 # imports
 import IterTools: product
 import KeyedFrames: KeyedFrame
 
 const MISSING_DATA_THR = 0.1 # Threshold to drop a node due to excessive misisng data.
-
-# NOTE (initial): For the reasons behind this Offset, please see
-# https://gitlab.invenia.ca/invenia/DateOffsets.jl/issues/11 and linked discussion.
-# This is being pasted here because I don't want to add Simulation as a dependency just for
-# this constant.
-const SIM_NOW_OFFSET = CustomOffset() do target, content_end, sim_now
-    t = DateOffsets.apply(SimNowOffset(), target, content_end, sim_now)
-    T = typeof(t)
-    return T(floor(anchor(t), Hour), inclusivity(t))
-end
-
 
 @auto_hash_equals struct GPForecaster{G<:Grid, T<:Kernel} <: AbstractForecaster
     market::Market{G}
