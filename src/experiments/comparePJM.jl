@@ -1,11 +1,48 @@
-function describe_comparePJM()
+"""
+    set_parameters()
+
+This function sets the parameters of your experiment.
+The first dictionary, `parameters`, should be populated with `string => AbstractArray`
+key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
+iterate over. The array could also only contain one element if you would like to use one
+constant parameter.
+The second dictionary should not be altered, it is used in the experiment execution. This
+dictionary references the `experiment_function`, which should contain your experiment.
+"""
+function comparePJM()
+    parameters = [
+        [3 * 7],
+        [30],
+        [48],
+        [20],
+        [0.15],
+        [0.15],
+        [5.0],
+        [15],
+        [21. / 4.],
+        [false],
+        [[1]],
+        [""],
+        [[false, false, false]]
+        ]
+
+    # -- Do not edit below this line -- #
+    configuration = Dict{String, Any}(
+        "parameters" => parameters,
+        "experiment_function" => comparePJM_exp,
+        "seed" => 42,
+    )
+    return configuration
+end
+
+function describe(x::typeof(comparePJM))
     d = """
         Compute LMM, OLMM and naive model for PJM.
         """
-    println(d)
+    return d
 end
 
-source_comparePJM() = "comparePJM.jl"
+source(x::typeof(comparePJM)) = "comparePJM.jl"
 
 function comparePJM_exp(
     n_d::Int, # number of training days.
@@ -185,41 +222,4 @@ function comparePJM_exp(
 
     info("Done!")
     return out
-end
-
-"""
-    set_parameters()
-
-This function sets the parameters of your experiment.
-The first dictionary, `parameters`, should be populated with `string => AbstractArray`
-key-value pairs, where each `AbstractArray` contains the parameter values you would wish to
-iterate over. The array could also only contain one element if you would like to use one
-constant parameter.
-The second dictionary should not be altered, it is used in the experiment execution. This
-dictionary references the `experiment_function`, which should contain your experiment.
-"""
-function comparePJM()
-    parameters = [
-        [3 * 7],
-        [30],
-        [48],
-        [20],
-        [0.15],
-        [0.15],
-        [5.0],
-        [15],
-        [21. / 4.],
-        [false],
-        [[1]],
-        [""],
-        [[false, false, false]]
-        ]
-
-    # -- Do not edit below this line -- #
-    configuration = Dict{String, Any}(
-        "parameters" => parameters,
-        "experiment_function" => comparePJM_exp,
-        "seed" => 42,
-    )
-    return configuration
 end
