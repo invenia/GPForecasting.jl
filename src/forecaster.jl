@@ -373,7 +373,7 @@ function transform(
     delete!(deltas, :Hdata) # We don't need this anymore
 
     if forecaster.standardise
-        std_data, origs = standardise_data(out[:lmp_train])
+        std_data, origs = standardise_data(train[:lmp_train])
         for i in size(train[:lmp_train], 2)
             train[:lmp_train][:, i] = std_data[:, i]
         end
