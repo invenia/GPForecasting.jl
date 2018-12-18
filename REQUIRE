@@ -32,3 +32,4 @@ S3DB 1.6.1
 Forecasters 0.0.1
 KeyedFrames 0.2.3
 StatsBase 0.23.1
+Simulation 0.12.0
