@@ -300,7 +300,8 @@ function transform(
     )
 
     # Organise everything as a timestamp vs node/load/etc. dataframe
-    out = Dict{Symbol, Any}() # This is set to Any to avoid unintended automatic conversion accidents
+    train = Dict{Symbol, Any}() # This is set to Any to avoid unintended automatic conversion accidents
+    predict = Dict{Symbol, Any}() # This is set to Any to avoid unintended automatic conversion accidents
     nodal_qts = [:Hdata, :lmp_train]
     for qt in nodal_qts
         df = DataFrame()
@@ -309,22 +310,22 @@ function transform(
             mask = deltas[qt][:node] .== n
             df[Symbol(n)] = deltas[qt][mask, :lmp]
         end
-        out[qt] = df
+        train[qt] = df
     end
     # global_qts = [:load]
-    out[:train] = DataFrame()
-    out[:predict] = DataFrame()
-    out[:train][:load] = features[(:load_train, :dayahead)][:load]
-    out[:predict][:load] = features[(:load_predict, :dayahead)][:load]
+    train[:input] = DataFrame()
+    predict[:input] = DataFrame()
+    train[:input][:load] = features[(:load_train, :dayahead)][:load]
+    predict[:input][:load] = features[(:load_predict, :dayahead)][:load]
 
     # TODO: reinstate for loop to guarantee automatic generalizability
 
     # Add :time column
-    out[:train][:time] = collect(train_start:train_end)
-    out[:predict][:time] = collect(predict_start:predict_end)
+    train[:input][:time] = collect(train_start:train_end)
+    predict[:input][:time] = collect(predict_start:predict_end)
 
     # Add the :target column
-    out[:predict][:target] = predict_tgs
+    predict[:input][:target] = predict_tgs
     # out[:train][:target] = train_tgs
 
     # Get rid of missings
@@ -333,8 +334,8 @@ function transform(
         # Naive check to see if we got a new node that has no backfilled data. In this case,
         # we'll pretend it does not exist. THIS IS PROBABLY NOT WHAT WE'D REALLY WANT.
         # Backfilling should be the correct way to go.
-        for n in names(out[k])
-            sum(ismissing.(out[k][n])) / length(out[k][n]) > MISSING_DATA_THR &&
+        for n in names(train[k])
+            sum(ismissing.(train[k][n])) / length(train[k][n]) > MISSING_DATA_THR &&
                 push!(to_delete, n)
         end
         # Adding a little more background to this: we use the price data in two different
@@ -349,39 +350,40 @@ function transform(
     to_delete = unique(to_delete)
 
     # Track deleted nodes
-    out[:deleted_nodes] = DataFrame(to_delete)
+    train[:deleted_nodes] = DataFrame(to_delete)
 
     for k in nodal_qts
         for n in to_delete
             warn("Removing node $n due to missing data.")
-            delete!(out[k], n)
+            delete!(train[k], n)
         end
         # This only works well if we have few eventual missing values. In case we have a new
         # node showing up without having backfilled data, we'll basically destroy all
         # data.
-        dropmissing!(out[k])
+        dropmissing!(train[k])
     end
 
-    out[:predict_nodes] = names(out[:lmp_train])
+    predict[:nodes] = names(train[:lmp_train])
+    train[:nodes] = predict[:nodes]
 
     # Build covariance for H
-    out[:covd] = GPForecasting.cov_LW(Matrix{Float64}(out[:Hdata])) # NOTE: depending on the type of out,
+    train[:covd] = GPForecasting.cov_LW(Matrix{Float64}(train[:Hdata])) # NOTE: depending on the type of out,
     # there could be issues like automatic promotion to DataFrame. At this stage, this is supposed
     # to be a Matrix, but keep in mind this.
     delete!(deltas, :Hdata) # We don't need this anymore
 
     if forecaster.standardise
         std_data, origs = standardise_data(out[:lmp_train])
-        for i in size(out[:lmp_train], 2)
-            out[:lmp_train][:, i] = std_data[:, i]
+        for i in size(train[:lmp_train], 2)
+            train[:lmp_train][:, i] = std_data[:, i]
         end
-        out[:origs] = origs
+        predict[:origs] = origs
         # got to also rescale the covariance for computing H
         stds = origs["std"]' * origs["std"]
-        out[:covd] = out[:covd] ./ stds
+        train[:covd] = train[:covd] ./ stds
     end
 
-    return out
+    return train, predict
 end
 
 function StatsBase.fit(
@@ -390,8 +392,8 @@ function StatsBase.fit(
 )
     m = GPForecasting.unwrap(forecaster.gp.k.m)
     gp = deepcopy(forecaster.gp)
-    gp.k.p = GPForecasting.Fixed(length(features[:predict_nodes]))
-    x_train = features[:train]
+    gp.k.p = GPForecasting.Fixed(length(features[:nodes]))
+    x_train = features[:input]
     y_train = Matrix{Float64}(features[:lmp_train])
     if isa(gp.k, LMMKernel)
         gp.k.σ² = GPForecasting.Positive(0.1 * var(y_train, 1)[:])
@@ -431,8 +433,8 @@ function StatsBase.predict(
     forecaster::GPForecaster,
     features::Dict{Symbol, <:Any},
 )
-    pred_features = features[:predict]
-    node_list = features[:predict_nodes]
+    pred_features = features[:input]
+    node_list = features[:nodes]
     mvn = GPForecasting.MvNormal(forecaster.gp, pred_features)
     # transform back to the original space in case there standardisation
     if forecaster.standardise
@@ -446,10 +448,10 @@ function StatsBase.predict(
     features::Dict{Symbol, <:Any},
     targets::Vector,
 )
-    mask = Bool.(sum([features[:predict][:target] .== t for t in targets])) # ugly hack
-    pred_features = features[:predict][mask, :]
+    mask = Bool.(sum([features[:input][:target] .== t for t in targets])) # ugly hack
+    pred_features = features[:input][mask, :]
     new_features = deepcopy(features)
-    new_features[:predict] = pred_features
+    new_features[:input] = pred_features
     return predict(forecaster, new_features)
 end
 
@@ -458,9 +460,9 @@ function StatsBase.predict(
     features::Dict{Symbol, <:Any},
     targets,
 )
-    mask = features[:predict][:target] .== targets
-    pred_features = features[:predict][mask, :]
+    mask = features[:input][:target] .== targets
+    pred_features = features[:input][mask, :]
     new_features = deepcopy(features)
-    new_features[:predict] = pred_features
+    new_features[:input] = pred_features
     return predict(forecaster, new_features)
 end
