@@ -25,7 +25,7 @@ const MISSING_DATA_THR = 0.1 # Threshold to drop a node due to excessive misisng
 # NOTE (initial): For the reasons behind this Offset, please see
 # https://gitlab.invenia.ca/invenia/DateOffsets.jl/issues/11 and linked discussion.
 # This is being pasted here because I don't want to add Simulation as a dependency just for
-# this constant. 
+# this constant.
 const SIM_NOW_OFFSET = CustomOffset() do target, content_end, sim_now
     t = DateOffsets.apply(SimNowOffset(), target, content_end, sim_now)
     T = typeof(t)
@@ -43,6 +43,29 @@ end
     initialiseH::Bool
 end
 
+# Define model
+# terms of time kernel
+k_time_1 = (0.16 * periodicise(MA(1/2) ▷  Fixed(0.1), Fixed(24.0)) * (RQ(2.0) ▷ Fixed(24.0 * 3.5)))
+k_time_2 = (0.16 * periodicise(MA(1/2) ▷  Fixed(0.5), Fixed(24.0)) * (RQ(2.0) ▷ Fixed(24.0 * 3.5)))
+k_time_3 = (0.16 * periodicise(MA(1/2) ▷  Fixed(0.1), Fixed(24.0)) * (RQ(2.0) ▷ Fixed(24.0 * 7.0)))
+k_time_4 = (0.16 * periodicise(MA(1/2) ▷  Fixed(0.5), Fixed(24.0)) * (RQ(2.0) ▷ Fixed(24.0 * 7.0)))
+k_time_5 = (0.16 * periodicise(MA(1/2) ▷  Fixed(0.1), Fixed(24.0)) * (RQ(2.0) ▷ Fixed(24.0 * 14.0)))
+k_time_6 = (0.16 * periodicise(MA(1/2) ▷  Fixed(0.5), Fixed(24.0)) * (RQ(2.0) ▷ Fixed(24.0 * 14.0)))
+
+# composite time kernel
+k_time = k_time_1 +
+         k_time_2 +
+         k_time_3 +
+         k_time_4 +
+         k_time_5 +
+         k_time_6
+
+# load kernel
+k_load = (EQ() ▷ 5.0)
+
+# composite kernel
+k = (k_time ← :time) * (k_load ← :load)
+
 function GPForecaster(
     market::Market{G},
     kernel_type::Type{T};
@@ -59,12 +82,6 @@ function GPForecaster(
     σ² = [-1.0] # Same as above. Here it is more critical because we might want to enforce a
     # value, instead of just getting it from data.
     H = Matrix{Float64}(0, 0)
-    k = (
-        (0.5 * stretch(EQ(), 24.0*3.0) * periodicise(EQ() ▷ 1.0, Fixed(24.0)) ← :time) +
-        (0.5 * ((EQ() ▷ 5.0) ← :load)) + # simpler tag to match what we have in the dataframes
-        ((1e-2 * EQ() ▷ 100.0) ← :time) +
-        (1e-2 * DiagonalKernel() ← :time)
-    )
     return GPForecaster(
         market,
         GP(LMMKernel(m, p, σ², H, k)),
@@ -92,11 +109,6 @@ function GPForecaster(
     p = -1 # Number of nodes to predict. Again, an issue with the workflow order. Should be
     # updated after data is fetched.
     H = Matrix{Float64}(0, 0)
-    k = (
-        ((0.15 * (MA(1/2) ▷ 24.0) + 0.15 * (EQ() ▷ 36.0)) ← :time) +
-        0.7 * ((EQ() ▷ 5.0) ← :load) * # Let's use a simpler tag
-        (periodicise((EQ() ▷ 0.5), Fixed(24)) * (EQ() ▷ (24.0 * 4.0)) ← :time)
-    )
     return GPForecaster(
         market,
         GP(OLMMKernel(
