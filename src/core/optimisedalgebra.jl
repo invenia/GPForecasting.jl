@@ -461,13 +461,16 @@ end
 
 const NA = Nabla.∇Array
 const Mat{T} = AbstractArray{T, 2} where N
+
 """
     sum_kron_J_ut(m::Integer, K::NA...)
 
 Efficiently compute and differentiate `sum([kron(L[i], J[i]) for i = 1:m])` where `L` are
 upper triangular.
 """
-function sum_kron_J_ut(m::Integer, K::NA...)
+function sum_kron_J_ut end
+
+function _sum_kron_J_ut(m::Integer, K::NA...)
     n = size(K[1], 1)
     res = zeros(m * n, m * n)
     @inbounds for i = 1:m
@@ -479,8 +482,20 @@ function sum_kron_J_ut(m::Integer, K::NA...)
     end
     return res
 end
-@union_intercepts sum_kron_J_ut Tuple{Integer, Vararg{NA}} Tuple{Integer, Vararg{NA}}
-function Nabla.∇(::typeof(sum_kron_J_ut), ::Type{Arg{i}}, _, y, ȳ, m, K...) where i
+# @union_intercepts sum_kron_J_ut Tuple{Integer, Vararg{NA}} Tuple{Integer, Vararg{NA}}
+# manually expanded to avoid stack overflow:
+@generated function sum_kron_J_ut(x1::Union{Integer, Node{<:Integer}}, x2::Vararg{Union{NA, Node{<:NA}}})
+    x = ([x1, x2]...,)
+    x_syms = ([:x1, :x2]...,)
+    x_dots = (:x1, Expr(:(...), :x2))
+    is_node = [any((<:).(xj, Node)) for xj = x]
+    if any(is_node)
+        Nabla.branch_expr(:_sum_kron_J_ut, is_node, x, x_syms, :((x1, x2...)))
+    else
+        Expr(:call, :_sum_kron_J_ut, x_dots...)
+    end
+end
+function Nabla.∇(::typeof(_sum_kron_J_ut), ::Type{Arg{i}}, _, y, ȳ, m, K...) where i
     # TODO: Check this is okay!
     n = size(ȳ, 1)
     return view(ȳ, i - 1:m:n, i - 1:m:n)
@@ -494,7 +509,9 @@ end
 Efficiently compute and differentiate the upper triangle of
 `eye(n * m) + sum([kron(L[i] * L[j]', B[i, j] * M[i][j]) for i = 1:m for j = 1:m])`.
 """
-function eye_sum_kron_M_ut(B::Mat{T}, L::UpperTriangular{T}...) where T
+function eye_sum_kron_M_ut end
+
+function _eye_sum_kron_M_ut(B::Mat{T}, L::UpperTriangular{T}...) where T
     # Assumes that `ȳ` is upper triangular.
     m, n = size(B, 1), size(L[1], 1)
     res = Matrix{T}(undef, m * n, m * n)
@@ -527,9 +544,21 @@ function _eskmu_fill_triu_Lt!(res, n, m, i, j, B, L_prod)
     end
 end
 
-@union_intercepts eye_sum_kron_M_ut Tuple{NA, Vararg{NA}} Tuple{NA, Vararg{NA}}
+# @union_intercepts eye_sum_kron_M_ut Tuple{NA, Vararg{NA}} Tuple{NA, Vararg{NA}}
+# manually expanded to avoid stack overflow:
+@generated function eye_sum_kron_M_ut(x1::Union{NA, Node{<:NA}}, x2::Vararg{Union{NA, Node{<:NA}}})
+    x = ([x1, x2]...,)
+    x_syms = ([:x1, :x2]...,)
+    x_dots = (:x1, Expr(:(...), :x2))
+    is_node = [any((<:).(xj, Node)) for xj = x]
+    if any(is_node)
+        Nabla.branch_expr(:_eye_sum_kron_M_ut, is_node, x, x_syms, :((x1, x2...)))
+    else
+        Expr(:call, :_eye_sum_kron_M_ut, x_dots...)
+    end
+end
 function Nabla.∇(
-    ::typeof(eye_sum_kron_M_ut),
+    ::typeof(_eye_sum_kron_M_ut),
     ::Type{Arg{1}},
     _,
     y::Mat{T},
@@ -557,7 +586,7 @@ function _esku_sum!(B̄, m, n, i, j, ȳ, L_prod)
 end
 
 function Nabla.∇(
-    ::typeof(eye_sum_kron_M_ut),
+    ::typeof(_eye_sum_kron_M_ut),
     ::Type{Arg{i}},
     _,
     y::Mat{T},
