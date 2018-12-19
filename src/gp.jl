@@ -32,7 +32,7 @@ is the posterior process corresponding to the prior updated with the observation
 """
 function condition(gp::GP, x, y)
     K = gp.k(x)
-    U = LinearAlgebra.chol(K + _EPSILON_ * Eye(K))
+    U = Nabla.chol(K + _EPSILON_ * Eye(K))
     m = PosteriorMean(gp.k, gp.m, x, U, y)
     k = PosteriorKernel(gp.k, x, U)
     return GP(m, k)
@@ -56,11 +56,11 @@ function condition(
 # convert back before returning the output.
     yt = y'
 
-    Us = [LinearAlgebra.chol(k(x, x) + _EPSILON_ * Eye(n)) for k in gp.k.ks]
+    Us = [Nabla.chol(k(x, x) + _EPSILON_ * Eye(n)) for k in gp.k.ks]
     yiσ² = yt ./ σ²
     HiΛy = reshape(H' * yiσ², n * m, 1)
     UQ = sum_kron_J_ut(m, Us...)
-    M = LinearAlgebra.chol(Symmetric(eye_sum_kron_M_ut(transpose(H) * (H ./ σ²), Us...)))
+    M = Nabla.chol(Symmetric(eye_sum_kron_M_ut(transpose(H) * (H ./ σ²), Us...)))
     Z = UQ' / M
 
     m = LMMPosMean(gp.k, x, Z, y) # NOTE: assuming here zero prior mean for the LMM.
@@ -102,7 +102,7 @@ function condition(
         kx = k(x)
         push!(Ks, kx + (σ²/s^2 + d) * Eye(kx))
     end
-    Us = [LinearAlgebra.chol(Hermitian(K + _EPSILON_^2 * Eye(K))) for K in Ks]
+    Us = [Nabla.chol(Hermitian(K + _EPSILON_^2 * Eye(K))) for K in Ks]
     ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
     ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
     # create the posterior mean

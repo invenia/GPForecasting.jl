@@ -116,7 +116,7 @@ end
 
 Matrix(b::BlockDiagonal) = Compat.cat(blocks(b)...; dims=(1, 2))
 
-LinearAlgebra.chol(b::BlockDiagonal) = BlockDiagonal(LinearAlgebra.chol.(blocks(b)))
+Nabla.chol(b::BlockDiagonal) = BlockDiagonal(Nabla.chol.(blocks(b)))
 det(b::BlockDiagonal) = prod(det.(blocks(b)))
 function eigvals(b::BlockDiagonal)
     eigs = vcat(eigvals.(blocks(b))...)

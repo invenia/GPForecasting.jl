@@ -61,14 +61,14 @@ Compute the Cholesky of the covariance matrix of a MVN `dist`
 # Returns
 - `AbstractMatrix`: Computed Cholesky decomposition.
 """
-@unionise function LinearAlgebra.chol(dist::Gaussian)
+@unionise function Nabla.chol(dist::Gaussian)
     if dist.U == Matrix(undef, 0, 0)
-        dist.U = LinearAlgebra.chol(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist)))
+        dist.U = Nabla.chol(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist)))
     end
     return dist.U
 end
 
-@unionise function LinearAlgebra.chol(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
+@unionise function Nabla.chol(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
     if dist.U == Matrix(undef, 0, 0)
         dist.U = BlockDiagonal(chol.(Symmetric.(blocks(dist.Σ)) .+ _EPSILON_ .* Eye.(blocks(dist.Σ))))
     end
@@ -88,7 +88,7 @@ Sample `n` samples from a MVN `dist`.
 - `AbstractMatrix{<:Real}`: Samples where the columns correspond to different samples.
 """
 function sample(dist::Gaussian, n::Integer=1)
-    U = LinearAlgebra.chol(dist)
+    U = Nabla.chol(dist)
     if n > 1
         return mean(dist) .+ reshape(U' * randn(dim(dist), n), size(dist)..., n)
     else
