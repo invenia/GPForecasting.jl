@@ -237,7 +237,7 @@
         k_lmm = lmm.k(x_test)
 
         # OLMM
-        gp = GP(GP(OLMMKernel(m, p, obs_noise, 0.0, H, k1)))
+        gp = GP(OLMMKernel(m, p, obs_noise, 0.0, H, k1))
         olmm = condition(gp, x_train, y_train_standardised)
         m_olmm = olmm.m(x_test)
         k_olmm = olmm.k(x_test)
@@ -252,7 +252,7 @@
         k_lmm = lmm.k(x_test)
 
         # OLMM
-        gp = GP(GP(OLMMKernel(m, p, obs_noise, 0.0, H, k2)))
+        gp = GP(OLMMKernel(m, p, obs_noise, 0.0, H, k2))
         olmm = condition(gp, x_train, y_train_standardised)
         m_olmm = olmm.m(x_test)
         k_olmm = olmm.k(x_test)
@@ -263,7 +263,7 @@
         # obs_noise = 0.0
 
         # OLMM
-        gp = GP(GP(OLMMKernel(m, p, 0.0, lat_noise, H, k1)))
+        gp = GP(OLMMKernel(m, p, 0.0, lat_noise, H, k1))
         olmm = condition(gp, x_train, y_train_standardised)
         m_olmm = olmm.m(x_test)
         k_olmm = blocks(hourly_cov(olmm.k, x_test))
@@ -288,7 +288,7 @@
         @test k_solmm ≈ k_olmm  atol = _TOL_
 
         # OLMM
-        gp = GP(GP(OLMMKernel(m, p, 0.0, lat_noise, H, k2)))
+        gp = GP(OLMMKernel(m, p, 0.0, lat_noise, H, k2))
         olmm = condition(gp, x_train, y_train_standardised)
         m_olmm = olmm.m(x_test)
         k_olmm = blocks(hourly_cov(olmm.k, x_test))
