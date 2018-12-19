@@ -3,7 +3,6 @@ export Gaussian
 import Base: size
 import Distributions: rand, dim, mean, cov, var
 import ModelAnalysis: mll_joint
-import LinearAlgebra: chol
 
 """
     Gaussian <: Random
