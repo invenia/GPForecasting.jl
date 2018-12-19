@@ -4,7 +4,7 @@ using Compat.Test
 using GPForecasting: sumdims, meandims, stddims
 
 import Compat
-using Compat: tr
+using Compat: tr, undef, repeat
 using Compat.Dates
 using Compat.Distributed
 using Compat.LinearAlgebra

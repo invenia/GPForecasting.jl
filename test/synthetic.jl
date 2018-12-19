@@ -277,7 +277,7 @@
         L_y = U' \ y_train_transformed
         k_U = k_ / U
         means_ = k_U * L_y
-        vars_ = repmat(diag(gp.k(Observed(x_test)) - k_U * k_U'), 1, m)
+        vars_ = repeat(diag(gp.k(Observed(x_test)) - k_U * k_U'), 1, m)
         m_solmm = (H * means_')'
         k_solmm = []
         for i = 1:n

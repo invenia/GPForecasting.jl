@@ -184,7 +184,7 @@ function basicIOLMM_exp(
 
         # prediction of mean and variances of the independent latent processes
         means_ = k_U * L_y
-        vars_ = repmat(diag(gp.k(Observed(x_test)) - k_U * k_U'), 1, m)
+        vars_ = repeat(diag(gp.k(Observed(x_test)) - k_U * k_U'), 1, m)
 
         # transform latent processes back to original space
         means = (H * means_')' .* y_train_std .+ y_train_mean

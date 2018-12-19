@@ -113,7 +113,7 @@ function indep_exp(
         k_U = k_ / U
 
         means = k_U * L_y
-        vars = repmat(diag(gp.k(Latent(x_test), Latent(x_test)) - k_U * k_U'), 1, p)
+        vars = repeat(diag(gp.k(Latent(x_test), Latent(x_test)) - k_U * k_U'), 1, p)
 
         # Un-normalise the predictions
         info("Inverse-transforming the predictions...")
