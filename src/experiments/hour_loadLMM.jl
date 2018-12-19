@@ -112,7 +112,7 @@ function hour_loadLMM_exp(
             for j=1:n
                 C[j,j] += GPForecasting._EPSILON_
             end
-            L = chol(Symmetric(C))'
+            L = Nabla.chol(Symmetric(C))'
             z = L \ (y_true[i,:] .- means[i,:])
             mll += 0.5 * (n * log(2π) + 2.0 * sum(log.(diag(L))) + dot(z,z))
         end

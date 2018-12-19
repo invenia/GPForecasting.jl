@@ -59,7 +59,7 @@ function basicIOLMM_exp(
     end
 
     @unionise function log_pdf_indep(dist::Gaussian, x::AbstractArray)
-        U = chol(dist)
+        U = Nabla.chol(dist)
         z = U' \ (x .- dist.μ)
         log_det = 2.0 * size(x, 2) * sum(log.(diag(U)))
         return -0.5 * (log_det + prod(size(x)) * log(2π) + sum(z .* z))
@@ -177,7 +177,7 @@ function basicIOLMM_exp(
         # gp = learn(gp, Observed(x_train), y_train_transformed, objective_indep, its=its, trace=true)
 
         K = gp.k(Observed(x_train))
-        U = chol(K + GPForecasting._EPSILON_ .* Eye(K))
+        U = Nabla.chol(K + GPForecasting._EPSILON_ .* Eye(K))
         k_ = gp.k(Latent(x_test), Latent(x_train))
         L_y = U' \ y_train_transformed
         k_U = k_ / U
