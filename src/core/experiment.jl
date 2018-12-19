@@ -32,7 +32,7 @@ function experiment(
     try seed!(exp_config["seed"]) catch err seed!(seed) end
 
     results = pmap(
-                product(parameters...),
+                Iterators.product(parameters...),
                 on_error = ex -> (info(GPForecasting.LOGGER, string(ex)); string(ex)),
                 ) do param
 
