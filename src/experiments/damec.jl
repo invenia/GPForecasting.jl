@@ -247,8 +247,8 @@ function damec_exp(
 
             # Log the data
             log_y_train = log_transform(y_train);
-            log_y_train_mean = mean(log_y_train, 1);
-            log_y_train_std = std(log_y_train, 1);
+            log_y_train_mean = meandims(log_y_train, 1);
+            log_y_train_std = stddims(log_y_train, 1);
             log_y_train_var = log_y_train_std.^2;
 
             info(GPForecasting.LOGGER, "Training GP...")

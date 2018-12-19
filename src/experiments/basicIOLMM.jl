@@ -146,8 +146,8 @@ function basicIOLMM_exp(
         x_test[:time] = collect(n_w*7*24+25:n_w*7*24+48)
 
         # basic statistics of training output required later
-        y_train_mean = mean(y_train, 1)
-        y_train_std = std(y_train, 1)
+        y_train_mean = meandims(y_train, 1)
+        y_train_std = stddims(y_train, 1)
         y_train_var = y_train_std.^2
 
         p = size(y_train, 2)

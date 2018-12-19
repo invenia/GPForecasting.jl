@@ -32,12 +32,14 @@ if VERSION >= v"0.7"
     sumdims(A, dims) = sum(A, dims=dims)
     meandims(A, dims) = mean(A, dims=dims)
     stddims(A, dims) = std(A, dims=dims)
+    covdims(A, dims; kwargs...) = cov(A; dims=dims, kwargs...)
 else
     import Base: A_mul_Bt
 
     sumdims(A, dims) = sum(A, dims)
     meandims(A, dims) = mean(A, dims)
     stddims(A, dims) = std(A, dims)
+    covdims(A, dims; kwargs...) = cov(A, dims; kwargs...)
 end
 
 function __init__()
