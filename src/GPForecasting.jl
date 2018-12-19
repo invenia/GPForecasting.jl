@@ -11,7 +11,6 @@ using Compat.SparseArrays
 import Distributions: MvNormal, sample, logpdf
 export sample
 using Nabla
-import Nabla: chol
 using LineSearches
 using Optim
 using Memento

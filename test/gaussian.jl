@@ -16,7 +16,7 @@ using ModelAnalysis
 
     g = Gaussian(ones(3, 2), Eye(6))
     @test g.U == Matrix(undef, 0, 0)
-    @test chol(g) ≈ UpperTriangular(Eye(6)) atol = _ATOL_
+    @test LinearAlgebra.chol(g) ≈ UpperTriangular(Eye(6)) atol = _ATOL_
     @test mean(g) ≈ ones(3, 2) atol = _ATOL_
     @test cov(g) ≈ Eye(6) atol = _ATOL_
     @test var(g) ≈ ones(3, 2) atol = _ATOL_
@@ -26,7 +26,7 @@ using ModelAnalysis
 
     g = Gaussian(ones(5, 2), BlockDiagonal(AbstractMatrix{Float64}[Eye(2) for i in 1:5]));
     @test g.U == Matrix(undef, 0, 0)
-    @test chol(g) ≈ BlockDiagonal([chol(Eye(2)) for i in 1:5]) atol = _ATOL_
+    @test LinearAlgebra.chol(g) ≈ BlockDiagonal([LinearAlgebra.chol(Eye(2)) for i in 1:5]) atol = _ATOL_
     @test mean(g) ≈ ones(5, 2) atol = _ATOL_
     @test cov(g) ≈ BlockDiagonal([Eye(2) for i in 1:5]) atol = _ATOL_
     @test var(g) ≈ ones(5, 2) atol = _ATOL_

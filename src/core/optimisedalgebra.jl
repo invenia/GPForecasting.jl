@@ -3,7 +3,6 @@ module OptimisedAlgebra
 import ..GPForecasting: sumdims
 
 using Nabla
-import Nabla: chol
 
 export outer, kron_lid_lmul, kron_lid_lmul_lt_s, kron_lid_lmul_lt_m,
 kron_rid_lmul_s, kron_rid_lmul_m, kron_lmul_lr, kron_lmul_rl, diag_outer_kron,
@@ -117,7 +116,7 @@ end
 
 Matrix(b::BlockDiagonal) = Compat.cat(blocks(b)...; dims=(1, 2))
 
-chol(b::BlockDiagonal) = BlockDiagonal(chol.(blocks(b)))
+LinearAlgebra.chol(b::BlockDiagonal) = BlockDiagonal(LinearAlgebra.chol.(blocks(b)))
 det(b::BlockDiagonal) = prod(det.(blocks(b)))
 function eigvals(b::BlockDiagonal)
     eigs = vcat(eigvals.(blocks(b))...)
