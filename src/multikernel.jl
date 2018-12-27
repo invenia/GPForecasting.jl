@@ -663,21 +663,19 @@ function greedy_U(k::OLMMKernel, x, y)
     D = unwrap(k.D)
     D = isa(D, Vector) ? D : ones(m) .* D
 
-    K = k.ks[1](x) + (σ² / S_sqrt[1]^2 + D[1]) * I
-    Uk = chol(K)
-    Z = Uk' \ y ./ S_sqrt[1]
-    Σ = Z' * Z
+    function Σ(i)
+        K = S_sqrt[i] * k.ks[i](x) + σ² * I + S_sqrt[i] * D[i] * I
+        Uk = Nabla.chol(K)
+        Z = Uk' \ y
+        return (y' * y) ./ σ² - Z' * Z
+    end
 
-    U, _, _ = svd(Σ)
+    U, _, _ = svd(Σ(1))
     us = [U[:, end]]
     V = U[:, 1:end - 1]
 
     for i in 2:m
-        K = k.ks[i](x) + (σ² / S_sqrt[i]^2 + D[i]) * I
-        Uk = chol(K)
-        Z = Uk' \ y ./ S_sqrt[i]
-        Σ = Z' * Z
-        U, _, _ = svd(V' * Σ * V)
+        U, _, _ = svd(V' * Σ(i) * V)
         push!(us, V * U[:, end])
         V = V * U[:, 1:end - 1]
     end
