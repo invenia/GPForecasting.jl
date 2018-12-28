@@ -9,14 +9,28 @@
             MA(3/2),
             MA(5/2),
             SimilarHourKernel(3, [3, 2, 1]),
+            DotKernel(),
         ]
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_
             @test diag(k([1., 2., 3.])) ≈ var(k, [1., 2., 3.]) atol = _ATOL_
             @test hourly_cov(k, [1., 2., 3.]) ≈ diagm(var(k, [1., 2., 3.])) atol = _ATOL_
             @test !isMulti(k)
+            @test isposdef(k(x) + _EPSILON_^2 * I)
+            @test isa(k(1, 1), Number)
+            @test isa(k(1, [1, 2]), Array)
+            @test isa(k([1, 2], 1), Array)
         end
         @test_throws ArgumentError MA(6)([4.])
+
+        @testset "DotKernel" begin
+            k = DotKernel()
+            x = [1. 0. 0.; 1. 1. 0.; 0. 0.5 0.]
+            y = [0.5 1. 1.; 1. 1. 1.]
+            @test k(x) ≈ [1. 1. 0.; 1.0 2.0 0.5; 0. 0.5 0.25] atol = _ATOL_
+            @test k(x, y) ≈ [0.5 1.0; 1.5 2.0; 0.5 0.5] atol = _ATOL_
+            @test isposdef(k(x) + 1e-10 * I)
+        end
 
         @testset "BinaryKernel" begin
             k = BinaryKernel(5, 1, 6)
