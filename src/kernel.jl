@@ -1,7 +1,7 @@
 export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel, set,
     DiagonalKernel, PosteriorKernel, MA, ∿, periodicise, stretch, RQ, PeriodicKernel,
     SpecifiedQuantityKernel, ←, hourly_cov, BinaryKernel, ZeroKernel, isMulti,
-    SimilarHourKernel
+    SimilarHourKernel, DotKernel
 
 # Default kernel behaviour:
 var(k::Kernel, x) = [k(xx) for xx in x]
@@ -423,6 +423,23 @@ end
 (k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
 (k::DiagonalKernel)(x) = k(x, x)
 show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
+
+"""
+    DotKernel <: Kernel
+
+Dot product kernel. Non-stationary.
+"""
+struct DotKernel <: Kernel end
+function (::DotKernel)(x, y)
+    xl = [x[i, :] for i in 1:size(x, 1)]
+    yl = [y[i, :]' for i in 1:size(y, 1)]
+    return dot.(xl, yl')
+end
+(k::DotKernel)(x::Number, y) = k([x], y)
+(k::DotKernel)(x, y::Number) = k(x, [y])
+(k::DotKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
+(k::DotKernel)(x) = k(x, x)
+show(io::IO, k::DotKernel) = print(io, "<., .>")
 
 zero(::Kernel) = ZeroKernel()
 zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
