@@ -1,7 +1,7 @@
 export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel, set,
     DiagonalKernel, PosteriorKernel, MA, ∿, periodicise, stretch, RQ, PeriodicKernel,
     SpecifiedQuantityKernel, ←, hourly_cov, BinaryKernel, ZeroKernel, isMulti,
-    SimilarHourKernel, DotKernel
+    SimilarHourKernel, DotKernel, HazardKernel
 
 # Default kernel behaviour:
 var(k::Kernel, x) = [k(xx) for xx in x]
@@ -440,6 +440,53 @@ end
 (k::DotKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
 (k::DotKernel)(x) = k(x, x)
 show(io::IO, k::DotKernel) = print(io, "<., .>")
+
+"""
+    HazardKernel <: Kernel
+
+Kernel tailor-made for hazards. It uses an augmented version of the `DotKernel` and has two
+fields, `bias` and `scale`. `bias` defaults to `Fixed(0.0)` and determines the projection of
+every hazard vector into the non-hazard space. `scale` defaults to `Fixed(ones(d))`, where
+`d` is the dimension of the hazards space and represents a (possibly non-uniform) scale to be
+applied to every hazard vector, `v`, as `v .* scale`.
+
+In order for this to make sense, `abs(bias)` has to be smaller than one and `scale` has to
+be a `RowVector` when unwrapped. It probably makes more sense to use normalised hazard
+vectors. Also, this is thought of as a multiplicative kernel.
+"""
+mutable struct HazardKernel <: Kernel
+    bias
+    scale
+
+    function HazardKernel(b, s)
+        unwrap(b) >= 1.0 && warn(
+            """
+            A HazardKernel with bias larger than or equal to 1.0 can yield unexpected
+            results. Value received: $(unwrap(bias)).
+            """
+        )
+        size(unwrap(s), 1) != 1 && throw(ArgumentError("Scale must be a `RowVector`"))
+        return new(b, s)
+    end
+end
+HazardKernel() = HazardKernel(Fixed(0.0), Fixed(-1))
+HazardKernel(bias) = HazardKernel(bias, Fixed(-1))
+function (k::HazardKernel)(x, y)
+    # First, augment the input space
+    xl = [x[i, :] for i in 1:size(x, 1)]
+    yl = [y[i, :] for i in 1:size(y, 1)]
+    mask_x = isapprox.(xl, fill(zero(xl[1]), size(xl, 1))) # find which points have no hazard
+    mask_y = isapprox.(yl, fill(zero(yl[1]), size(yl, 1)))
+    h_x = .!mask_x .* fill(unwrap(k.bias), size(mask_x, 1)) # bias vector
+    h_y = .!mask_y .* fill(unwrap(k.bias), size(mask_y, 1))
+    scale = unwrap(k.scale) == -1 ? ones(1, size(x, 2)) : unwrap(k.scale)
+    x_aug = hcat(x .* scale, (h_x + mask_x)) # scaling at the same time
+    y_aug = hcat(y .* scale, (h_y + mask_y))
+
+    return DotKernel()(x_aug, y_aug)
+end
+(k::HazardKernel)(x) = k(x, x)
+show(io::IO, k::HazardKernel) = print(io, "Hazard()")
 
 zero(::Kernel) = ZeroKernel()
 zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
