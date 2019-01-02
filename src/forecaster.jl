@@ -1,3 +1,5 @@
+export GPForecaster
+
 # This contains the forecaster for Simulation.jl
 using Base.Dates
 using AutoHashEquals
@@ -15,7 +17,7 @@ using DateOffsets
 using ElectricityMarkets
 using S3DB
 using Forecasters
-import Simulation.SIM_NOW_OFFSET
+import Simulation: SIM_NOW_OFFSET, collection
 
 # imports
 import IterTools: product
