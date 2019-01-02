@@ -1,10 +1,12 @@
-info("$(Pkg.installed("HelloBatch"))")
 using GPForecasting
 using Nabla
 using Base.Test
 using DataFrames
 using FDM
 using Distributions
+using ElectricityMarkets
+using TimeZones
+using DateOffsets
 
 _ATOL_ = 1e-5
 
@@ -29,4 +31,5 @@ _ATOL_ = 1e-5
     include("synthetic.jl")
     include("experiment.jl")
     include("datahandling.jl")
+    include("forecaster.jl")
 end
