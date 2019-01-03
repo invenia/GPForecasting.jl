@@ -10,13 +10,14 @@
             MA(5/2),
             SimilarHourKernel(3, [3, 2, 1]),
             DotKernel(),
+            HazardKernel(),
         ]
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_
             @test diag(k([1., 2., 3.])) ≈ var(k, [1., 2., 3.]) atol = _ATOL_
             @test hourly_cov(k, [1., 2., 3.]) ≈ diagm(var(k, [1., 2., 3.])) atol = _ATOL_
             @test !isMulti(k)
-            @test isposdef(k(x) + _EPSILON_^2 * I)
+            @test isposdef(k([1., 2., 3.]) + GPForecasting._EPSILON_^2 * I)
             @test isa(k(1, 1), Number)
             @test isa(k(1, [1, 2]), Array)
             @test isa(k([1, 2], 1), Array)
@@ -30,6 +31,20 @@
             @test k(x) ≈ [1. 1. 0.; 1.0 2.0 0.5; 0. 0.5 0.25] atol = _ATOL_
             @test k(x, y) ≈ [0.5 1.0; 1.5 2.0; 0.5 0.5] atol = _ATOL_
             @test isposdef(k(x) + 1e-10 * I)
+        end
+
+        @testset "HazardKernel" begin
+            k = HazardKernel()
+            x = [1.0 0.5; 0.0 0.0]
+            y = [0. 0.; 0. 0.; 0. 0.]
+            @test k(x) ≈ [1.25 0.; 0. 1.] atol = _ATOL_
+            @test k(x, y) ≈ [0. 0. 0.; 1. 1. 1.] atol = _ATOL_
+            k = HazardKernel(0.2)
+            @test k(x) ≈ [1.29 0.2; 0.2 1.] atol = _ATOL_
+            @test k(x, y) ≈ [0.2 0.2 0.2; 1. 1. 1.] atol = _ATOL_
+            k = HazardKernel(0.2, [5 2])
+            @test k(x) ≈ [26.04 0.2; 0.2 1.] atol = _ATOL_
+            @test k(x, y) ≈ [0.2 0.2 0.2; 1. 1. 1.] atol = _ATOL_
         end
 
         @testset "BinaryKernel" begin
