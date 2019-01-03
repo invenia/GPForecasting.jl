@@ -5,7 +5,6 @@ abstract type MultiOutputKernel <: Kernel end
 isMulti(k::MultiOutputKernel) = true
 
 var(k::MultiOutputKernel, x) = hcat([diag(k(x[i, :])) for i in 1:size(x, 1)]...)'
-var(k::MultiOutputKernel, x::DataFrame) = hcat([diag(k(x[i])) for i in 1:size(x, 1)]...)'
 diag(x::Real) = x
 
 size(k::MultiOutputKernel, i::Int) = size(k([1.0]), i)
