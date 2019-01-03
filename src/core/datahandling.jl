@@ -68,18 +68,18 @@ function mcc_training_data(
         if data == :DA || data == :RT
             s = data == :DA ? "_da" : "_rt"
             mask = endswith.(String.(names(train_y)), s)
-            train_y = train_y[:, mask]
+            train_y = train_y[mask]
             new_names = [Symbol(replace(String(n), s => "")) for n in names(train_y)]
             names!(train_y, new_names)
-            test_y = test_y[:, mask]
+            test_y = test_y[mask]
             names!(test_y, new_names)
         elseif data == :Delta
             maskda = endswith.(String.(names(train_y)), "_da")
             maskrt = endswith.(String.(names(train_y)), "_rt")
-            train_da = train_y[:, maskda]
-            train_rt = train_y[:, maskrt]
-            test_da = test_y[:, maskda]
-            test_rt = test_y[:, maskrt]
+            train_da = train_y[maskda]
+            train_rt = train_y[maskrt]
+            test_da = test_y[maskda]
+            test_rt = test_y[maskrt]
             nodes_da = [Symbol(replace(String(n), "_da" => "")) for n in names(train_da)]
             nodes_rt = [Symbol(replace(String(n), "_rt" => "")) for n in names(train_rt)]
             nodes_da != nodes_rt &&
@@ -173,8 +173,8 @@ function standardise_data(dat::Vector)
         yte = (yte .- meantr) ./ stdtr # Here we use the training data mean and std because
         # both sets should be transformed the same way.
         for i in 1:size(ytr, 2)
-            d["train_y"][:, i] = ytr[:, i]
-            d["test_y"][:, i] = yte[:, i]
+            d["train_y"][i] = ytr[:, i]
+            d["test_y"][i] = yte[:, i]
         end
     end
     return cdat, originals
@@ -191,8 +191,8 @@ function inverse_standardise(dat::Dict, orig::Dict)
     train_y = orig["std_train"] .* Matrix(dat["train_y"]) .+ orig["mean_train"]
     out = deepcopy(dat)
     for i in 1:size(train_y, 2)
-        out["train_y"][:, i] = train_y[:, i]
-        out["test_y"][:, i] = test_y[:, i]
+        out["train_y"][i] = train_y[:, i]
+        out["test_y"][i] = test_y[:, i]
     end
     return out
 end
