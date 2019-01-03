@@ -4,7 +4,7 @@ export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel
     SimilarHourKernel, DotKernel, HazardKernel
 
 # Default kernel behaviour:
-var(k::Kernel, x) = [k(xx) for xx in x]
+var(k::Kernel, x) = [k(x[i, :])[1] for i in 1:size(x, 1)]
 
 size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
 
