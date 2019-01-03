@@ -486,6 +486,9 @@ function (k::HazardKernel)(x, y)
     return DotKernel()(x_aug, y_aug)
 end
 (k::HazardKernel)(x) = k(x, x)
+(k::HazardKernel)(x::Number, y) = k([x], y)
+(k::HazardKernel)(x, y::Number) = k(x, [y])
+(k::HazardKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
 show(io::IO, k::HazardKernel) = print(io, "Hazard()")
 
 zero(::Kernel) = ZeroKernel()
