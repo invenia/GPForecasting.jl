@@ -69,7 +69,7 @@ function GPForecaster(
     initialiseH=true,
 ) where {G<:Grid, T<:LMMKernel}
     # ===== defaults ======
-    p = 1 # Number of nodes to predict. Again, an issue with the workflow order. Should be
+    p = -1 # Number of nodes to predict. Again, an issue with the workflow order. Should be
     # updated after data is fetched.
     σ² = [-1.0] # Same as above. Here it is more critical because we might want to enforce a
     # value, instead of just getting it from data.
