@@ -59,23 +59,24 @@ function mcc_training_data(
 
     # Alter splits at every index, both for train_set and test_set
     training_data = []
+    mask_y = startswith.(String.(names(splits[1][1])), "node")
+    maskda = endswith.(String.(names(splits[1][1][1:end, mask_y])), "_da")
+    maskrt = endswith.(String.(names(splits[1][1][1:end, mask_y])), "_rt")
     for i in 1:size(splits, 1)
-        train_x, train_y = splits[i][1][1:end, 1:7], splits[i][1][1:end, 8:end]
+        train_x, train_y = splits[i][1][1:end, .!mask_y], splits[i][1][1:end, mask_y]
         train_x[:time] = collect(1:1:size(train_x, 1)) # Add the time column
-        test_x, test_y = splits[i][2][1:end, 1:7], splits[i][2][1:end, 8:end]
+        test_x, test_y = splits[i][2][1:end, .!mask_y], splits[i][2][1:end, mask_y]
         test_x[:time] = collect(1:1:size(test_x, 1)) .+
             24 * (forecast_day - 1) .+ size(train_x, 1)# Add the time column
         if data == :DA || data == :RT
-            s = data == :DA ? "_da" : "_rt"
-            mask = endswith.(String.(names(train_y)), s)
+            mask = data == :DA ? maskda : maskrt
             train_y = train_y[:, mask]
+            s = data == :DA ? "_da" : "_rt"
             new_names = Symbol.(replace.(String.(names(train_y)), s, ""))
             names!(train_y, new_names)
             test_y = test_y[:, mask]
             names!(test_y, new_names)
         elseif data == :Delta
-            maskda = endswith.(String.(names(train_y)), "_da")
-            maskrt = endswith.(String.(names(train_y)), "_rt")
             train_da = train_y[:, maskda]
             train_rt = train_y[:, maskrt]
             test_da = test_y[:, maskda]
