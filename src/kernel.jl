@@ -431,9 +431,7 @@ Dot product kernel. Non-stationary.
 """
 struct DotKernel <: Kernel end
 function (::DotKernel)(x, y)
-    xl = [x[i, :] for i in 1:size(x, 1)]
-    yl = [y[i, :]' for i in 1:size(y, 1)]
-    return dot.(xl, yl')
+    return x * y'
 end
 (k::DotKernel)(x::Number, y) = k([x], y)
 (k::DotKernel)(x, y::Number) = k(x, [y])
