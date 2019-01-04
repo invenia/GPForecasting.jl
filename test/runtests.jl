@@ -1,4 +1,3 @@
-info("$(Pkg.installed("HelloBatch"))")
 using GPForecasting
 using Nabla
 using Base.Test
