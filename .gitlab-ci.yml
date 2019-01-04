@@ -10,6 +10,7 @@ include:
   - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/gitlab-templates/documentation.yml
 
 variables:
+  CONDA_JL_VERSION: "2"
   AWS_DEFAULT_REGION: us-east-1
   OPS_ACCOUNT_ID: 468665244580
   PROB_FORECASTING_ACCOUNT_ID: 052722095006

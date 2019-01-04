@@ -18,3 +18,18 @@ HelloBatch 0.2.0
 ArgParse 0.5.0 #Parse arguments for experiments
 
 DataFrames 0.11.5
+
+# Dependencies inserted due to the forecaster
+AutoHashEquals 0.2.0
+DataStructures 0.8.4
+Intervals 0.3.3
+TimeZones 0.8.2
+BidDatabase 0.6.0
+DataFeatures 0.10.0
+DateOffsets 0.8.0
+ElectricityMarkets 0.7.2
+S3DB 1.6.1
+Forecasters 0.0.1
+KeyedFrames 0.2.3
+StatsBase 0.23.1
+Simulation 0.12.0
