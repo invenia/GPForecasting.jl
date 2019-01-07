@@ -119,7 +119,7 @@ function initialisedLMM_exp(
         # Initialise the mixing matrix
         info("Initialising the mixing matrix...")
         U, S, V = svd(cov(y_train));
-        H = U * diagm(sqrt.(S))[:, 1:m];
+        H = U * Diagonal(sqrt.(S))[:, 1:m];
 
         # Find a decent initialisation for each latent process
         info("Initialising latent kernels...")

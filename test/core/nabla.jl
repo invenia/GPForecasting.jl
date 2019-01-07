@@ -44,7 +44,7 @@ using FDM
     xs = hcat([sin.(2π*collect(0:0.1:2)./i) for i in 1:3]...)
     A = ones(5,5) + 2Eye(5)
     U, S, V = svd(A)
-    H = U * diagm(S)[:, 1:3]
+    H = U * Diagonal(S)[:, 1:3]
     y = (H * xs')'
     gp = GP(OLMMKernel(3, 5, 10., 1e-2, H, [periodicise(EQ(), i) for i in 1:3]))
     x = collect(0:0.1:2)

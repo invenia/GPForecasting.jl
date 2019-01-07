@@ -158,7 +158,7 @@ function basicIOLMM_exp(
         # initialise the mixing matrix
         info("Initialising the mixing matrix...")
         U, S, V = svd(cov_LW(y_train_standardised))
-        H = U * diagm(sqrt.(S))[:, 1:m]
+        H = U * Diagonal(sqrt.(S))[:, 1:m]
 
         # compute transfromed training output
         y_train_transformed = (H \ y_train_standardised')'
@@ -190,7 +190,7 @@ function basicIOLMM_exp(
         means = (H * means_')' .* y_train_std .+ y_train_mean
         covs = []
         for i = 1:24
-            push!(covs, Matrix(Hermitian(y_train_std .* (H * diagm(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
+            push!(covs, Matrix(Hermitian(y_train_std .* (H * Diagonal(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
         end
 
         # set MvNormals
@@ -235,7 +235,7 @@ function basicIOLMM_exp(
         means = (H * means_')' .* y_train_std .+ y_train_mean
         covs = []
         for i = 1:24
-            push!(covs, Matrix(Hermitian(y_train_std .* (H * diagm(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
+            push!(covs, Matrix(Hermitian(y_train_std .* (H * Diagonal(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
         end
 
         # set MvNormals

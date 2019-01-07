@@ -124,7 +124,7 @@ end
     P = unwrap(gp.k.P)
     S_sqrt = unwrap(gp.k.S_sqrt)
 
-    Σn = diagm(σ²) .+ H * diagm(D) * H'
+    Σn = Diagonal(σ²) .+ H * Diagonal(D) * H'
     gn = Gaussian(zeros(p), Σn)
     lpdf = 0.0
 

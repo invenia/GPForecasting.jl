@@ -113,7 +113,7 @@ function basicLMM_exp(
 
         # Initialise the mixing matrix
         U, S, V = svd(cov(y_train))
-        H = U * diagm(sqrt.(S))[:, 1:m]
+        H = U * Diagonal(sqrt.(S))[:, 1:m]
         gp = GP(LMMKernel(Fixed(m), Fixed(p), Positive(σ²), Fixed(H), ks));
         gp = learn(gp, x_train, y_train, objective, its=its, trace=false)
         pos = condition(gp, x_train, y_train)
