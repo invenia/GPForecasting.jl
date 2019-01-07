@@ -19,6 +19,7 @@ if VERSION >= v"0.7"
     import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
 
     A_mul_Bt!(Y, A, B) = mul!(Y, A, transpose(B))
+    At_mul_B(A, B) = transpose(A) * B
 else
     import Base: Ac_mul_B, A_mul_Bc
     import Base: ctranspose

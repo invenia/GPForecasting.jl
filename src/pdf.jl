@@ -1,5 +1,7 @@
 export logpdf, objective
 
+using .OptimisedAlgebra: At_mul_B
+
 """
     logpdf(dist::Gaussian, x::AbstractArray) -> Float64
 
