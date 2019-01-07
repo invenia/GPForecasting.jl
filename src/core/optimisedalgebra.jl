@@ -568,7 +568,7 @@ function Nabla.∇(
 ) where T
     m, n = size(B, 1), size(L[1], 1)
     B̄ = zeros(T, size(B))
-    L_prod = Matrix{T}(n, n)
+    L_prod = Matrix{T}(undef, n, n)
     @inbounds for i = 1:m, j = 1:m
         A_mul_Bt!(L_prod, L[i], L[j])
         _esku_sum!(B̄, m, n, i, j, ȳ, L_prod)

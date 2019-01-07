@@ -17,7 +17,7 @@ using FDM
 
     gp = GP(0, EQ() ▷ 10)
     x = collect(1.0:10.0)
-    y = 2 .* x + 1e-1*randn()
+    y = 2 .* x .+ 1e-1*randn()
     obj = objective(gp, x, y)
 
     @test !(
