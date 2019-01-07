@@ -28,7 +28,6 @@ RUN yum -y install $PKGS && \
 # we be forced to redo these steps.
 ENV PKG_PATH $JULIA_PKGDIR/$JULIA_PKGVER/$PKG_NAME
 COPY REQUIRE $PKG_PATH/REQUIRE
-COPY deps $PKG_PATH/deps
 
 # Install and build the requirements for LorenzoLand
 #
