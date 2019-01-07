@@ -120,6 +120,20 @@
             credible_interval(gp, [1,5,50])[1] .<
             credible_interval(gp, [1,5,50])[3]
         )
+
+        # Posteriors
+        gp = GP(5 * ConstantMean(), NoiseKernel(EQ(), 11 * DiagonalKernel()))
+        gp = condition(gp, Observed(x), collect(1:3))
+        @test all(
+            credible_interval(gp, Observed(x))[2] .<
+            credible_interval(gp, Observed(x))[1] .<
+            credible_interval(gp, Observed(x))[3]
+        )
+        @test all(
+            credible_interval(gp, [Latent([1,2]), Observed([3]), Latent([4])])[2] .<
+            credible_interval(gp, [Latent([1,2]), Observed([3]), Latent([4])])[1] .<
+            credible_interval(gp, [Latent([1,2]), Observed([3]), Latent([4])])[3]
+        )
     end
 end
 
