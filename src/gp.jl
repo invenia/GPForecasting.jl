@@ -181,28 +181,14 @@ end
 function credible_interval(p::GP, x)
     # TODO: Should directly obtain the marginal variances whenever this is supported.
     isa(p.k, PosteriorKernel) && isa(p.k.k, NoiseKernel) && return _noisy_ci_(p, x)
-    # σ = sqrt.(max.(var(p.k, x), 0))
-    # μ = p.m(x)
-    # return μ, μ .- 2 .* σ, μ .+ 2 .* σ
     return _ci_(p, x)
 end
-# function _ci_n_i_(p::GP, x::Input)
-#     σ = sqrt.(max.(var(p.k, x), 0))
-#     μ = p.m(x)
-#     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
-# end
 function credible_interval(p::GP{K, L}, x::Input) where {K <: NoiseKernel, L <: Mean}
     return _ci_(p, x)
 end
 function credible_interval(p::GP{K, L}, x::Input) where {K <: PosteriorKernel, L <: Mean}
     return _ci_(p, x)
 end
-# function _ci_n_vi_(p::GP, x::Vector{Input})
-#     σ = sqrt.(max.(var(p.k, x), 0))
-#     cx = vcat([c for c in x]...)
-#     μ = p.m(cx)
-#     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
-# end
 function credible_interval(p::GP{K, L}, x::Vector{Input}) where {K <: NoiseKernel, L <: Mean}
     return _ci_(p, x)
 end
@@ -212,13 +198,3 @@ end
 function credible_interval(p::GP{K, L}, x) where {K <: NoiseKernel, L <: Mean}
     return _noisy_ci_(p, x)
 end
-# function credible_interval(p::GP{MultiOutputKernel, MultiOutputMean}, x)
-#     μ = p.m(x)
-#     σ = sqrt.(max.(var(p.k, x), 0))
-#     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
-# end
-# function credible_interval(p::GP{LMMPosKernel, LMMPosMean}, x)
-#     μ = p.m(x)
-#     σ = sqrt.(max.(var(p.k, x), 0))
-#     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
-# end
