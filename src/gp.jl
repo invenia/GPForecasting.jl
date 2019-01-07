@@ -166,29 +166,44 @@ Get the mean and upper and lower central 95%–credible bounds at certain inputs
 - `Vector{<:Real}`: Lower central 95%–credible bound
 - `Vector{<:Real}`: Upper central 95%–credible bound
 """
+function _noisy_credible_interval(p::GP, x)
+    # Here we will work in the extended input space
+    M = p.m(x)
+    μ = stack([M, M])
+    σ = sqrt.(max.(var(p.k, x), 0))
+    return μ, μ .- 2 .* σ, μ .+ 2 .* σ
+end
 function credible_interval(p::GP, x)
     # TODO: Should directly obtain the marginal variances whenever this is supported.
     σ = sqrt.(max.(var(p.k, x), 0))
     μ = p.m(x)
     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
 end
-function credible_interval(p::GP, x::Input)
+function _ci_n_i_(p::GP, x::Input)
     σ = sqrt.(max.(var(p.k, x), 0))
     μ = p.m(x.val)
     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
 end
-function credible_interval(p::GP, x::Vector{Input})
+function credible_interval(p::GP{K, L}, x::Input) where {K <: NoiseKernel, L <: Mean}
+    return _ci_n_i_(p, x)
+end
+function credible_interval(p::GP{K, L}, x::Input) where {K <: PosteriorKernel, L <: Mean}
+    return _ci_n_i_(p, x)
+end
+function _ci_n_vi_(p::GP, x::Vector{Input})
     σ = sqrt.(max.(var(p.k, x), 0))
     cx = vcat([c.val for c in x]...)
     μ = p.m(cx)
     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
 end
+function credible_interval(p::GP{K, L}, x::Vector{Input}) where {K <: NoiseKernel, L <: Mean}
+    return _ci_n_vi_(p, x)
+end
+function credible_interval(p::GP{K, L}, x::Vector{Input}) where {K <: PosteriorKernel, L <: Mean}
+    return _ci_n_vi_(p, x)
+end
 function credible_interval(p::GP{K, L}, x) where {K <: NoiseKernel, L <: Mean}
-    # Here we will work in the extended input space
-    M = p.m(x)
-    μ = stack([M, M])
-    σ = sqrt.(max.(var(p.k, x), 0))
-    return μ, μ .- 2 .* σ, μ .+ 2 .* σ
+    return _noisy_credible_interval(p, x)
 end
 function credible_interval(p::GP{MultiOutputKernel, MultiOutputMean}, x)
     μ = p.m(x)
