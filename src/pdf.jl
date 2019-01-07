@@ -107,7 +107,18 @@ end
     return -.5(n_d * p * log(2π) + log_det + dot(yiσ², yt) - dot(z, z))
 end
 
-@unionise function logpdf(
+@unionise function logpdf(dist::Gaussian, xs::Vector{<:Vector})
+    U = chol(dist)
+    log_det = 2 * sum(log.(diag(U)))
+    out = 0.0
+    for x in xs
+        z = U' \ (x .- dist.μ)
+        out += -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+    end
+    return out
+end
+
+@unionise function optlogpdf(
     gp::GP{K, U},
     x,
     y::AbstractArray
@@ -117,10 +128,9 @@ end
     m = unwrap(gp.k.m)
     σ² = ones(p) .* unwrap(gp.k.σ²)
     H = float.(unwrap(gp.k.H)) # Prevents Nabla from breaking in case H has Ints.
-    D = unwrap(gp.k.D)
-    D = isa(D, Vector) ? D : ones(m) .* D
+    d = unwrap(gp.k.D)
+    D = ones(m) .* d
     P = unwrap(gp.k.P)
-    S_sqrt = unwrap(gp.k.S_sqrt)
 
     Σn = diagm(σ²) .+ H * diagm(D) * H'
     gn = Gaussian(zeros(p), Σn)
@@ -128,9 +138,45 @@ end
 
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
-    for i in 1:n
-        lpdf += logpdf(gn, y[i, :])
-    end
+    lpdf += logpdf(gn, [y[i, :] for i in 1:n])
+
+    # Latent process contributions
+    # These decouple amongst different latent processes, so we can compute one at time.
+    yl = y * P'
+    Σlk = gp.k.ks(x)
+    proj_noise = (unwrap(gp.k.σ²) + d) * eye(n)
+    glk = Gaussian(zeros(n), proj_noise + Σlk)
+    gln = Gaussian(zeros(n), proj_noise)
+    lpdf += logpdf(glk, [yl[:, i] for i in 1:m])
+    lpdf -= logpdf(gln, [yl[:, i] for i in 1:m])
+    return lpdf
+end
+
+@unionise function logpdf(
+    gp::GP{K, U},
+    x,
+    y::AbstractArray
+) where {K <: OLMMKernel, U <: Mean}
+
+    n = size(x, 1)
+    p = unwrap(gp.k.p)
+    m = unwrap(gp.k.m)
+    σ² = ones(p) .* unwrap(gp.k.σ²)
+    H = float.(unwrap(gp.k.H)) # Prevents Nabla from breaking in case H has Ints.
+    D = unwrap(gp.k.D)
+    S_sqrt = unwrap(gp.k.S_sqrt)
+    isa(gp.k.ks, Kernel) && !isa(D, Vector) && S_sqrt ≈ ones(m) && return optlogpdf(gp, x, y)
+
+    D = isa(D, Vector) ? D : ones(m) .* D
+    P = unwrap(gp.k.P)
+
+    Σn = diagm(σ²) .+ H * diagm(D) * H'
+    gn = Gaussian(zeros(p), Σn)
+    lpdf = 0.0
+
+    # Noise contributions
+    # These decouple timestamps, so we can compute one at a time.
+    lpdf += logpdf(gn, [y[i, :] for i in 1:n])
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
