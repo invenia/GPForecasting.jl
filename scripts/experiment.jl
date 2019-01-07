@@ -4,7 +4,7 @@ using ArgParse
 args = GPForecasting.arg_parse(ARGS)
 
 if isa(args["experiment-script"], Void) && isa(args["experiment"], Void)
-    throw(UndefRefError(
+    throw(ArgumentError(
         "You need to provide either an experiment name or an experiment script."
     ))
 end
@@ -24,7 +24,7 @@ using HelloBatch
 using AWSClusterManagers
 
 global const AWS_RESOURCES = Dict{String, Union{String, Void}}()
-AWS_RESOURCES["s3_uri"] = "s3://invenia-gpforecasting"
+AWS_RESOURCES["s3_uri"] = ENV["S3_RESULTS"]
 
 
 info("Experiment: $(args["experiment-script"])")
