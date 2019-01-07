@@ -172,12 +172,12 @@ function credible_interval(p::GP, x)
     μ = p.m(x)
     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
 end
-function credible_interval(p::GP{K, M}, x::Input) where {K <: NoiseKernel, M <: Mean}
+function credible_interval(p::GP, x::Input)
     σ = sqrt.(max.(var(p.k, x), 0))
     μ = p.m(x.val)
     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
 end
-function credible_interval(p::GP{K, M}, x::Vector{Input}) where {K <: NoiseKernel, M <: Mean}
+function credible_interval(p::GP, x::Vector{Input})
     σ = sqrt.(max.(var(p.k, x), 0))
     cx = vcat([c.val for c in x]...)
     μ = p.m(cx)
