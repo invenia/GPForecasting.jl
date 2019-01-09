@@ -5,7 +5,7 @@
     res = GPForecasting.experiment(configuration, trace = false)
 
     # Check that the experiment worked
-    @test size(res, 1) == 4 # Check that iterates through all parameters
+    @test length(res) == 4 # Check that iterates through all parameters
     @test size(collect(values(res[1])), 1) == 3 # Check that all values are saved
     @test res[1]["parameters"] == (1680, 2)
     @test isa(res[1]["time"], AbstractFloat)
@@ -23,7 +23,7 @@
     res = GPForecasting.experiment(configuration, trace = false)
 
     # Check that the experiment worked
-    @test size(res, 1) == 4 # Check that iterates through all parameters
+    @test length(res) == 4 # Check that iterates through all parameters
     @test size(collect(values(res[1])), 1) == 3 # Check that all values are saved
     @test res[1]["parameters"] == (168, 4)
     @test isa(res[1]["time"], AbstractFloat)
@@ -108,7 +108,7 @@
     res = GPForecasting.experiment(configuration2, trace = false)
 
     # Check that the experiment worked
-    @test size(res, 1) == 2 # Check that iterates through all parameters
+    @test length(res) == 2 # Check that iterates through all parameters
     @test size(collect(values(res[1])), 1) == 3 # Check that all values are saved
     @test res[1]["parameters"] == (5, 2)
     @test res[2]["parameters"] == (5, 3)

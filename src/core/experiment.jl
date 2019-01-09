@@ -33,15 +33,16 @@ function experiment(
 
     results = pmap(
                 Iterators.product(parameters...),
-                on_error = ex -> (info(GPForecasting.LOGGER, string(ex)); string(ex)),
+                on_error = ex -> (error(GPForecasting.LOGGER, string(ex)); string(ex)),
                 ) do param
 
         if trace info(LOGGER, "Testing Parameter Configuration: $param") end
-        tic()
+        runtime = @elapsed output = exp_fn(param...)
+        trace && info(LOGGER, "Elapsed time: $runtime seconds")
         res = Dict{String, Any}(
             "parameters" => param,
-            "output" => exp_fn(param...),
-            "time" => if trace toc() else toq() end,
+            "output" => output,
+            "time" => runtime,
         )
         return res
     end
