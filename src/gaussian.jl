@@ -99,6 +99,9 @@ rand(dist::Gaussian, n::Int) = sample(dist, n)
 
 MvNormal(d::Gaussian) = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
 
+# handles old version of Eye on old versions of FillArrays (with Julia 0.6)
+MvNormal(d::Gaussian{T, Eye}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), collect(d.Σ))
+
 function mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
     if length(blocks(d.Σ)) != size(y, 1) # Not sure why one would ever do this, but anyway
         return -logpdf(d, y) / prod(size(y))
