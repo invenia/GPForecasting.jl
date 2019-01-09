@@ -257,4 +257,98 @@
         @test nlmm(x) ≈ vnlmm(x) atol = _ATOL_
         @test isMulti(nlmm)
     end
+
+    @testset "OLMM checks" begin 
+        A = ones(5,5) + 2eye(5)
+        U, S, V = svd(A)
+        H = U * diagm(S)[:, 1:3]
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                eye(3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                ones(3), # S_sqrt
+                [EQ() for i in 1:2] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:4]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                ones(3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:4])'), # P
+                U[:, 1:3], # U
+                ones(3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:4], # U
+                ones(3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                ones(4), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                collect(1:3), # S_sqrt
+                EQ() # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                collect(1:3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+    end
 end
