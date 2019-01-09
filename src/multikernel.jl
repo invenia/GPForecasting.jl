@@ -570,7 +570,14 @@ mutable struct OLMMKernel <: MultiOutputKernel
         )
         (l_S_sqrt != 0 && l_S_sqrt != n_m) && throw(
             ArgumentError("""
-                Expected $n_m eigenvalues, got $(n_k). Each latent process needs a value.
+                Expected $n_m eigenvalues, got $(l_S_sqrt). Each latent process needs a value.
+            """)
+        )
+        (n_k > 1 && l_S_sqrt != n_k && !(unwrap(S_sqrt) ≈ ones(l_S_sqrt))) && throw(
+            ArgumentError("""
+                Unless `S_sqrt` is identically ones, a kernel must be specified for each
+                latent process. One can only use the same kernel object for all latent
+                processes when `S_sqrt == ones(m)`.
             """)
         )
         !(unwrap(H) ≈ unwrap(U) * diagm(unwrap(S_sqrt))) && throw(ArgumentError(
