@@ -94,6 +94,7 @@ Mean that returns 1.0 for every point.
 """
 struct ConstantMean <: Mean end
 (k::ConstantMean)(x) = ones(Float64, size(x, 1))
+(k::ConstantMean)(x::Vector{Input}) = ones(Float64, size(vcat([c.val for c in x]...), 1))
 (k::ConstantMean)(x::Real, y::Real) = 1.0
 function (+)(k::Mean, x)
     return isconstrained(x) ?
@@ -112,6 +113,7 @@ Zero Mean. Returns zero.
 """
 struct ZeroMean <: Mean; end
 (::ZeroMean)(x) = zeros(size(x, 1))
+(::ZeroMean)(x::Vector{Input}) = zeros(size(vcat([c.val for c in x]...), 1))
 (+)(k::Mean, z::ZeroMean) = k
 (+)(z::ZeroMean, k::Mean) = k + z
 (+)(z::ZeroMean, k::ZeroMean) = z
@@ -139,6 +141,8 @@ struct FunctionMean <: Mean
     FunctionMean(m::Union{Fixed, Function}) = isa(m, GPForecasting.Fixed) ? new(m) : new(Fixed(m))
 end
 (m::FunctionMean)(x) = broadcast(unwrap(m.m), x)
+(m::FunctionMean)(x::Input) = broadcast(unwrap(m.m), x.val)
+(m::FunctionMean)(x::Vector{Input}) = broadcast(unwrap(m.m), vcat([c.val for c in x]...))
 
 """
     PosteriorMean <: Mean

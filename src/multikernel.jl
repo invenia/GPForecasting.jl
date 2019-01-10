@@ -54,7 +54,7 @@ function hourly_cov(k::NoiseKernel, x)
     return BlockDiagonal(ks)
 end
 
-function (k::NoiseKernel)(x::Vector{Input}, y::Vector{Input}) # Doesn't look efficient, but
+function (k::NoiseKernel)(x::Vector{<:Input}, y::Vector{<:Input}) # Doesn't look efficient, but
     # it also seems inefficient to feed this kind of input.
     lx, ly = length(x), length(y)
     M = Matrix(lx, ly)
@@ -65,6 +65,8 @@ function (k::NoiseKernel)(x::Vector{Input}, y::Vector{Input}) # Doesn't look eff
     end
     return fuse(M)
 end
+(k::NoiseKernel)(x::Vector{<:Input}, y::Input) = k(x, [y])
+(k::NoiseKernel)(x::Input, y::Vector{<:Input}) = k([x], y)
 (k::NoiseKernel)(x) = k(x, x)
 function var(k::NoiseKernel, x::Vector{Input})
     ks = [k(x[i, :]) for i in 1:size(x, 1)]

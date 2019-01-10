@@ -27,3 +27,11 @@ Type for inputs that correspond to non-noisy observations.
 struct Latent <: Input
     val
 end
+
+function getindex(x::Input, i::Int, j::Colon)
+    return typeof(x)(x.val[i, :])
+end
+
+function getindex(x::Input, i::Int)
+    return typeof(x)(x.val[i])
+end
