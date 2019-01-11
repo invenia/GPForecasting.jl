@@ -37,13 +37,19 @@ the updated `GP`. Does NOT affect `gp`.
 """
 @unionise function logpdf(dist::Gaussian, x::AbstractArray)
     U = chol(dist)
-    if size(x, 2) > 1
-        z = U' \ (x .- dist.μ)'[:]
+    log_det = 2 * sum(log.(diag(U)))
+    if size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    # all outputs and timestamps.
+        z = U' \ (x .- dist.μ)'[:]; @show size(z)
+    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+    # only for the different outputs, but for a single timestamp. This allows for the
+    # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
+        z = U' \ (x .- dist.μ')'
+        return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
     else
         z = U' \ (x .- dist.μ)
     end
-    log_det = 2 * sum(log.(diag(U)))
-    return -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+    return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
 
 # This looks quite redundant, but is necessary to remove the ambiguity introduced above due
@@ -51,9 +57,18 @@ end
 # especialised as the above.
 function logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
     U = chol(dist)
-    z = U' \ (x .- dist.μ)'[:]
     log_det = 2 * sum(log.(diag(U)))
-    return -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+    if size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    # all outputs and timestamps.
+        z = U' \ (x .- dist.μ)'[:]; @show size(z)
+    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+    # only for the different outputs, but for a single timestamp. This allows for the
+    # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
+        z = U' \ (x .- dist.μ')'
+        return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
+    end
+    # z = U' \ (x .- dist.μ)'[:]; @show size(U'); @show size(x); @show size(dist.μ); @show size(z)
+    return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
 
 @unionise function logpdf(
