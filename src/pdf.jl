@@ -67,7 +67,6 @@ function logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
         z = U' \ (x .- dist.μ')'
         return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
     end
-    # z = U' \ (x .- dist.μ)'[:]; @show size(U'); @show size(x); @show size(dist.μ); @show size(z)
     return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
 
