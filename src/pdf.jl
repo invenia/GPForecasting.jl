@@ -153,8 +153,7 @@ end
 
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
-    lpdf += logpdf(gn, [y[i, :] for i in 1:n])
-    # lpdf += logpdf(gn, y)
+    lpdf += logpdf(gn, y)
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
@@ -163,10 +162,8 @@ end
     proj_noise = (unwrap(gp.k.σ²) + d) * eye(n)
     glk = Gaussian(zeros(n), proj_noise + Σlk)
     gln = Gaussian(zeros(n), proj_noise)
-    lpdf += logpdf(glk, [yl[:, i] for i in 1:m])
-    lpdf -= logpdf(gln, [yl[:, i] for i in 1:m])
-    # lpdf += logpdf(glk, yl')
-    # lpdf -= logpdf(gln, yl')
+    lpdf += logpdf(glk, yl')
+    lpdf -= logpdf(gln, yl')
     return lpdf
 end
 
@@ -194,8 +191,7 @@ end
 
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
-    lpdf += logpdf(gn, [y[i, :] for i in 1:n])
-    # lpdf += logpdf(gn, y)
+    lpdf += logpdf(gn, y)
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
