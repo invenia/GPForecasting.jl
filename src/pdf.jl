@@ -37,13 +37,19 @@ the updated `GP`. Does NOT affect `gp`.
 """
 @unionise function logpdf(dist::Gaussian, x::AbstractArray)
     U = chol(dist)
-    if size(x, 2) > 1
+    log_det = 2 * sum(log.(diag(U)))
+    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    # all outputs and timestamps.
         z = U' \ (x .- dist.μ)'[:]
+    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+    # only for the different outputs, but for a single timestamp. This allows for the
+    # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
+        z = U' \ (x .- dist.μ')'
+        return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
     else
         z = U' \ (x .- dist.μ)
     end
-    log_det = 2 * sum(log.(diag(U)))
-    return -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+    return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
 
 # This looks quite redundant, but is necessary to remove the ambiguity introduced above due
@@ -51,9 +57,17 @@ end
 # especialised as the above.
 function logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
     U = chol(dist)
-    z = U' \ (x .- dist.μ)'[:]
     log_det = 2 * sum(log.(diag(U)))
-    return -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    # all outputs and timestamps.
+        z = U' \ (x .- dist.μ)'[:]
+    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+    # only for the different outputs, but for a single timestamp. This allows for the
+    # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
+        z = U' \ (x .- dist.μ')'
+        return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
+    end
+    return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
 
 @unionise function logpdf(
@@ -138,7 +152,7 @@ end
 
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
-    lpdf += logpdf(gn, [y[i, :] for i in 1:n])
+    lpdf += logpdf(gn, y)
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
@@ -147,8 +161,8 @@ end
     proj_noise = (unwrap(gp.k.σ²) + d) * eye(n)
     glk = Gaussian(zeros(n), proj_noise + Σlk)
     gln = Gaussian(zeros(n), proj_noise)
-    lpdf += logpdf(glk, [yl[:, i] for i in 1:m])
-    lpdf -= logpdf(gln, [yl[:, i] for i in 1:m])
+    lpdf += logpdf(glk, yl')
+    lpdf -= logpdf(gln, yl')
     return lpdf
 end
 
@@ -176,7 +190,7 @@ end
 
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
-    lpdf += logpdf(gn, [y[i, :] for i in 1:n])
+    lpdf += logpdf(gn, y)
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
