@@ -38,9 +38,9 @@ the updated `GP`. Does NOT affect `gp`.
 @unionise function logpdf(dist::Gaussian, x::AbstractArray)
     U = chol(dist)
     log_det = 2 * sum(log.(diag(U)))
-    if size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
-        z = U' \ (x .- dist.μ)'[:]; @show size(z)
+        z = U' \ (x .- dist.μ)'[:]
     elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
     # only for the different outputs, but for a single timestamp. This allows for the
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
@@ -58,9 +58,9 @@ end
 function logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
     U = chol(dist)
     log_det = 2 * sum(log.(diag(U)))
-    if size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
-        z = U' \ (x .- dist.μ)'[:]; @show size(z)
+        z = U' \ (x .- dist.μ)'[:]
     elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
     # only for the different outputs, but for a single timestamp. This allows for the
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
@@ -154,6 +154,7 @@ end
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
     lpdf += logpdf(gn, [y[i, :] for i in 1:n])
+    # lpdf += logpdf(gn, y)
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
@@ -164,6 +165,8 @@ end
     gln = Gaussian(zeros(n), proj_noise)
     lpdf += logpdf(glk, [yl[:, i] for i in 1:m])
     lpdf -= logpdf(gln, [yl[:, i] for i in 1:m])
+    # lpdf += logpdf(glk, yl')
+    # lpdf -= logpdf(gln, yl')
     return lpdf
 end
 
@@ -192,6 +195,7 @@ end
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
     lpdf += logpdf(gn, [y[i, :] for i in 1:n])
+    # lpdf += logpdf(gn, y)
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
