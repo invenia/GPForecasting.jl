@@ -46,6 +46,7 @@ ENV PKGS \
     epel-release \
     yum-utils \
     wget \
+    tar \
     patch \
     gcc-gfortran
 
