@@ -29,8 +29,6 @@ RUN yum -y install $PKGS && \
 ENV PKG_PATH $JULIA_PKGDIR/$JULIA_PKGVER/$PKG_NAME
 COPY REQUIRE $PKG_PATH/REQUIRE
 
-# Install and build the requirements for LorenzoLand
-#
 # Notes:
 # - HDF5.jl requires the EPEL repo to install hdf5 automatically through BinDeps
 #   (https://aws.amazon.com/premiumsupport/knowledge-center/ec2-enable-epel/)
@@ -54,13 +52,11 @@ RUN yum -y install $PKGS && \
     yum-config-manager --setopt=assumeyes=1 --save > /dev/null && \
     yum-config-manager --enable epel > /dev/null && \
     yum list installed | tr -s ' ' | cut -d' ' -f1 | sort > /tmp/pre_state && \
-    #julia -e 'using PrivateMetadata; PrivateMetadata.update(); Pkg.update(); ENV["PYTHON"]=""; Pkg.build("PyCall"); using Conda; Conda.add("scipy==1.0.0"); Conda.update(); Pkg.resolve(); Pkg.build("GPForecasting")' && \
     julia -e 'using PrivateMetadata; PrivateMetadata.update(); Pkg.update(); Pkg.resolve(); Pkg.build("GPForecasting")' && \
-    #julia -e 'ENV["PYTHON"]=""; Pkg.build("PyCall"); using Conda; Conda.add("scipy==1.0.0"); Conda.update()' && \
     yum list installed | tr -s ' ' | cut -d' ' -f1 | sort > /tmp/post_state && \
     comm -3 /tmp/pre_state /tmp/post_state | grep $'\t' | sed 's/\t//' | sed 's/\..*//' > /etc/yum/protected.d/julia-pkgs.conf && \
     yum-config-manager --disable epel > /dev/null && \
-    for p in $PKGS; do yum -y autoremove $p &>/dev/null && echo "Removed $p" || echo "Skipping removal of $p"; done && \
+#    for p in $PKGS; do yum -y autoremove $p &>/dev/null && echo "Removed $p" || echo "Skipping removal of $p"; done && \
     yum -y clean all
 
 
