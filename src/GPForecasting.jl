@@ -116,7 +116,4 @@ include("core/optimise.jl")
 include("core/parsing.jl")
 include("core/experiment.jl")
 
-include("experiments/Experiments.jl")
-using GPForecasting.Experiments
-
 end
