@@ -30,7 +30,7 @@ is the posterior process corresponding to the prior updated with the observation
 # Returns
 - `GP`: The posterior process
 """
-function condition(gp::GP, x, y)
+function condition(gp::GP, x, y::AbstractArray{<:Real})
     K = gp.k(x)
     U = chol(K + _EPSILON_ * eye(K))
     m = PosteriorMean(gp.k, gp.m, x, U, y)
@@ -42,7 +42,7 @@ end
 function condition(
     gp::GP{T, G},
     x,
-    y
+    y::AbstractMatrix{<:Real}
 ) where {T <: LMMKernel, G <: Mean} # Assuming always zero mean here. We should properly dispatch later
     m = unwrap(gp.k.m)
     n = size(x, 1)
@@ -71,7 +71,7 @@ end
 function condition(
     gp::GP{T, G},
     x,
-    y
+    y::AbstractMatrix{<:Real}
 ) where {T <: LMMPosKernel, G <: LMMPosMean}
 # This is a way of getting around the issue of re-deriving and re-optimisng the
 # posterior kernel and mean expressions. Should not be the most efficient approach
@@ -86,7 +86,7 @@ end
 function optcondition(
     gp::GP{T, G},
     x,
-    y
+    y::AbstractMatrix{<:Real}
 ) where {T <: OLMMKernel, G <: Mean}
     P = unwrap(gp.k.P)
     m = unwrap(gp.k.m)
@@ -121,7 +121,7 @@ end
 function condition(
     gp::GP{T, G},
     x,
-    y
+    y::AbstractMatrix{<:Real}
 ) where {T <: OLMMKernel, G <: Mean}
     # project y
     P = unwrap(gp.k.P)

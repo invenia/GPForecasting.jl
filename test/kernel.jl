@@ -18,9 +18,10 @@
             @test hourly_cov(k, [1., 2., 3.]) ≈ diagm(var(k, [1., 2., 3.])) atol = _ATOL_
             @test !isMulti(k)
             @test isposdef(k([1., 2., 3.]) + GPForecasting._EPSILON_^2 * I)
-            @test isa(k(1, 1), Number)
-            @test isa(k(1, [1, 2]), Array)
-            @test isa(k([1, 2], 1), Array)
+            @test isa(k(1, 1), AbstractMatrix)
+            @test isa(k([1], [1]), AbstractMatrix)
+            @test isa(k(1, [1, 2]), AbstractMatrix)
+            @test isa(k([1, 2], 1), AbstractMatrix)
         end
         @test_throws ArgumentError MA(6)([4.])
 
@@ -258,7 +259,7 @@
         @test isMulti(nlmm)
     end
 
-    @testset "OLMM checks" begin 
+    @testset "OLMM checks" begin
         A = ones(5,5) + 2eye(5)
         U, S, V = svd(A)
         H = U * diagm(S)[:, 1:3]

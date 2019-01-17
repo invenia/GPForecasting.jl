@@ -73,7 +73,7 @@ end
 @unionise function logpdf(
     gp::GP,
     x,
-    y::AbstractArray,
+    y::AbstractArray{<:Real},
     params::Vector{G}
 ) where {G <: Real}
     ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
@@ -84,7 +84,7 @@ end
 @unionise function logpdf(
    gp::GP{K, M},
     x,
-    y::AbstractArray,
+    y::AbstractMatrix{<:Real},
     params::Vector{G}
 ) where {K <: LMMKernel, M <: Mean, G <: Real}
     ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
@@ -95,7 +95,7 @@ end
 @unionise function logpdf(
     gp::GP{K, U},
     x,
-    y::AbstractArray
+    y::AbstractMatrix{<:Real}
 ) where {K <: LMMKernel, U <: Mean} # Assuming always zero mean here. We should properly dispatch later
 
     yt = y'
@@ -135,7 +135,7 @@ end
 @unionise function optlogpdf(
     gp::GP{K, U},
     x,
-    y::AbstractArray
+    y::AbstractMatrix{<:Real}
 ) where {K <: OLMMKernel, U <: Mean}
     n = size(x, 1)
     p = unwrap(gp.k.p)
@@ -169,7 +169,7 @@ end
 @unionise function logpdf(
     gp::GP{K, U},
     x,
-    y::AbstractArray
+    y::AbstractMatrix{<:Real}
 ) where {K <: OLMMKernel, U <: Mean}
 
     n = size(x, 1)
@@ -205,7 +205,7 @@ end
     return lpdf
 end
 
-@unionise function logpdf(gp::GP, x, y::AbstractArray)
+@unionise function logpdf(gp::GP, x, y::AbstractArray{<:Real})
     return logpdf(gp(x), y)
 end
 
@@ -215,7 +215,7 @@ end
 Objective function that, when minimised, yields maximum probability of observations `y` for
 a `gp` evaluated at points `x`. Returns a function of the `GP` parameters.
 """
-@unionise function objective(gp::GP, x, y::AbstractArray)
+@unionise function objective(gp::GP, x, y::AbstractArray{<:Real})
     return function f(params)
         return -logpdf(gp::GP, x, y, params)
     end

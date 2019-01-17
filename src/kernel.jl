@@ -3,7 +3,13 @@ export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel
     SpecifiedQuantityKernel, ←, hourly_cov, BinaryKernel, ZeroKernel, isMulti,
     SimilarHourKernel, DotKernel, HazardKernel
 
+#########################################################
 # Default kernel behaviour:
+# k(x) = k(x, x), as a definition for k(x).
+# isa(k(x, y), AbstractMatrix) == true, for all x, y.
+# k(x, y) == transpose(k(y, x))
+#########################################################
+
 var(k::Kernel, x) = [k(x[i, :])[1] for i in 1:size(x, 1)]
 var(k::Kernel, x::Vector{Input}) = vcat(broadcast(c -> var(k, c), x)...)
 
@@ -64,17 +70,6 @@ function (k::PosteriorKernel)(x, y)
     U = unwrap(k.U)
     xd = unwrap(k.x)
     return k.k(x, y) .- (k.k(x, xd) / U) * (U' \ k.k(xd, y))
-end
-function (k::PosteriorKernel)(x::Real, y::Real)
-    U = unwrap(k.U)
-    xd = unwrap(k.x)
-    return (k.k(x, y) .- (k.k(x, xd) / U) * (U' \ k.k(xd, y)))[1, 1]
-end
-function (k::PosteriorKernel)(x::Real)
-    U = unwrap(k.U)
-    xd = unwrap(k.x)
-    z = k.k(x, xd) / U
-    return (k.k(x) .- z * z')[1, 1]
 end
 
 """
@@ -376,7 +371,6 @@ Kernel that returns 1.0 for every pair of points.
 mutable struct ConstantKernel <: Kernel end
 (k::ConstantKernel)(x, y) = ones(Float64, size(x, 1), size(y, 1))
 (k::ConstantKernel)(x) = k(x, x)
-(k::ConstantKernel)(x::Real, y::Real) = 1.0
 function (+)(k::Kernel, x)
     return isconstrained(x) ?
         SumKernel(k, x * ConstantKernel()) :
@@ -436,7 +430,7 @@ function (::DotKernel)(x, y)
 end
 (k::DotKernel)(x::Number, y) = k([x], y)
 (k::DotKernel)(x, y::Number) = k(x, [y])
-(k::DotKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
+(k::DotKernel)(x::Number, y::Number) = k([x], [y])
 (k::DotKernel)(x) = k(x, x)
 show(io::IO, k::DotKernel) = print(io, "<., .>")
 
@@ -487,7 +481,7 @@ end
 (k::HazardKernel)(x) = k(x, x)
 (k::HazardKernel)(x::Number, y) = k([x], y)
 (k::HazardKernel)(x, y::Number) = k(x, [y])
-(k::HazardKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
+(k::HazardKernel)(x::Number, y::Number) = k([x], [y])
 show(io::IO, k::HazardKernel) = print(io, "Hazard()")
 
 zero(::Kernel) = ZeroKernel()

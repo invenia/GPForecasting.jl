@@ -113,7 +113,7 @@ If `summary` is set to true, then the entire output of the optimizer is returned
 function learn(
     gp::GP,
     x,
-    y,
+    y::AbstractArray{<:Real},
     obj::Function;
     Θ_init::Array=[],
     its=200,
@@ -153,7 +153,7 @@ Like `learn()`, but returns a tuple with the summary of the optimization procedu
 function learn_summary(
     gp::GP,
     x,
-    y,
+    y::AbstractArray{<:Real},
     obj::Function;
     Θ_init::Array=[],
     its=200,
@@ -180,7 +180,7 @@ end
 function learn(
     gp::GP{OLMMKernel, <:Mean},
     x,
-    y,
+    y::AbstractMatrix{<:Real},
     obj::Function;
     opt_U=false,
     K_U_cycles::Int=0,
