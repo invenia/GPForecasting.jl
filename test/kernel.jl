@@ -9,14 +9,44 @@
             MA(3/2),
             MA(5/2),
             SimilarHourKernel(3, [3, 2, 1]),
+            DotKernel(),
+            HazardKernel(),
         ]
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_
             @test diag(k([1., 2., 3.])) ≈ var(k, [1., 2., 3.]) atol = _ATOL_
             @test hourly_cov(k, [1., 2., 3.]) ≈ Diagonal(var(k, [1., 2., 3.])) atol = _ATOL_
             @test !isMulti(k)
+            @test isposdef(k([1., 2., 3.]) + GPForecasting._EPSILON_^2 * I)
+            @test isa(k(1, 1), AbstractMatrix)
+            @test isa(k([1], [1]), AbstractMatrix)
+            @test isa(k(1, [1, 2]), AbstractMatrix)
+            @test isa(k([1, 2], 1), AbstractMatrix)
         end
         @test_throws ArgumentError MA(6)([4.])
+
+        @testset "DotKernel" begin
+            k = DotKernel()
+            x = [1. 0. 0.; 1. 1. 0.; 0. 0.5 0.]
+            y = [0.5 1. 1.; 1. 1. 1.]
+            @test k(x) ≈ [1. 1. 0.; 1.0 2.0 0.5; 0. 0.5 0.25] atol = _ATOL_
+            @test k(x, y) ≈ [0.5 1.0; 1.5 2.0; 0.5 0.5] atol = _ATOL_
+            @test isposdef(k(x) + 1e-10 * I)
+        end
+
+        @testset "HazardKernel" begin
+            k = HazardKernel()
+            x = [1.0 0.5; 0.0 0.0]
+            y = [0. 0.; 0. 0.; 0. 0.]
+            @test k(x) ≈ [1.25 0.; 0. 1.] atol = _ATOL_
+            @test k(x, y) ≈ [0. 0. 0.; 1. 1. 1.] atol = _ATOL_
+            k = HazardKernel(0.2)
+            @test k(x) ≈ [1.29 0.2; 0.2 1.] atol = _ATOL_
+            @test k(x, y) ≈ [0.2 0.2 0.2; 1. 1. 1.] atol = _ATOL_
+            k = HazardKernel(0.2, [5 2])
+            @test k(x) ≈ [26.04 0.2; 0.2 1.] atol = _ATOL_
+            @test k(x, y) ≈ [0.2 0.2 0.2; 1. 1. 1.] atol = _ATOL_
+        end
 
         @testset "BinaryKernel" begin
             k = BinaryKernel(5, 1, 6)
@@ -227,5 +257,99 @@
         x = collect(1:5)
         @test nlmm(x) ≈ vnlmm(x) atol = _ATOL_
         @test isMulti(nlmm)
+    end
+
+    @testset "OLMM checks" begin
+        A = ones(5,5) + 2Eye(5)
+        U, S, V = svd(A)
+        H = U * Diagonal(S)[:, 1:3]
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                Eye(3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                ones(3), # S_sqrt
+                [EQ() for i in 1:2] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:4]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                ones(3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:4])'), # P
+                U[:, 1:3], # U
+                ones(3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:4], # U
+                ones(3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                ones(4), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                collect(1:3), # S_sqrt
+                EQ() # ks
+        )
+        @test_throws ArgumentError OLMMKernel(
+                3, # m
+                5, # p
+                1e-2, # σ²
+                1e-2, # D
+                Matrix(U[:, 1:3]), # H
+                Matrix((U[:, 1:3])'), # P
+                U[:, 1:3], # U
+                collect(1:3), # S_sqrt
+                [EQ() for i in 1:3] # ks
+        )
     end
 end

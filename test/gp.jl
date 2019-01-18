@@ -120,6 +120,20 @@
             credible_interval(gp, [1,5,50])[1] .<
             credible_interval(gp, [1,5,50])[3]
         )
+
+        # Posteriors
+        gp = GP(5 * ConstantMean(), NoiseKernel(EQ(), 11 * DiagonalKernel()))
+        gp = condition(gp, Observed(x), collect(1:3))
+        @test all(
+            credible_interval(gp, Observed(x))[2] .<
+            credible_interval(gp, Observed(x))[1] .<
+            credible_interval(gp, Observed(x))[3]
+        )
+        @test all(
+            credible_interval(gp, [Latent([1,2]), Observed([3]), Latent([4])])[2] .<
+            credible_interval(gp, [Latent([1,2]), Observed([3]), Latent([4])])[1] .<
+            credible_interval(gp, [Latent([1,2]), Observed([3]), Latent([4])])[3]
+        )
     end
 end
 
@@ -169,6 +183,20 @@ end
     U, S, V = svd(A)
     H = U * Diagonal(S)[:, 1:3]
     y = (H * xs')'
+
+    # check optimised versions
+    sgp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, Matrix(U[:, 1:3]), EQ()))
+    gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, Matrix(U[:, 1:3]), [EQ() for i in 1:3]))
+    x = collect(0:0.1:2)
+    @test mean(sgp(x)) ≈ mean(gp(x)) atol = _ATOL_
+    @test cov(sgp(x)) ≈ cov(gp(x)) atol = _ATOL_
+    @test var(gp(x)) ≈ var(sgp(x)) atol = _ATOL_
+    @test logpdf(gp, x, y) ≈ logpdf(sgp, x, y) atol = _ATOL_
+    pgp = condition(gp, x, y)
+    psgp = condition(sgp, x, y)
+    @test mean(psgp(x)) ≈ mean(pgp(x)) atol = _ATOL_
+    @test cov(psgp(x)) ≈ cov(pgp(x)) atol = _ATOL_
+    @test var(pgp(x)) ≈ var(psgp(x)) atol = _ATOL_
 
     gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, H, [periodicise(EQ(), i) for i in 1:3]))
     x = collect(0:0.1:2)

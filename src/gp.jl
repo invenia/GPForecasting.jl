@@ -30,7 +30,7 @@ is the posterior process corresponding to the prior updated with the observation
 # Returns
 - `GP`: The posterior process
 """
-function condition(gp::GP, x, y)
+function condition(gp::GP, x, y::AbstractArray{<:Real})
     K = gp.k(x)
     U = Nabla.chol(K + _EPSILON_ * Eye(K))
     m = PosteriorMean(gp.k, gp.m, x, U, y)
@@ -42,7 +42,7 @@ end
 function condition(
     gp::GP{T, G},
     x,
-    y
+    y::AbstractMatrix{<:Real}
 ) where {T <: LMMKernel, G <: Mean} # Assuming always zero mean here. We should properly dispatch later
     m = unwrap(gp.k.m)
     n = size(x, 1)
@@ -71,7 +71,7 @@ end
 function condition(
     gp::GP{T, G},
     x,
-    y
+    y::AbstractMatrix{<:Real}
 ) where {T <: LMMPosKernel, G <: LMMPosMean}
 # This is a way of getting around the issue of re-deriving and re-optimisng the
 # posterior kernel and mean expressions. Should not be the most efficient approach
@@ -83,18 +83,54 @@ function condition(
     return condition(GP(gp.k.k), new_x, new_y)
 end
 
+function optcondition(
+    gp::GP{T, G},
+    x,
+    y::AbstractMatrix{<:Real}
+) where {T <: OLMMKernel, G <: Mean}
+    P = unwrap(gp.k.P)
+    m = unwrap(gp.k.m)
+    σ² = unwrap(gp.k.σ²)
+    d = unwrap(gp.k.D)
+    D = fill(d, m)
+    yp = y * P'
+    # condition gp.k.ks on y
+    kx = gp.k.ks(x)
+    K = kx + (σ² + d) * I
+
+    U = Nabla.chol(Hermitian(K + _EPSILON_^2 * Eye(K)))
+    ms = [PosteriorMean(gp.k.ks, ZeroMean(), x, U, yp[:, i]) for i in 1:m]
+    ks = PosteriorKernel(gp.k.ks, x, U)
+    # create the posterior mean
+    pos_m = OLMMPosMean(gp.k, ms, x, yp)
+    # create another OLMMKernel
+    pos_k = _unsafe_OLMMKernel(
+        gp.k.m,
+        gp.k.p,
+        gp.k.σ²,
+        gp.k.D,
+        gp.k.H,
+        gp.k.P,
+        gp.k.U,
+        gp.k.S_sqrt,
+        ks
+    )
+    return GP(pos_m, pos_k)
+end
+
 function condition(
     gp::GP{T, G},
     x,
-    y
+    y::AbstractMatrix{<:Real}
 ) where {T <: OLMMKernel, G <: Mean}
     # project y
     P = unwrap(gp.k.P)
     m = unwrap(gp.k.m)
     σ² = unwrap(gp.k.σ²)
     D = unwrap(gp.k.D)
-    D = isa(D, Float64) ? fill(D, m) : D
     S_sqrt = unwrap(gp.k.S_sqrt)
+    isa(gp.k.ks, Kernel) && !isa(D, Vector) && S_sqrt ≈ ones(m) && return optcondition(gp, x, y)
+    D = isa(D, Float64) ? fill(D, m) : D
     yp = y * P'
     # condition gp.k.ks on y
     Ks = []
@@ -166,37 +202,35 @@ Get the mean and upper and lower central 95%–credible bounds at certain inputs
 - `Vector{<:Real}`: Lower central 95%–credible bound
 - `Vector{<:Real}`: Upper central 95%–credible bound
 """
-function credible_interval(p::GP, x)
-    # TODO: Should directly obtain the marginal variances whenever this is supported.
-    σ = sqrt.(max.(var(p.k, x), 0))
-    μ = p.m(x)
-    return μ, μ .- 2 .* σ, μ .+ 2 .* σ
-end
-function credible_interval(p::GP{K, M}, x::Input) where {K <: NoiseKernel, M <: Mean}
-    σ = sqrt.(max.(var(p.k, x), 0))
-    μ = p.m(x.val)
-    return μ, μ .- 2 .* σ, μ .+ 2 .* σ
-end
-function credible_interval(p::GP{K, M}, x::Vector{Input}) where {K <: NoiseKernel, M <: Mean}
-    σ = sqrt.(max.(var(p.k, x), 0))
-    cx = vcat([c.val for c in x]...)
-    μ = p.m(cx)
-    return μ, μ .- 2 .* σ, μ .+ 2 .* σ
-end
-function credible_interval(p::GP{K, L}, x) where {K <: NoiseKernel, L <: Mean}
+function _noisy_ci_(p::GP, x)
     # Here we will work in the extended input space
     M = p.m(x)
     μ = stack([M, M])
     σ = sqrt.(max.(var(p.k, x), 0))
     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
 end
-function credible_interval(p::GP{MultiOutputKernel, MultiOutputMean}, x)
-    μ = p.m(x)
+function _ci_(p::GP, x)
     σ = sqrt.(max.(var(p.k, x), 0))
+    μ = p.m(x)
     return μ, μ .- 2 .* σ, μ .+ 2 .* σ
 end
-function credible_interval(p::GP{LMMPosKernel, LMMPosMean}, x)
-    μ = p.m(x)
-    σ = sqrt.(max.(var(p.k, x), 0))
-    return μ, μ .- 2 .* σ, μ .+ 2 .* σ
+function credible_interval(p::GP, x)
+    # TODO: Should directly obtain the marginal variances whenever this is supported.
+    isa(p.k, PosteriorKernel) && isa(p.k.k, NoiseKernel) && return _noisy_ci_(p, x)
+    return _ci_(p, x)
+end
+function credible_interval(p::GP{K, L}, x::Input) where {K <: NoiseKernel, L <: Mean}
+    return _ci_(p, x)
+end
+function credible_interval(p::GP{K, L}, x::Input) where {K <: PosteriorKernel, L <: Mean}
+    return _ci_(p, x)
+end
+function credible_interval(p::GP{K, L}, x::Vector{Input}) where {K <: NoiseKernel, L <: Mean}
+    return _ci_(p, x)
+end
+function credible_interval(p::GP{K, L}, x::Vector{Input}) where {K <: PosteriorKernel, L <: Mean}
+    return _ci_(p, x)
+end
+function credible_interval(p::GP{K, L}, x) where {K <: NoiseKernel, L <: Mean}
+    return _noisy_ci_(p, x)
 end

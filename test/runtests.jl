@@ -10,13 +10,17 @@ using Compat.Distributed
 using Compat.LinearAlgebra
 using CSV
 using DataFrames
+using DateOffsets
 using Distributions
+using ElectricityMarkets
 using FDM
 using FillArrays
 using LineSearches
 using Memento
 using Nabla
 using Nullables
+import Simulation
+using TimeZones
 
 _ATOL_ = 1e-5
 
@@ -54,4 +58,5 @@ end
     include("synthetic.jl")
     include("experiment.jl")
     include("datahandling.jl")
+    include("forecaster.jl")
 end

@@ -10,6 +10,7 @@ include:
   - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/gitlab-templates/documentation.yml
 
 variables:
+  CONDA_JL_VERSION: "2"
   AWS_DEFAULT_REGION: us-east-1
   OPS_ACCOUNT_ID: 468665244580
   PROB_FORECASTING_ACCOUNT_ID: 052722095006
@@ -17,7 +18,8 @@ variables:
   JULIA_BAKED_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-baked:0.6
   GP_IMAGE: ${PROB_FORECASTING_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/gpforecasting/gpforecasting:${CI_COMMIT_REF_SLUG}
 
-"0.6 (Linux, 64-bit)":
+
+"0.6 (Linux, 64-bit, Docker)":
   tags:
     - linux
     - 64-bit

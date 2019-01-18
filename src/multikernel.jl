@@ -54,7 +54,7 @@ function hourly_cov(k::NoiseKernel, x)
     return BlockDiagonal(ks)
 end
 
-function (k::NoiseKernel)(x::Vector{Input}, y::Vector{Input}) # Doesn't look efficient, but
+function (k::NoiseKernel)(x::Vector{<:Input}, y::Vector{<:Input}) # Doesn't look efficient, but
     # it also seems inefficient to feed this kind of input.
     lx, ly = length(x), length(y)
     M = Matrix(undef, lx, ly)
@@ -65,6 +65,8 @@ function (k::NoiseKernel)(x::Vector{Input}, y::Vector{Input}) # Doesn't look eff
     end
     return fuse(M)
 end
+(k::NoiseKernel)(x::Vector{<:Input}, y::Input) = k(x, [y])
+(k::NoiseKernel)(x::Input, y::Vector{<:Input}) = k([x], y)
 (k::NoiseKernel)(x) = k(x, x)
 function var(k::NoiseKernel, x::Vector{Input})
     ks = [k(x[i, :]) for i in 1:size(x, 1)]
@@ -311,8 +313,8 @@ mutable struct LMMKernel <: MultiOutputKernel
         s_H = size(unwrap(H))
         n_k = length(ks)
 
-        s_H == (0, 0) && warn("Initialising LMMKernel with placeholder `H`.")
-        n_k == 0 && warn("Initialising LMMKernel with placeholder `ks`.")
+        s_H == (0, 0) && warn(LOGGER, "Initialising LMMKernel with placeholder `H`.")
+        n_k == 0 && warn(LOGGER, "Initialising LMMKernel with placeholder `ks`.")
 
         (s_H != (0, 0) && s_H != (n_p, n_m)) && throw(
             ArgumentError("Expected `H` of size ($n_p, $n_m), got $s_H.")
@@ -493,7 +495,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
     P # Projection matrix, (m x p)
     U # Orthogonal component of the mixing matrix. This is already truncated!
     S_sqrt # Eigenvalues of the latent processes. This is already truncated!
-    ks::Vector{Kernel} # Kernels for the latent processes, m-long
+    ks::Union{<:Kernel, Vector{<:Kernel}} # Kernels for the latent processes, m-long or the same for all
 
     global function _unsafe_OLMMKernel(
         m, # Number of latent processes
@@ -504,7 +506,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         P, # Projection matrix, (m x p)
         U, # Orthogonal component of the mixing matrix. This is already truncated!
         S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
-        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+        ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
     )
         return new(
             m, # Number of latent processes
@@ -515,7 +517,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
             P, # Projection matrix, (m x p)
             U, # Orthogonal component of the mixing matrix. This is already truncated!
             S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
-            ks, # Kernels for the latent processes, m-long
+            ks, # Kernels for the latent processes, m-long or the same for all
         )
     end
 
@@ -528,7 +530,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         P, # Projection matrix, (m x p)
         U, # Orthogonal component of the mixing matrix. This is already truncated!
         S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
-        ks::Vector{<:Kernel}, # Kernels for the latent processes, m-long
+        ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
     )
         # Do a bunch of consistency checks
         s_H = size(unwrap(H))
@@ -537,18 +539,18 @@ mutable struct OLMMKernel <: MultiOutputKernel
         s_P = size(unwrap(P))
         s_U = size(unwrap(U))
         l_S_sqrt = length(unwrap(S_sqrt))
-        n_k = length(ks)
+        n_k = isa(ks, Kernel) ? 1 : length(ks)
 
-        s_H == (0, 0) && warn("Initialising OLMMKernel with placeholder `H`.")
-        s_P == (0, 0) && warn("Initialising OLMMKernel with placeholder `P`.")
-        s_U == (0, 0) && warn("Initialising OLMMKernel with placeholder `U`.")
+        s_H == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `H`.")
+        s_P == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `P`.")
+        s_U == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `U`.")
         !isa(unwrap(S_sqrt), Vector) && throw(
             ArgumentError("`S_sqrt` must be a `Vector` with the norms of the columns of `H`.")
         )
-        l_S_sqrt == 0 && warn("Initialising OLMMKernel with placeholder `S_sqrt`.")
+        l_S_sqrt == 0 && warn(LOGGER, "Initialising OLMMKernel with placeholder `S_sqrt`.")
         n_k == 0 && warn("Initialising OLMMKernel with placeholder `ks`.")
 
-        (n_k != 0 && n_k != n_m) && throw(
+        (n_k != 0 && n_k != 1 && n_k != n_m) && throw(
             ArgumentError("""
                 Expected $n_m kernels, got $(n_k). Each latent process needs a kernel.
             """)
@@ -570,7 +572,14 @@ mutable struct OLMMKernel <: MultiOutputKernel
         )
         (l_S_sqrt != 0 && l_S_sqrt != n_m) && throw(
             ArgumentError("""
-                Expected $n_m eigenvalues, got $(n_k). Each latent process needs a value.
+                Expected $n_m eigenvalues, got $(l_S_sqrt). Each latent process needs a value.
+            """)
+        )
+        (n_k > 1 && l_S_sqrt != n_k && !(unwrap(S_sqrt) ≈ ones(l_S_sqrt))) && throw(
+            ArgumentError("""
+                Unless `S_sqrt` is identically ones, a kernel must be specified for each
+                latent process. One can only use the same kernel object for all latent
+                processes when `S_sqrt == ones(m)`.
             """)
         )
         !(unwrap(H) ≈ unwrap(U) * Diagonal(unwrap(S_sqrt))) && throw(ArgumentError(
@@ -589,7 +598,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
             P, # Projection matrix, (m x p)
             U, # Orthogonal component of the mixing matrix. This is already truncated!
             S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
-            ks, # Kernels for the latent processes, m-long
+            ks, # Kernels for the latent processes, m-long or the same for all
         )
     end
 end
@@ -611,7 +620,6 @@ function OLMMKernel( # Initialise with H. IT HAS TO BE OF THE FORM `U * S`, with
     S_sqrt = sqrt.(diag(H' * H))
     U = H * Diagonal(S_sqrt .^ (-1.0))
     _, P = build_H_and_P(U, S_sqrt)
-    kv = isa(ks, Kernel) ? fill(ks, m) : ks
     return OLMMKernel(
         Fixed(m),
         Fixed(p),
@@ -621,7 +629,7 @@ function OLMMKernel( # Initialise with H. IT HAS TO BE OF THE FORM `U * S`, with
         Fixed(P),
         Fixed(U),
         Fixed(S_sqrt),
-        kv
+        ks
     )
 end
 function OLMMKernel( # Initialise with U and S
@@ -634,9 +642,8 @@ function OLMMKernel( # Initialise with U and S
     ks::Union{<:Kernel, Vector{<:Kernel}}
 )
     (size(U, 2) != size(S_sqrt, 1) || size(S_sqrt, 1) != m) &&
-        warn("U and S_sqrt must be truncated to m.")
+        warn(LOGGER, "U and S_sqrt must be truncated to m.")
     H, P = build_H_and_P(U, S_sqrt)
-    kv = isa(ks, Kernel) ? fill(ks, m) : ks
     return OLMMKernel(
         Fixed(m),
         Fixed(p),
@@ -646,7 +653,7 @@ function OLMMKernel( # Initialise with U and S
         Fixed(P),
         Fixed(U),
         Fixed(S_sqrt),
-        kv
+        ks
     )
 end
 """
@@ -660,21 +667,56 @@ function greedy_U(k::OLMMKernel, x, y)
     σ² = unwrap(k.σ²)
     m = unwrap(k.m)
     S_sqrt = unwrap(k.S_sqrt)
+    D = unwrap(k.D)
+    D = isa(D, Vector) ? D : ones(m) .* D
 
-    Ks = [(σ² * Eye(n) + S_sqrt[i] * k.ks[i](x)) for i in 1:length(k.ks)]
-    Σs = [(y' * y / σ² - y' * (K \ y)) for K in Ks]
-
-    U, _, _ = svd(Σs[1])
-    us = [U[:, 1]]
-    V = U[:, 2:end]
-    for i in 2:m
-        U, _, _ = svd(V' * Σs[i] * V)
-        push!(us, V * U[:, 1])
-        V = V * U[:, 2:end]
+    function Σ(i)
+        K = S_sqrt[i] * k.ks[i](x) + σ² * I + S_sqrt[i] * D[i] * I
+        Uk = Nabla.chol(K)
+        Z = Uk' \ y
+        return (y' * y) ./ σ² - Z' * Z
     end
+
+    U, _, _ = svd(Σ(1))
+    us = [U[:, end]]
+    V = U[:, 1:end - 1]
+
+    for i in 2:m
+        U, _, _ = svd(V' * Σ(i) * V)
+        push!(us, V * U[:, end])
+        V = V * U[:, 1:end - 1]
+    end
+
     return hcat(us...)
 end
+@unionise function optk(k, x) # This is an optimised implementation of the OLMM for when all kernels
+# are the same
+    # compute latent covariances
+    K = k.ks(x)
+    # mix them
+    n = size(x, 1)
+    H = unwrap(k.H)
+    σ² = unwrap(k.σ²)
+    D = unwrap(k.D)
+    m = unwrap(k.m)
+    D = isa(D, Float64) ? fill(D, m) : D
+    out = Matrix(undef, n, n)
+    for j in 1:n
+        for i in j:n
+            out[i, j] =  H * Diagonal(fill(K[i, j], m)) * H'
+            out[j, i] = out[i, j]
+        end
+    end
+    # add noises
+    for j in 1:n
+        out[j, j] += σ² * I + H * Diagonal(D) * H'
+    end
+    # build big mixed matrix
+    return fuse_equal(out)
+end
+
 function (k::OLMMKernel)(x)
+    isa(k.ks, Kernel) && return optk(k, x)
     # compute latent proc covs
     n = size(x, 1)
     H = unwrap(k.H)

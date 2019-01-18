@@ -39,13 +39,19 @@ the updated `GP`. Does NOT affect `gp`.
 """
 @unionise function logpdf(dist::Gaussian, x::AbstractArray)
     U = Nabla.chol(dist)
-    if size(x, 2) > 1
+    log_det = 2 * sum(log.(diag(U)))
+    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    # all outputs and timestamps.
         z = U' \ (x .- dist.μ)'[:]
+    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+    # only for the different outputs, but for a single timestamp. This allows for the
+    # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
+        z = U' \ (x .- dist.μ')'
+        return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
     else
         z = U' \ (x .- dist.μ)
     end
-    log_det = 2 * sum(log.(diag(U)))
-    return -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+    return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
 
 # This looks quite redundant, but is necessary to remove the ambiguity introduced above due
@@ -53,15 +59,23 @@ end
 # especialised as the above.
 function logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
     U = Nabla.chol(dist)
-    z = U' \ (x .- dist.μ)'[:]
     log_det = 2 * sum(log.(diag(U)))
-    return -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    # all outputs and timestamps.
+        z = U' \ (x .- dist.μ)'[:]
+    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+    # only for the different outputs, but for a single timestamp. This allows for the
+    # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
+        z = U' \ (x .- dist.μ')'
+        return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
+    end
+    return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
 
 @unionise function logpdf(
     gp::GP,
     x,
-    y::AbstractArray,
+    y::AbstractArray{<:Real},
     params::Vector{G}
 ) where {G <: Real}
     ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
@@ -72,7 +86,7 @@ end
 @unionise function logpdf(
    gp::GP{K, M},
     x,
-    y::AbstractArray,
+    y::AbstractMatrix{<:Real},
     params::Vector{G}
 ) where {K <: LMMKernel, M <: Mean, G <: Real}
     ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
@@ -83,7 +97,7 @@ end
 @unionise function logpdf(
     gp::GP{K, U},
     x,
-    y::AbstractArray
+    y::AbstractMatrix{<:Real}
 ) where {K <: LMMKernel, U <: Mean} # Assuming always zero mean here. We should properly dispatch later
 
     yt = y'
@@ -109,20 +123,30 @@ end
     return -.5(n_d * p * log(2π) + log_det + dot(yiσ², yt) - dot(z, z))
 end
 
-@unionise function logpdf(
+@unionise function logpdf(dist::Gaussian, xs::Vector{<:Vector})
+    U = chol(dist)
+    log_det = 2 * sum(log.(diag(U)))
+    out = 0.0
+    for x in xs
+        z = U' \ (x .- dist.μ)
+        out += -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
+    end
+    return out
+end
+
+@unionise function optlogpdf(
     gp::GP{K, U},
     x,
-    y::AbstractArray
+    y::AbstractMatrix{<:Real}
 ) where {K <: OLMMKernel, U <: Mean}
     n = size(x, 1)
     p = unwrap(gp.k.p)
     m = unwrap(gp.k.m)
     σ² = ones(p) .* unwrap(gp.k.σ²)
     H = float.(unwrap(gp.k.H)) # Prevents Nabla from breaking in case H has Ints.
-    D = unwrap(gp.k.D)
-    D = isa(D, Vector) ? D : ones(m) .* D
+    d = unwrap(gp.k.D)
+    D = ones(m) .* d
     P = unwrap(gp.k.P)
-    S_sqrt = unwrap(gp.k.S_sqrt)
 
     Σn = Diagonal(σ²) .+ H * Diagonal(D) * H'
     gn = Gaussian(zeros(p), Σn)
@@ -130,9 +154,45 @@ end
 
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
-    for i in 1:n
-        lpdf += logpdf(gn, y[i, :])
-    end
+    lpdf += logpdf(gn, y)
+
+    # Latent process contributions
+    # These decouple amongst different latent processes, so we can compute one at time.
+    yl = y * P'
+    Σlk = gp.k.ks(x)
+    proj_noise = (unwrap(gp.k.σ²) + d) * Eye(n)
+    glk = Gaussian(zeros(n), proj_noise + Σlk)
+    gln = Gaussian(zeros(n), proj_noise)
+    lpdf += logpdf(glk, yl')
+    lpdf -= logpdf(gln, yl')
+    return lpdf
+end
+
+@unionise function logpdf(
+    gp::GP{K, U},
+    x,
+    y::AbstractMatrix{<:Real}
+) where {K <: OLMMKernel, U <: Mean}
+
+    n = size(x, 1)
+    p = unwrap(gp.k.p)
+    m = unwrap(gp.k.m)
+    σ² = ones(p) .* unwrap(gp.k.σ²)
+    H = float.(unwrap(gp.k.H)) # Prevents Nabla from breaking in case H has Ints.
+    D = unwrap(gp.k.D)
+    S_sqrt = unwrap(gp.k.S_sqrt)
+    isa(gp.k.ks, Kernel) && !isa(D, Vector) && S_sqrt ≈ ones(m) && return optlogpdf(gp, x, y)
+
+    D = isa(D, Vector) ? D : ones(m) .* D
+    P = unwrap(gp.k.P)
+
+    Σn = Diagonal(σ²) .+ H * Diagonal(D) * H'
+    gn = Gaussian(zeros(p), Σn)
+    lpdf = 0.0
+
+    # Noise contributions
+    # These decouple timestamps, so we can compute one at a time.
+    lpdf += logpdf(gn, y)
 
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
@@ -147,7 +207,7 @@ end
     return lpdf
 end
 
-@unionise function logpdf(gp::GP, x, y::AbstractArray)
+@unionise function logpdf(gp::GP, x, y::AbstractArray{<:Real})
     return logpdf(gp(x), y)
 end
 
@@ -157,7 +217,7 @@ end
 Objective function that, when minimised, yields maximum probability of observations `y` for
 a `gp` evaluated at points `x`. Returns a function of the `GP` parameters.
 """
-@unionise function objective(gp::GP, x, y::AbstractArray)
+@unionise function objective(gp::GP, x, y::AbstractArray{<:Real})
     return function f(params)
         return -logpdf(gp::GP, x, y, params)
     end

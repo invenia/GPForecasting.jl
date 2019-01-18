@@ -1,10 +1,8 @@
 ecr_arn: arn:aws:ecr:us-east-1:052722095006:repository/hello-batch/gpforecasting
 ecr_uri: 052722095006.dkr.ecr.us-east-1.amazonaws.com/gpforecasting/gpforecasting
-job_definition: arn:aws:batch:us-east-1:052722095006:job-definition/JobDefinition-254b0250fdc6f53:9
+job_definition: arn:aws:batch:us-east-1:052722095006:job-definition/JobDefinition-254b0250fdc6f53:14
 batch_output_role: arn:aws:iam::052722095006:role/gpforecasting-JLBatchJobRole-1VBN4AZ1L10V9
 compute_arn: arn:aws:batch:us-east-1:052722095006:compute-environment/gpforecasting
 manager_queue_arn: arn:aws:batch:us-east-1:052722095006:job-queue/gpforecasting-Managers
 worker_queue_arn: arn:aws:batch:us-east-1:052722095006:job-queue/gpforecasting-Workers
-s3_uri: s3://invenia-gpforecasting
 aws_profile: GPForecasting@Invenia
-

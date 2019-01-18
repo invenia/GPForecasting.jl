@@ -27,7 +27,7 @@ function Gaussian(
     μ::Wrapped{T},
     Σ::Wrapped{G},
 ) where {T <: AbstractArray, G <: AbstractArray}
-    return Gaussian(μ, Σ, Matrix(undef, 0, 0))
+    return Gaussian{T, G}(μ, Σ, Matrix(undef, 0, 0))
 end
 
 mean(g::Gaussian) = g.μ
