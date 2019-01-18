@@ -89,7 +89,6 @@ include("pdf.jl")
 include("core/optimise.jl")
 include("core/parsing.jl")
 include("core/experiment.jl")
-include("forecaster.jl")
 
 include("experiments/Experiments.jl")
 using GPForecasting.Experiments
