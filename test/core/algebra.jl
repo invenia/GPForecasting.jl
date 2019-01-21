@@ -19,8 +19,8 @@
         @test A * b1 ≈ A * Matrix(b1)
         @test A' * b1 ≈ A' * Matrix(b1)
         @test A * b1' ≈ A * Matrix(b1)'
-        @test isa(b1 + (zeros(size(b1)) + I), BlockDiagonal)
-        @test diag(b1 + (zeros(size(b1)) + I)) ≈ diag(b1) + ones(size(b1, 1)) atol = _ATOL_
+        @test isa(b1 + Matrix(1.0I, size(b1)...), BlockDiagonal)
+        @test diag(b1 + Matrix(1.0I, size(b1)...)) ≈ diag(b1) + ones(size(b1, 1)) atol = _ATOL_
 
         @test_throws DimensionMismatch b2 * b1
         @test_throws DimensionMismatch b2 * A
