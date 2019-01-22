@@ -17,14 +17,13 @@ using Distributions
 using FillArrays
 using Missings
 using Nullables
-
-const LOGGER = getlogger(@__MODULE__)
 using LineSearches
 using Memento
 using Missings
 using Nabla
 using Optim
 
+const LOGGER = getlogger(@__MODULE__)
 const _EPSILON_ = 1e-6 # Precision constant
 const packagehomedir = dirname(@__DIR__) #dirname ascends the directory...
 const Wrapped{T} = Union{T, Node{T}}
@@ -117,11 +116,6 @@ include("gp.jl")
 include("core/datahandling.jl")
 include("pdf.jl")
 include("core/optimise.jl")
-<<<<<<< HEAD
-include("core/parsing.jl")
-include("core/experiment.jl")
-=======
-include("forecaster.jl")
->>>>>>> Organise includes
+
 
 end
