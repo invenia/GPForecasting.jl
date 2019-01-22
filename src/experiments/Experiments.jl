@@ -3,6 +3,8 @@ module Experiments
 export list_experiments, describe, source, get_parameters
 
 using GPForecasting
+using Compat: AbstractDict, repeat
+using Compat.Dates
 using DataFrames
 using Nabla
 using HelloBatch

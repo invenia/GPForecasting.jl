@@ -179,9 +179,9 @@ end
 
 @testset "Full OLMM" begin
     xs = hcat([sin.(2π*collect(0:0.1:2)./i) for i in 1:3]...)
-    A = ones(5,5) + 2eye(5)
+    A = ones(5,5) + 2Eye(5)
     U, S, V = svd(A)
-    H = U * diagm(S)[:, 1:3]
+    H = U * Diagonal(S)[:, 1:3]
     y = (H * xs')'
 
     # check optimised versions

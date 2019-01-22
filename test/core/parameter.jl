@@ -1,6 +1,6 @@
 @testset "Parameter" begin
     @test GPForecasting.pack([1, 2, 3]) == [1, 2, 3]
-    @test GPForecasting.unpack(Matrix(2, 2), [1, 2, 3, 4]) == [1 3; 2 4]
+    @test GPForecasting.unpack(Matrix(undef, 2, 2), [1, 2, 3, 4]) == [1 3; 2 4]
     @test GPForecasting.set([1], [1, 2, 3]) == [1, 2, 3]
 
     fx = Fixed(5.5)
@@ -56,7 +56,7 @@
     @test GPForecasting.unwrap(b) ≈ 0. atol = _ATOL_
     @test isa(GPForecasting.name(b), Nullable{String})
     @test GPForecasting.set(b, 5.) ≈ Bounded(5., -10., 10.)
-    for x in linspace(0., 10., 10)
+    for x in Compat.range(0., stop=10., length=10)
         b = Bounded(x, 10.)
         @test GPForecasting.unwrap(GPForecasting.unpack(b, GPForecasting.pack(b))) ≈ x  atol = _ATOL_
     end

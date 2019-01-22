@@ -82,7 +82,7 @@ function basicOLMM_exp(
 
         # Initialise the mixing matrix
         U, S, V = svd(cov_LW(y_train))
-        H = U * diagm(sqrt.(S))[:, 1:m]
+        H = U * Diagonal(sqrt.(S))[:, 1:m]
         gp = GP(OLMMKernel(m, p, σ², lat_noise, H, k));
         gp = learn(gp, x_train, y_train, objective, its=30)
         pos = condition(gp, x_train, y_train)

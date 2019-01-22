@@ -17,7 +17,7 @@ defaults
     - `revision`: revision information
     - `date`: date in which the experiment was ran
 """
-function get_parameters(configuration::Function, options::Associative=Dict())
+function get_parameters(configuration::Function, options::AbstractDict=Dict())
 
     # Load configuration
     global exper_params = configuration()
@@ -67,17 +67,17 @@ function source(configuration)
 end
 
 """
-    update_exper!(exper::Associative, options::Associative)
+    update_exper!(exper::AbstractDict, options::AbstractDict)
 
 Update the `exper` dictionary with the keys found in `options`.
 
 # Arguments
 
-- `exper::Associative`: the dictionary containing the specifications of the experiment;
-- `options::Associative`: the dictionary containing the changes that the user wants to make
+- `exper::AbstractDict`: the dictionary containing the specifications of the experiment;
+- `options::AbstractDict`: the dictionary containing the changes that the user wants to make
 on the default settings.
 """
-function update_exper!(exper::Associative, options::Associative)
+function update_exper!(exper::AbstractDict, options::AbstractDict)
     # This will be needed for the check of unused options
     expected_keys = String[]
 
@@ -94,6 +94,6 @@ function update_exper!(exper::Associative, options::Associative)
     return exper
 end
 
-function update!(k::AbstractString, v::Any, exper::Associative)
+function update!(k::AbstractString, v::Any, exper::AbstractDict)
     exper[k] = v
 end

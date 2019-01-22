@@ -70,19 +70,19 @@ function mcc_training_data(
             24 * (forecast_day - 1) .+ size(train_x, 1)# Add the time column
         if data == :DA || data == :RT
             mask = data == :DA ? maskda : maskrt
-            train_y = train_y[:, mask]
+            train_y = train_y[mask]
             s = data == :DA ? "_da" : "_rt"
-            new_names = Symbol.(replace.(String.(names(train_y)), s, ""))
+            new_names = [Symbol(replace(String(n), s => "")) for n in names(train_y)]
             names!(train_y, new_names)
-            test_y = test_y[:, mask]
+            test_y = test_y[mask]
             names!(test_y, new_names)
         elseif data == :Delta
-            train_da = train_y[:, maskda]
-            train_rt = train_y[:, maskrt]
-            test_da = test_y[:, maskda]
-            test_rt = test_y[:, maskrt]
-            nodes_da = Symbol.(replace.(String.(names(train_da)), "_da", ""))
-            nodes_rt = Symbol.(replace.(String.(names(train_rt)), "_rt", ""))
+            train_da = train_y[maskda]
+            train_rt = train_y[maskrt]
+            test_da = test_y[maskda]
+            test_rt = test_y[maskrt]
+            nodes_da = [Symbol(replace(String(n), "_da" => "")) for n in names(train_da)]
+            nodes_rt = [Symbol(replace(String(n), "_rt" => "")) for n in names(train_rt)]
             nodes_da != nodes_rt &&
                 throw(error("Real time and day ahead node names don't match!"))
             deltas_train = Matrix(train_da) .- Matrix(train_rt)
@@ -163,8 +163,8 @@ function standardise_data(dat::Vector)
     for d in cdat
         ytr = Matrix(d["train_y"])
         yte = Matrix(d["test_y"])
-        stdtr = std(ytr, 1)
-        meantr = mean(ytr, 1)
+        stdtr = stddims(ytr, 1)
+        meantr = meandims(ytr, 1)
         push!(originals, Dict(
                 "mean_train" => meantr,
                 "std_train" => stdtr,
@@ -174,8 +174,8 @@ function standardise_data(dat::Vector)
         yte = (yte .- meantr) ./ stdtr # Here we use the training data mean and std because
         # both sets should be transformed the same way.
         for i in 1:size(ytr, 2)
-            d["train_y"][:, i] = ytr[:, i]
-            d["test_y"][:, i] = yte[:, i]
+            d["train_y"][i] = ytr[:, i]
+            d["test_y"][i] = yte[:, i]
         end
     end
     return cdat, originals
@@ -192,8 +192,8 @@ function inverse_standardise(dat::Dict, orig::Dict)
     train_y = orig["std_train"] .* Matrix(dat["train_y"]) .+ orig["mean_train"]
     out = deepcopy(dat)
     for i in 1:size(train_y, 2)
-        out["train_y"][:, i] = train_y[:, i]
-        out["test_y"][:, i] = test_y[:, i]
+        out["train_y"][i] = train_y[:, i]
+        out["test_y"][i] = test_y[:, i]
     end
     return out
 end

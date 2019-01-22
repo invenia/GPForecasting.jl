@@ -12,7 +12,7 @@
     s = c + fm
     @test s(x) == [5, 5, 5, 5, 5] .+ 2 .* x
 
-    pos = PosteriorMean(ConstantKernel(), ConstantMean(), x,  eye(5), 2 .* x)
+    pos = PosteriorMean(ConstantKernel(), ConstantMean(), x, Eye(5), 2 .* x)
     @test pos(x) == 26.0 * ones(5)
 
     # Test Scaled Mean

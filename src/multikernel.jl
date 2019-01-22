@@ -57,7 +57,7 @@ end
 function (k::NoiseKernel)(x::Vector{<:Input}, y::Vector{<:Input}) # Doesn't look efficient, but
     # it also seems inefficient to feed this kind of input.
     lx, ly = length(x), length(y)
-    M = Matrix(lx, ly)
+    M = Matrix(undef, lx, ly)
     for j in 1:ly
         for i in 1:lx
             M[i, j] = k(x[i], y[j])
@@ -94,7 +94,7 @@ function fuse_equal(m::Matrix)
    s1 = size(m)
    s2 = size(m[1])
    s = s1 .* s2
-   out = Matrix{Float64}(s...)
+   out = Matrix{Float64}(undef, s...)
    for j in 1:s1[2]
        for i in 1:s1[1]
            out[(i-1)*s2[1]+1:i*s2[1], (j-1)*s2[2]+1:j*s2[2]] = m[i, j]
@@ -104,7 +104,7 @@ function fuse_equal(m::Matrix)
 end
 
 function fuse(m::Matrix)
-    sizes = Matrix(size(m)...)
+    sizes = Matrix(undef, size(m)...)
     for j in 1:size(m, 2)
         for i in 1:size(m, 1)
             sizes[i, j] = size(m[i, j])
@@ -114,10 +114,10 @@ function fuse(m::Matrix)
     tsize = (
         sum(Int.([s[1] for s in sizes[:, 1]])), + sum(Int.([s[2] for s in sizes[1, :]]))
     )
-    out = Matrix{Float64}(tsize...)
+    out = Matrix{Float64}(undef, tsize...)
     function offset(i, j)
-        oi = sum(Int.([s[1] for s in sizes[1:(i-1), j]]))
-        oj = sum(Int.([s[2] for s in sizes[i, 1:(j-1)]]))
+        oi = sum(Int[s[1] for s in sizes[1:(i-1), j]])
+        oj = sum(Int[s[2] for s in sizes[i, 1:(j-1)]])
         return (oi, oj)
     end
     for j in 1:size(m, 2)
@@ -136,7 +136,7 @@ function stack(m::Matrix)
    s1 = size(m)
    s2 = size(m[1])
    s = s1 .* s2
-   out = Matrix{Float64}(s...)
+   out = Matrix{Float64}(undef, s...)
    for j in 1:s2[2] # i,j loop over data points
        for i in 1:s2[1]
            for l in 1:s1[2] # k,l loop over base kernels
@@ -189,7 +189,7 @@ end
 (m::MultiKernel)(x, y, i::Int, j::Int) = m.k[i, j](x, y)
 (m::MultiKernel)(x) = m(x, x)
 (m::MultiKernel)(x, i::Int, j::Int) = m(x, x, i, j)
-(+)(m::MultiKernel, k::Kernel) = MultiKernel(m.k .+ k)
+(+)(m::MultiKernel, k::Kernel) = MultiKernel(m.k .+ k) ## ref
 (+)(k::Kernel, m::MultiKernel) = m + k
 (+)(m1::MultiKernel, m2::MultiKernel) = SumKernel(m1, m2)
 size(k::MultiKernel, i::Int) = size(k.k, i)
@@ -211,12 +211,12 @@ The most naive way of doing the LMM. Basically generates the full multi-dimensio
 and returns it as a general MultiKernel. Don't expect it to be efficient.
 """
 function verynaiveLMMKernel(m, p, σ², H, k)
-    K = Matrix{Kernel}(m, m)
+    K = Matrix{Kernel}(undef, m, m)
     K .= 0
     for i in 1:m
         K[i, i] = k
     end
-    K = H * K * H' + σ² * eye(p)
+    K = H * K * H' + σ² * Eye(p)
     return MultiKernel(K)
 end
 
@@ -233,7 +233,7 @@ mutable struct NaiveLMMKernel <: MultiOutputKernel
 end
 show(io::IO, k::NaiveLMMKernel) = print(io, "$(k.k)")
 function NaiveLMMKernel(m, σ², H, k)
-    K = Matrix{Kernel}(m, m)
+    K = Matrix{Kernel}(undef, m, m)
     K .= 0
     for i in 1:m
         K[i, i] = k
@@ -246,7 +246,7 @@ function (k::NaiveLMMKernel)(x, y)
     p = size(H, 1)
     n1 = size(x, 1)
     n2 = size(y, 1)
-    Λ = fuse(fill(σ² * eye(p), (n1, n2)))
+    Λ = fuse(fill(σ² * Eye(p), (n1, n2)))
     return kron_lid_lmul(H, kron_lid_lmul(H, k.k(x, y))')' .+ Λ
 end
 (k::NaiveLMMKernel)(x) = k(x, x)
@@ -313,8 +313,8 @@ mutable struct LMMKernel <: MultiOutputKernel
         s_H = size(unwrap(H))
         n_k = length(ks)
 
-        s_H == (0, 0) && warn("Initialising LMMKernel with placeholder `H`.")
-        n_k == 0 && warn("Initialising LMMKernel with placeholder `ks`.")
+        s_H == (0, 0) && warn(LOGGER, "Initialising LMMKernel with placeholder `H`.")
+        n_k == 0 && warn(LOGGER, "Initialising LMMKernel with placeholder `ks`.")
 
         (s_H != (0, 0) && s_H != (n_p, n_m)) && throw(
             ArgumentError("Expected `H` of size ($n_p, $n_m), got $s_H.")
@@ -378,7 +378,7 @@ function (k::LMMPosKernel)(x, y)
     σ² = isa(σ², Float64) ? ones(p) * σ² : σ²
     Z = unwrap(k.Z)
 
-    K = MultiKernel(diagm(k.k.ks))
+    K = MultiKernel(Diagonal(k.k.ks))
     Σxy = K(x, y)
     Txy = kron_lid_lmul(H, kron_lid_lmul(H, Σxy')')
 
@@ -388,13 +388,13 @@ function (k::LMMPosKernel)(x, y)
 
     Σy = K(y, unwrap(k.x))
     Ty = kron_lid_lmul(H, Σy)'
-    Gy = kron_lid_lmul(diagm(σ².^(-1)) * H, Ty)
+    Gy = kron_lid_lmul(Diagonal(σ².^(-1)) * H, Ty)
 
-    W = kron_lid_lmul(diagm(σ².^(-1)) * H, Z)
+    W = kron_lid_lmul(Diagonal(σ².^(-1)) * H, Z)
     V = Gx * W * W' * kron_lid_lmul(H, Ty)
 
     mask = DiagonalKernel()(x, y)
-    Λ = fuse(mask .* [diagm(σ²)])
+    Λ = fuse(mask .* [Diagonal(σ²)])
 
     return Txy .- Gx * Gy .+ V .+ Λ
 end
@@ -412,18 +412,18 @@ function (k::LMMPosKernel)(x)
     Z = unwrap(k.Z)
 
     ks = [k(x) for k in k.k.ks]
-    chols = chol.([(Hermitian(k) + _EPSILON_^2 * eye(n)) for k in ks])
+    chols = chol.([(Hermitian(k) + _EPSILON_^2 * Eye(n)) for k in ks])
     Uₓₓ = stack(BlockDiagonal(chols))
     Tₓₓ = kron_lid_lmul_lt_m(H, Uₓₓ')
 
-    K = MultiKernel(diagm(k.k.ks))
+    K = MultiKernel(Diagonal(k.k.ks))
     Σₓ = K(x, unwrap(k.x))
     T_x = kron_lid_lmul(H, Σₓ)'
-    G = kron_lid_lmul(diagm(σ².^(-1/2)) * H, T_x)
+    G = kron_lid_lmul(Diagonal(σ².^(-1/2)) * H, T_x)
 
-    V = Z' * kron_lid_lmul(H' * diagm(σ².^(-1)) * H, T_x)
+    V = Z' * kron_lid_lmul(H' * Diagonal(σ².^(-1)) * H, T_x)
 
-    Λ = diagm(vcat(fill(σ², n)...))
+    Λ = Diagonal(vcat(fill(σ², n)...))
 
     return Tₓₓ * Tₓₓ' .- G' * G .+ V' * V .+ Λ
 end
@@ -438,10 +438,10 @@ function var(k::LMMPosKernel, x)
     σ² = isa(σ², Float64) ? ones(p, 1) * σ² : reshape(σ², p, 1)
     Z = unwrap(k.Z)
 
-    Kxx = [kk(x, x) + _EPSILON_ .* eye(n) for kk in k.k.ks]
+    Kxx = [kk(x, x) + _EPSILON_ .* Eye(n) for kk in k.k.ks]
     Kx = [kk(x, unwrap(k.x)) for kk in k.k.ks]
     outer_HsiΛ = [outer(H[:, i]) ./ sqrt.(σ²)' for i in 1:m]
-    inners = Vector{AbstractMatrix}(m)
+    inners = Vector{AbstractMatrix}(undef, m)
     for i = 1:m
         inners[i] = kron_lid_lmul(reshape(H[:, i], 1, p) * (H ./ σ²), Z)
     end
@@ -460,7 +460,7 @@ function var(k::LMMPosKernel, x)
     end
     return (reshape(max.(0, σ²_pred), p, n) .+ σ²)'
 end
-(k::LMMPosKernel)(x, diagonal::Bool) = diagonal ? diagm(var(k, x)'[:]) : k(x)
+(k::LMMPosKernel)(x, diagonal::Bool) = diagonal ? Diagonal(var(k, x)'[:]) : k(x)
 
 """
     OLMMKernel <: MultiOutputKernel
@@ -541,13 +541,13 @@ mutable struct OLMMKernel <: MultiOutputKernel
         l_S_sqrt = length(unwrap(S_sqrt))
         n_k = isa(ks, Kernel) ? 1 : length(ks)
 
-        s_H == (0, 0) && warn("Initialising OLMMKernel with placeholder `H`.")
-        s_P == (0, 0) && warn("Initialising OLMMKernel with placeholder `P`.")
-        s_U == (0, 0) && warn("Initialising OLMMKernel with placeholder `U`.")
+        s_H == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `H`.")
+        s_P == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `P`.")
+        s_U == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `U`.")
         !isa(unwrap(S_sqrt), Vector) && throw(
             ArgumentError("`S_sqrt` must be a `Vector` with the norms of the columns of `H`.")
         )
-        l_S_sqrt == 0 && warn("Initialising OLMMKernel with placeholder `S_sqrt`.")
+        l_S_sqrt == 0 && warn(LOGGER, "Initialising OLMMKernel with placeholder `S_sqrt`.")
         n_k == 0 && warn("Initialising OLMMKernel with placeholder `ks`.")
 
         (n_k != 0 && n_k != 1 && n_k != n_m) && throw(
@@ -582,7 +582,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
                 processes when `S_sqrt == ones(m)`.
             """)
         )
-        !(unwrap(H) ≈ unwrap(U) * diagm(unwrap(S_sqrt))) && throw(ArgumentError(
+        !(unwrap(H) ≈ unwrap(U) * Diagonal(unwrap(S_sqrt))) && throw(ArgumentError(
             """
             The mixing matrix, `H`, provided is not of the form `H = U * S`, with `U`
             orthogonal and `S` diagonal. The OLMM requires such form.
@@ -604,8 +604,8 @@ mutable struct OLMMKernel <: MultiOutputKernel
 end
 create_instance(T::Type{OLMMKernel}, args...) = _unsafe_OLMMKernel(args...)
 function build_H_and_P(U, S_sqrt)
-    H = U * diagm(S_sqrt)
-    P = diagm(S_sqrt.^(-1.0)) * U'
+    H = U * Diagonal(S_sqrt)
+    P = Diagonal(S_sqrt.^(-1.0)) * U'
     return H, P
 end
 function OLMMKernel( # Initialise with H. IT HAS TO BE OF THE FORM `U * S`, with `U`
@@ -618,7 +618,7 @@ function OLMMKernel( # Initialise with H. IT HAS TO BE OF THE FORM `U * S`, with
     ks::Union{<:Kernel, Vector{<:Kernel}}
 )
     S_sqrt = sqrt.(diag(H' * H))
-    U = H * diagm(S_sqrt.^(-1.0))
+    U = H * Diagonal(S_sqrt .^ (-1.0))
     _, P = build_H_and_P(U, S_sqrt)
     return OLMMKernel(
         Fixed(m),
@@ -642,7 +642,7 @@ function OLMMKernel( # Initialise with U and S
     ks::Union{<:Kernel, Vector{<:Kernel}}
 )
     (size(U, 2) != size(S_sqrt, 1) || size(S_sqrt, 1) != m) &&
-        warn("U and S_sqrt must be truncated to m.")
+        warn(LOGGER, "U and S_sqrt must be truncated to m.")
     H, P = build_H_and_P(U, S_sqrt)
     return OLMMKernel(
         Fixed(m),
@@ -700,16 +700,16 @@ end
     D = unwrap(k.D)
     m = unwrap(k.m)
     D = isa(D, Float64) ? fill(D, m) : D
-    out = Matrix(n, n)
+    out = Matrix(undef, n, n)
     for j in 1:n
         for i in j:n
-            out[i, j] =  H * diagm(fill(K[i, j], m)) * H'
+            out[i, j] =  H * Diagonal(fill(K[i, j], m)) * H'
             out[j, i] = out[i, j]
         end
     end
     # add noises
     for j in 1:n
-        out[j, j] += σ² * I + H * diagm(D) * H'
+        out[j, j] += σ² * I + H * Diagonal(D) * H'
     end
     # build big mixed matrix
     return fuse_equal(out)
@@ -727,16 +727,16 @@ function (k::OLMMKernel)(x)
     D = isa(D, Float64) ? fill(D, m) : D
     Σs = [lk(x) for lk in k.ks]
     # mix them
-    mix_Σs = Matrix(n, n)
+    mix_Σs = Matrix(undef, n, n)
     for j in 1:n
         for i in j:n
-            mix_Σs[i, j] = H * diagm([s[i, j] for s in Σs]) * H'
+            mix_Σs[i, j] = H * Diagonal([s[i, j] for s in Σs]) * H'
             mix_Σs[j, i] = mix_Σs[i, j]
         end
     end
     # add noises
     for j in 1:n
-        mix_Σs[j, j] += σ² * eye(p) + H * diagm(D) * H'
+        mix_Σs[j, j] += σ² * Eye(p) + H * Diagonal(D) * H'
     end
     # build big mixed matrix
     return fuse_equal(mix_Σs)

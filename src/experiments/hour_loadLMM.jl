@@ -112,7 +112,7 @@ function hour_loadLMM_exp(
             for j=1:n
                 C[j,j] += GPForecasting._EPSILON_
             end
-            L = chol(Symmetric(C))'
+            L = Nabla.chol(Symmetric(C))'
             z = L \ (y_true[i,:] .- means[i,:])
             mll += 0.5 * (n * log(2π) + 2.0 * sum(log.(diag(L))) + dot(z,z))
         end
@@ -162,7 +162,7 @@ function hour_loadLMM_exp(
         # Initialise the mixing matrix
         info("Initialising the mixing matrix...")
         U, S, V = svd(cov(y_train));
-        H = U * diagm(sqrt.(S))[:, 1:m];
+        H = U * Diagonal(sqrt.(S))[:, 1:m];
 
         # Find a decent initialisation for each latent process
         info("Initialising latent kernels...")

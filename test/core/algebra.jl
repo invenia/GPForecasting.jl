@@ -3,8 +3,8 @@
     @testset "BlockDiagonal" begin
         b1 = BlockDiagonal([rand(3, 3), rand(4, 4), rand(5, 5)])
         b2 = BlockDiagonal([rand(3, 2), rand(4, 4), rand(5, 3)])
-        A = rand(size(b1))
-        B = rand(size(b2))
+        A = rand(size(b1)...)
+        B = rand(size(b2)...)
         C = B'
 
         @test b1 ≈ b1
@@ -19,18 +19,18 @@
         @test A * b1 ≈ A * Matrix(b1)
         @test A' * b1 ≈ A' * Matrix(b1)
         @test A * b1' ≈ A * Matrix(b1)'
-        @test isa(b1 + eye(b1), BlockDiagonal)
-        @test diag(b1 + eye(b1)) ≈ diag(b1) + ones(size(b1, 1)) atol = _ATOL_
+        @test isa(b1 + Matrix(1.0I, size(b1)...), BlockDiagonal)
+        @test diag(b1 + Matrix(1.0I, size(b1)...)) ≈ diag(b1) + ones(size(b1, 1)) atol = _ATOL_
 
         @test_throws DimensionMismatch b2 * b1
         @test_throws DimensionMismatch b2 * A
         @test_throws DimensionMismatch B * b1
 
-        @test trace(b1) ≈ trace(Matrix(b1))
+        @test tr(b1) ≈ tr(Matrix(b1))
 
-        b1 = BlockDiagonal(Hermitian.([(rand(3, 3) + 15eye(3)), (rand(4, 4) +15eye(4)), (rand(5, 5) + 15eye(5))]))
-        Ub = chol(b1)
-        Um = chol(Matrix(b1))
+        b1 = BlockDiagonal(Hermitian.([(rand(3, 3) + 15Eye(3)), (rand(4, 4) + 15Eye(4)), (rand(5, 5) + 15Eye(5))]))
+        Ub = Nabla.chol(b1)
+        Um = Nabla.chol(Matrix(b1))
         @test Ub' * Ub ≈ Matrix(b1) ≈ b1 ≈ Um' * Um
         @test det(b1) ≈ det(Matrix(b1))
         @test eigvals(b1) ≈ eigvals(Matrix(b1))
@@ -55,9 +55,9 @@
         B = rand(500, 500)
         C = rand(10, 10)
 
-        @test GPForecasting.kron_lid_lmul(A, B) ≈ kron(eye(10), A) * B atol = _ATOL_
-        @test GPForecasting.kron_rid_lmul_s(A, B) ≈ kron(A, eye(10)) * B atol = _ATOL_
-        @test GPForecasting.kron_rid_lmul_m(A, B) ≈ kron(A, eye(10)) * B atol = _ATOL_
+        @test GPForecasting.kron_lid_lmul(A, B) ≈ kron(Eye(10), A) * B atol = _ATOL_
+        @test GPForecasting.kron_rid_lmul_s(A, B) ≈ kron(A, Eye(10)) * B atol = _ATOL_
+        @test GPForecasting.kron_rid_lmul_m(A, B) ≈ kron(A, Eye(10)) * B atol = _ATOL_
         @test GPForecasting.kron_lmul_rl(A, C, B) ≈ kron(A, C) * B atol = _ATOL_
         @test GPForecasting.kron_lmul_lr(A, C, B) ≈ kron(A, C) * B atol = _ATOL_
         @test GPForecasting.diag_outer_kron(A, C) ≈ diag(GPForecasting.outer(kron(A, C))) atol = _ATOL_
@@ -90,7 +90,7 @@
         A = rand(5, 5)
 
         @test UpperTriangular(GPForecasting.eye_sum_kron_M_ut(A, V...)) ≈
-            UpperTriangular(eye(5*10) + sum(
+            UpperTriangular(Eye(5*10) + sum(
                 [kron(V[i]*V[j]', A[i,j] * MM[i][j]) for i=1:5, j=1:5]
             )) atol = _ATOL_
     end

@@ -14,18 +14,24 @@ variables:
   AWS_DEFAULT_REGION: us-east-1
   OPS_ACCOUNT_ID: 468665244580
   PROB_FORECASTING_ACCOUNT_ID: 052722095006
-  JULIA_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:0.6
+  JULIA_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:0.6  # for coverage and test_docker
   JULIA_BAKED_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-baked:0.6
   GP_IMAGE: ${PROB_FORECASTING_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/gpforecasting/gpforecasting:${CI_COMMIT_REF_SLUG}
 
 
 "0.6 (Linux, 64-bit, Docker)":
   tags:
-    - docker-ci
     - linux
     - 64-bit
+    - docker-ci
   extends: .test_docker
 
+"1.0 (Linux, 64-bit)":
+  tags:
+    - linux
+    - 64-bit
+    - shell-ci
+  extends: .test_shell_1_0
 
 "Docker Build":
   stage: build

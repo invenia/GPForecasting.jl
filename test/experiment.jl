@@ -1,11 +1,11 @@
 @testset "Experiments" begin
 
     @everywhere import Memento: getlogger
-    const configuration = GPForecasting.Experiments.experiment_template
+    configuration = GPForecasting.Experiments.experiment_template
     res = GPForecasting.experiment(configuration, trace = false)
 
     # Check that the experiment worked
-    @test size(res, 1) == 4 # Check that iterates through all parameters
+    @test length(res) == 4 # Check that iterates through all parameters
     @test size(collect(values(res[1])), 1) == 3 # Check that all values are saved
     @test res[1]["parameters"] == (1680, 2)
     @test isa(res[1]["time"], AbstractFloat)
@@ -16,14 +16,14 @@
         @test isa(res[i]["output"], AbstractArray)
     end
 
-    const configuration = joinpath(
+    configuration = joinpath(
         GPForecasting.packagehomedir,
         "test/mock_experiment.jl"
     )
     res = GPForecasting.experiment(configuration, trace = false)
 
     # Check that the experiment worked
-    @test size(res, 1) == 4 # Check that iterates through all parameters
+    @test length(res) == 4 # Check that iterates through all parameters
     @test size(collect(values(res[1])), 1) == 3 # Check that all values are saved
     @test res[1]["parameters"] == (168, 4)
     @test isa(res[1]["time"], AbstractFloat)
@@ -104,11 +104,11 @@
         )
         return configuration
     end
-    const configuration2 = dummy_set_parameters()
+    configuration2 = dummy_set_parameters()
     res = GPForecasting.experiment(configuration2, trace = false)
 
     # Check that the experiment worked
-    @test size(res, 1) == 2 # Check that iterates through all parameters
+    @test length(res) == 2 # Check that iterates through all parameters
     @test size(collect(values(res[1])), 1) == 3 # Check that all values are saved
     @test res[1]["parameters"] == (5, 2)
     @test res[2]["parameters"] == (5, 3)

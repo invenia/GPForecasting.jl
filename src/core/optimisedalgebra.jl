@@ -1,13 +1,95 @@
 module OptimisedAlgebra
 
+import ..GPForecasting: sumdims
+
 using Nabla
 
 export outer, kron_lid_lmul, kron_lid_lmul_lt_s, kron_lid_lmul_lt_m,
 kron_rid_lmul_s, kron_rid_lmul_m, kron_lmul_lr, kron_lmul_rl, diag_outer_kron,
 diag_outer, Js, Ms, sum_kron_J_ut, sum_kron_M, eye_sum_kron_M_ut, BlockDiagonal, blocks
 
-import Base: size, diag, Matrix, chol, show, display, *, +, /, isapprox, transpose, Ac_mul_B,
-A_mul_Bc, getindex, ctranspose, det, eigvals, trace
+import Base: size, Matrix, show, display, *, +, /, isapprox, getindex
+
+import Compat.LinearAlgebra: diag, eigvals, det, transpose
+using Compat.LinearAlgebra: UpperTriangular, isdiag, Diagonal
+import Compat
+import Compat: tr, undef
+
+if VERSION >= v"0.7"
+    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
+
+    A_mul_Bt!(Y, A, B) = mul!(Y, A, transpose(B))
+    At_mul_B(A, B) = transpose(A) * B
+else
+    import Base: Ac_mul_B, A_mul_Bc
+    import Base: ctranspose
+    const adjoint = ctranspose
+    const mul! = Base.A_mul_B!
+end
+
+"""
+    @linalg_compat <function definition>
+
+Given a method definition for `Ac_mul_B` or `A_mul_Bc`, generate a corresponding method for
+`*` on Julia 0.7+ which is defined in terms of the original method definition.
+
+For example, a method `Ac_mul_B(b::BlockDiagonal, m::BlockDiagonal)` will generate a
+companion method
+`(*)(b::Adjoint{BlockDiagonal}, m::BlockDiagonal) = Ac_mul_B(parent(b), m)`.
+
+At some point these methods should be rewritten in terms of * on `Adjoint` types, so this
+macro can be purged from existence.
+
+!!! note
+
+    This macro currently requires a long-form unparameterized method definition where the
+    types of both arguments are specified.
+"""
+macro linalg_compat(expr)
+    if VERSION < v"0.7"
+        return esc(expr)
+    end
+
+    e = ArgumentError("Function definition did not match format expected by @linalg_compat")
+
+    # aggressive input checking to replace the MacroTools matcher
+    if expr.head !== :function || length(expr.args) != 2
+        throw(e)
+    end
+
+    sig, body = expr.args
+
+    if sig.head !== :call || length(sig.args) != 3
+        throw(e)
+    end
+
+    f = sig.args[1]
+
+    if sig.args[2].head !== :(::) || length(sig.args[2].args) != 2 ||
+        sig.args[3].head !== :(::) || length(sig.args[3].args) != 2
+        throw(e)
+    end
+    arg1, Type1 = sig.args[2].args
+    arg2, Type2 = sig.args[3].args
+
+    if f === :Ac_mul_B
+        Type1 = :(Adjoint{$Type1})
+        reassignment = :($arg1 = parent($arg1))
+    elseif f === :A_mul_Bc
+        Type2 = :(Adjoint{$Type2})
+        reassignment = :($arg2 = parent($arg2))
+    else
+        error("Unrecognized method $f")
+    end
+
+    return quote
+        function Base.:(*)(($(arg1))::($(Type1)), ($(arg2))::($(Type2)))
+            $reassignment
+            $(f)($(arg1), $(arg2))
+        end
+        $(esc(expr))
+    end
+end
 
 struct BlockDiagonal{T} <: AbstractMatrix{T}
     blocks::Vector{<:AbstractMatrix{T}}
@@ -33,19 +115,19 @@ function isapprox(b1::AbstractMatrix, b2::BlockDiagonal; atol::Real=0)
     return isapprox(b1, Matrix(b2), atol=atol)
 end
 
-Matrix(b::BlockDiagonal) = cat([1, 2], blocks(b)...)
+Matrix(b::BlockDiagonal) = Compat.cat(blocks(b)...; dims=(1, 2))
 
-chol(b::BlockDiagonal) = BlockDiagonal(chol.(blocks(b)))
+Nabla.chol(b::BlockDiagonal) = BlockDiagonal(Nabla.chol.(blocks(b)))
 det(b::BlockDiagonal) = prod(det.(blocks(b)))
 function eigvals(b::BlockDiagonal)
     eigs = vcat(eigvals.(blocks(b))...)
     !isa(eigs, Vector{<:Complex}) && return sort(eigs)
     return eigs
 end
-trace(b::BlockDiagonal) = sum(trace.(blocks(b)))
+tr(b::BlockDiagonal) = sum(tr.(blocks(b)))
 
 transpose(b::BlockDiagonal) = BlockDiagonal(transpose.(blocks(b)))
-ctranspose(b::BlockDiagonal) = BlockDiagonal(ctranspose.(blocks(b)))
+adjoint(b::BlockDiagonal) = BlockDiagonal(adjoint.(blocks(b)))
 
 function getindex(b::BlockDiagonal{T}, i::Int, j::Int) where T
     cols = [size(bb, 2) for bb in blocks(b)]
@@ -95,14 +177,14 @@ function (*)(b::BlockDiagonal, m::BlockDiagonal)
         Matrix(b) * Matrix(m)
     end
 end
-function Ac_mul_B(b::BlockDiagonal, m::BlockDiagonal)
+@linalg_compat function Ac_mul_B(b::BlockDiagonal, m::BlockDiagonal)
     if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
         return BlockDiagonal(Ac_mul_B.(blocks(b), blocks(m)))
     else
         Ac_mul_B(Matrix(b), Matrix(m))
     end
 end
-function Ac_mul_B(b::BlockDiagonal, m::AbstractMatrix)
+@linalg_compat function Ac_mul_B(b::BlockDiagonal, m::AbstractMatrix)
     size(b, 1) != size(m, 1) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
     )
@@ -116,7 +198,7 @@ function Ac_mul_B(b::BlockDiagonal, m::AbstractMatrix)
     end
     return vcat(d...)
 end
-function Ac_mul_B(m::AbstractMatrix, b::BlockDiagonal)
+@linalg_compat function Ac_mul_B(m::AbstractMatrix, b::BlockDiagonal)
     size(b, 1) != size(m, 1) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
     )
@@ -130,14 +212,14 @@ function Ac_mul_B(m::AbstractMatrix, b::BlockDiagonal)
     end
     return hcat(d...)
 end
-function A_mul_Bc(b::BlockDiagonal, m::BlockDiagonal)
+@linalg_compat function A_mul_Bc(b::BlockDiagonal, m::BlockDiagonal)
     if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
         return BlockDiagonal(A_mul_Bc.(blocks(b), blocks(m)))
     else
         A_mul_Bc(Matrix(b), Matrix(m))
     end
 end
-function A_mul_Bc(b::BlockDiagonal, m::AbstractMatrix)
+@linalg_compat function A_mul_Bc(b::BlockDiagonal, m::AbstractMatrix)
     size(b, 2) != size(m, 2) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
     )
@@ -151,7 +233,7 @@ function A_mul_Bc(b::BlockDiagonal, m::AbstractMatrix)
     end
     return vcat(d...)
 end
-function A_mul_Bc(m::AbstractMatrix, b::BlockDiagonal)
+@linalg_compat function A_mul_Bc(m::AbstractMatrix, b::BlockDiagonal)
     size(b, 2) != size(m, 2) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
     )
@@ -229,7 +311,7 @@ triangular. Optimised for execution speed.
 """
 function kron_lid_lmul_lt_s(A::AbstractMatrix, B::AbstractMatrix)
     (k, l), (m, n), eye_n = check_sizes(A, B)
-    blocks = Vector{Matrix{Float64}}(eye_n)
+    blocks = Vector{Matrix{Float64}}(undef, eye_n)
     for i in 1:eye_n
         blocks[i] = create_block(A, B, k, l, m, n, i)
     end
@@ -248,9 +330,9 @@ triangular. Optmised for memory.
 """
 function kron_lid_lmul_lt_m(A::AbstractMatrix, B::AbstractMatrix)
     (k, l), (m, n), eye_n = check_sizes(A, B)
-    res = Matrix{Float64}(eye_n * k, n)
+    res = Matrix{Float64}(undef, eye_n * k, n)
     for i = 1:eye_n;
-        A_mul_B!(view(res, (i - 1) * k + 1:i * k, :), A, view(B, (i - 1) * l + 1: i * l, :))
+        mul!(view(res, (i - 1) * k + 1:i * k, :), A, view(B, (i - 1) * l + 1: i * l, :))
     end
     return res
 end
@@ -276,7 +358,7 @@ memory.
 """
 function kron_rid_lmul_m(A::AbstractMatrix, B::AbstractMatrix)
     (k, l), (m, n), eye_n = check_sizes(A, B)
-    C = Matrix{Float64}(k * eye_n, n)
+    C = Matrix{Float64}(undef, k * eye_n, n)
     for i = 1:n
         @inbounds A_mul_Bt!(
             reshape(view(C, :, i), eye_n, k),
@@ -312,7 +394,9 @@ end
 
 Efficiently compute `diag(outer(kron(A, B)))`.
 """
-diag_outer_kron(A::AbstractMatrix, B::AbstractMatrix) = kron(sum(A.^2, 2), sum(B.^2, 2))
+function diag_outer_kron(A::AbstractMatrix, B::AbstractMatrix)
+    kron(sumdims(A .^ 2, 2), sumdims(B .^ 2, 2))
+end
 
 """
     diag_outer_kron(
@@ -330,7 +414,7 @@ function diag_outer_kron(
     C::AbstractArray,
     D::AbstractArray
 )
-    return kron(sum(A .* C, 2), sum(B .* D, 2))
+    return kron(sumdims(A .* C, 2), sumdims(B .* D, 2))
 end
 
 """
@@ -338,14 +422,14 @@ end
 
 Efficiently compute `diag(outer(A, B))`.
 """
-diag_outer(A::AbstractArray, B::AbstractArray) = sum(A .* B, 2)
+diag_outer(A::AbstractArray, B::AbstractArray) = sumdims(A .* B, 2)
 
 """
     diag_outer(A::AbstractMatrix)
 
 Efficiently compute `diag(outer(A))`.
 """
-diag_outer(A::AbstractArray) = sum(A.^2, 2)
+diag_outer(A::AbstractArray) = sumdims(A .^ 2, 2)
 
 """
     Js(m::Int) -> Vector{Matrix}
@@ -358,7 +442,7 @@ function Js(m::Int)
     for i = 1:m
         J[i][i] = 1
     end
-    return diagm.(J)
+    return Diagonal.(J)
 end
 
 """
@@ -377,13 +461,16 @@ end
 
 const NA = Nabla.∇Array
 const Mat{T} = AbstractArray{T, 2} where N
+
 """
     sum_kron_J_ut(m::Integer, K::NA...)
 
 Efficiently compute and differentiate `sum([kron(L[i], J[i]) for i = 1:m])` where `L` are
 upper triangular.
 """
-function sum_kron_J_ut(m::Integer, K::NA...)
+function sum_kron_J_ut end
+
+function _sum_kron_J_ut(m::Integer, K::NA...)
     n = size(K[1], 1)
     res = zeros(m * n, m * n)
     @inbounds for i = 1:m
@@ -395,8 +482,20 @@ function sum_kron_J_ut(m::Integer, K::NA...)
     end
     return res
 end
-@union_intercepts sum_kron_J_ut Tuple{Integer, Vararg{NA}} Tuple{Integer, Vararg{NA}}
-function Nabla.∇(::typeof(sum_kron_J_ut), ::Type{Arg{i}}, _, y, ȳ, m, K...) where i
+# @union_intercepts sum_kron_J_ut Tuple{Integer, Vararg{NA}} Tuple{Integer, Vararg{NA}}
+# manually expanded to avoid stack overflow:
+@generated function sum_kron_J_ut(x1::Union{Integer, Node{<:Integer}}, x2::Vararg{Union{NA, Node{<:NA}}})
+    x = ([x1, x2]...,)
+    x_syms = ([:x1, :x2]...,)
+    x_dots = (:x1, Expr(:(...), :x2))
+    is_node = [any((<:).(xj, Node)) for xj = x]
+    if any(is_node)
+        Nabla.branch_expr(:_sum_kron_J_ut, is_node, x, x_syms, :((x1, x2...)))
+    else
+        Expr(:call, :_sum_kron_J_ut, x_dots...)
+    end
+end
+function Nabla.∇(::typeof(_sum_kron_J_ut), ::Type{Arg{i}}, _, y, ȳ, m, K...) where i
     # TODO: Check this is okay!
     n = size(ȳ, 1)
     return view(ȳ, i - 1:m:n, i - 1:m:n)
@@ -410,11 +509,13 @@ end
 Efficiently compute and differentiate the upper triangle of
 `eye(n * m) + sum([kron(L[i] * L[j]', B[i, j] * M[i][j]) for i = 1:m for j = 1:m])`.
 """
-function eye_sum_kron_M_ut(B::Mat{T}, L::UpperTriangular{T}...) where T
+function eye_sum_kron_M_ut end
+
+function _eye_sum_kron_M_ut(B::Mat{T}, L::UpperTriangular{T}...) where T
     # Assumes that `ȳ` is upper triangular.
     m, n = size(B, 1), size(L[1], 1)
-    res = Matrix{T}(m * n, m * n)
-    L_prod = Matrix{T}(n, n)
+    res = Matrix{T}(undef, m * n, m * n)
+    L_prod = Matrix{T}(undef, n, n)
     for i = 1:m, j = i:m
         A_mul_Bt!(L_prod, L[i], L[j])
         _eskmu_fill_triu!(res, n, m, i, j, B, L_prod)
@@ -443,9 +544,21 @@ function _eskmu_fill_triu_Lt!(res, n, m, i, j, B, L_prod)
     end
 end
 
-@union_intercepts eye_sum_kron_M_ut Tuple{NA, Vararg{NA}} Tuple{NA, Vararg{NA}}
+# @union_intercepts eye_sum_kron_M_ut Tuple{NA, Vararg{NA}} Tuple{NA, Vararg{NA}}
+# manually expanded to avoid stack overflow:
+@generated function eye_sum_kron_M_ut(x1::Union{NA, Node{<:NA}}, x2::Vararg{Union{NA, Node{<:NA}}})
+    x = ([x1, x2]...,)
+    x_syms = ([:x1, :x2]...,)
+    x_dots = (:x1, Expr(:(...), :x2))
+    is_node = [any((<:).(xj, Node)) for xj = x]
+    if any(is_node)
+        Nabla.branch_expr(:_eye_sum_kron_M_ut, is_node, x, x_syms, :((x1, x2...)))
+    else
+        Expr(:call, :_eye_sum_kron_M_ut, x_dots...)
+    end
+end
 function Nabla.∇(
-    ::typeof(eye_sum_kron_M_ut),
+    ::typeof(_eye_sum_kron_M_ut),
     ::Type{Arg{1}},
     _,
     y::Mat{T},
@@ -455,7 +568,7 @@ function Nabla.∇(
 ) where T
     m, n = size(B, 1), size(L[1], 1)
     B̄ = zeros(T, size(B))
-    L_prod = Matrix{T}(n, n)
+    L_prod = Matrix{T}(undef, n, n)
     @inbounds for i = 1:m, j = 1:m
         A_mul_Bt!(L_prod, L[i], L[j])
         _esku_sum!(B̄, m, n, i, j, ȳ, L_prod)
@@ -473,7 +586,7 @@ function _esku_sum!(B̄, m, n, i, j, ȳ, L_prod)
 end
 
 function Nabla.∇(
-    ::typeof(eye_sum_kron_M_ut),
+    ::typeof(_eye_sum_kron_M_ut),
     ::Type{Arg{i}},
     _,
     y::Mat{T},

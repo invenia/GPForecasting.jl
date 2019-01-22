@@ -36,13 +36,13 @@ end
 
 source(x::typeof(damec)) = "damec.jl"
 
-log_transform(x) = sign.(x).*log.(abs.(x) .+ 1)
-inv_log_transform(x) = sign.(x).*(exp.(abs.(x)) .- 1)
+log_transform(x) = sign.(x) .* log.(abs.(x) .+ 1)
+inv_log_transform(x) = sign.(x) .* (exp.(abs.(x)) .- 1)
 
 # Function computing weights for the exponential model
 function w(t::AbstractArray, n_w::Integer)
     λ = 1-exp(-4/(7*n_w)) # Only tested for n_w = 3
-    weights = λ.*(1 .- λ).^(1.-t)
+    weights = λ .* (1 .- λ) .^ (1 .- t)
     return weights / sum(weights)
 end
 
@@ -247,8 +247,8 @@ function damec_exp(
 
             # Log the data
             log_y_train = log_transform(y_train);
-            log_y_train_mean = mean(log_y_train, 1);
-            log_y_train_std = std(log_y_train, 1);
+            log_y_train_mean = meandims(log_y_train, 1);
+            log_y_train_std = stddims(log_y_train, 1);
             log_y_train_var = log_y_train_std.^2;
 
             info(GPForecasting.LOGGER, "Training GP...")

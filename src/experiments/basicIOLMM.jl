@@ -33,52 +33,17 @@ function basicIOLMM()
 end
 
 # This is the most basic implementation of the IOLMM for MISO. Just shows how it works.
-@everywhere using GPForecasting
-@everywhere using CSV
-@everywhere using Nabla
-@everywhere using HelloBatch
-
-@everywhere function mse(means, y_true)
-    return mean((y_true .- means).^2)
-end
-
-@everywhere @unionise function log_pdf_indep(dist::Gaussian, x::AbstractArray)
-    U = chol(dist)
-    z = U' \ (x .- dist.μ)
-    log_det = 2.0 * size(x, 2) * sum(log.(diag(U)))
-    return -0.5 * (log_det + prod(size(x)) * log(2π) + sum(z .* z))
-end
-
-@everywhere @unionise function log_pdf_indep(
-    gp::GP,
-    x,
-    y::AbstractArray,
-    params::Vector{G}
-    ) where {G <: Real}
-        ngp = GP(gp.m, set(gp.k, params))
-    return log_pdf_indep(ngp::GP, x, y)
-end
-
-@everywhere @unionise function log_pdf_indep(gp::GP, x, y::AbstractArray)
-    return log_pdf_indep(gp(x), y)
-end
-
-@everywhere @unionise function objective_indep(gp::GP, x, y::AbstractArray)
-    return function f(params)
-        return -log_pdf_indep(gp::GP, x, y, params)
-    end
-end
 
 function describe(x::typeof(basicIOLMM))
     d = """
         This is the most basic implementation of the IOLMM for MISO. Just shows how it works.
         """
-    return d 
+    return d
 end
 
 source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
 
-@everywhere function basicIOLMM_exp(
+function basicIOLMM_exp(
     n_w::Int, # number of training weeks.
     m::Int, # number of latent processes.
     obs_noise::Float64, # observation noise (note that we are working on the standardised space)
@@ -88,6 +53,37 @@ source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
     datafile::AbstractString = "", # filename of data
     datapath::AbstractString = "", # path for the data.
 )
+    # define some functions for use in experiment
+    function mse(means, y_true)
+        return mean((y_true .- means).^2)
+    end
+
+    @unionise function log_pdf_indep(dist::Gaussian, x::AbstractArray)
+        U = Nabla.chol(dist)
+        z = U' \ (x .- dist.μ)
+        log_det = 2.0 * size(x, 2) * sum(log.(diag(U)))
+        return -0.5 * (log_det + prod(size(x)) * log(2π) + sum(z .* z))
+    end
+
+    @unionise function log_pdf_indep(
+        gp::GP,
+        x,
+        y::AbstractArray,
+        params::Vector{G}
+        ) where {G <: Real}
+            ngp = GP(gp.m, set(gp.k, params))
+        return log_pdf_indep(ngp::GP, x, y)
+    end
+
+    @unionise function log_pdf_indep(gp::GP, x, y::AbstractArray)
+        return log_pdf_indep(gp(x), y)
+    end
+
+    @unionise function objective_indep(gp::GP, x, y::AbstractArray)
+        return function f(params)
+            return -log_pdf_indep(gp::GP, x, y, params)
+        end
+    end
 
     info("LAM: n_w = ", n_w, " m = ", m, " group = ", group)
 
@@ -150,8 +146,8 @@ source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
         x_test[:time] = collect(n_w*7*24+25:n_w*7*24+48)
 
         # basic statistics of training output required later
-        y_train_mean = mean(y_train, 1)
-        y_train_std = std(y_train, 1)
+        y_train_mean = meandims(y_train, 1)
+        y_train_std = stddims(y_train, 1)
         y_train_var = y_train_std.^2
 
         p = size(y_train, 2)
@@ -162,7 +158,7 @@ source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
         # initialise the mixing matrix
         info("Initialising the mixing matrix...")
         U, S, V = svd(cov_LW(y_train_standardised))
-        H = U * diagm(sqrt.(S))[:, 1:m]
+        H = U * Diagonal(sqrt.(S))[:, 1:m]
 
         # compute transfromed training output
         y_train_transformed = (H \ y_train_standardised')'
@@ -181,20 +177,20 @@ source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
         # gp = learn(gp, Observed(x_train), y_train_transformed, objective_indep, its=its, trace=true)
 
         K = gp.k(Observed(x_train))
-        U = chol(K + GPForecasting._EPSILON_ .* eye(K))
+        U = Nabla.chol(K + GPForecasting._EPSILON_ .* Eye(K))
         k_ = gp.k(Latent(x_test), Latent(x_train))
         L_y = U' \ y_train_transformed
         k_U = k_ / U
 
         # prediction of mean and variances of the independent latent processes
         means_ = k_U * L_y
-        vars_ = repmat(diag(gp.k(Observed(x_test)) - k_U * k_U'), 1, m)
+        vars_ = repeat(diag(gp.k(Observed(x_test)) - k_U * k_U'), 1, m)
 
         # transform latent processes back to original space
         means = (H * means_')' .* y_train_std .+ y_train_mean
         covs = []
         for i = 1:24
-            push!(covs, Matrix(Hermitian(y_train_std .* (H * diagm(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
+            push!(covs, Matrix(Hermitian(y_train_std .* (H * Diagonal(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
         end
 
         # set MvNormals
@@ -239,7 +235,7 @@ source(x::typeof(basicIOLMM)) = "basicIOLMM.jl"
         means = (H * means_')' .* y_train_std .+ y_train_mean
         covs = []
         for i = 1:24
-            push!(covs, Matrix(Hermitian(y_train_std .* (H * diagm(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
+            push!(covs, Matrix(Hermitian(y_train_std .* (H * Diagonal(vars_[i,:]) * H' + obs_noise * I) .* y_train_std')))
         end
 
         # set MvNormals

@@ -15,7 +15,7 @@
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_
             @test diag(k([1., 2., 3.])) ≈ var(k, [1., 2., 3.]) atol = _ATOL_
-            @test hourly_cov(k, [1., 2., 3.]) ≈ diagm(var(k, [1., 2., 3.])) atol = _ATOL_
+            @test hourly_cov(k, [1., 2., 3.]) ≈ Diagonal(var(k, [1., 2., 3.])) atol = _ATOL_
             @test !isMulti(k)
             @test isposdef(k([1., 2., 3.]) + GPForecasting._EPSILON_^2 * I)
             @test isa(k(1, 1), AbstractMatrix)
@@ -152,7 +152,7 @@
     end
 
     @testset "PosteriorKernel" begin
-        pk = PosteriorKernel(ConstantKernel(), [1,2,3], eye(3))
+        pk = PosteriorKernel(ConstantKernel(), [1,2,3], Eye(3))
         @test !isMulti(pk)
         @test pk([1,2], [1,2]) ≈ [-2. -2.; -2. -2.] atol = _ATOL_
     end
@@ -260,9 +260,9 @@
     end
 
     @testset "OLMM checks" begin
-        A = ones(5,5) + 2eye(5)
+        A = ones(5,5) + 2Eye(5)
         U, S, V = svd(A)
-        H = U * diagm(S)[:, 1:3]
+        H = U * Diagonal(S)[:, 1:3]
         @test_throws ArgumentError OLMMKernel(
                 3, # m
                 5, # p
@@ -271,7 +271,7 @@
                 Matrix(U[:, 1:3]), # H
                 Matrix((U[:, 1:3])'), # P
                 U[:, 1:3], # U
-                eye(3), # S_sqrt
+                Eye(3), # S_sqrt
                 [EQ() for i in 1:3] # ks
         )
         @test_throws ArgumentError OLMMKernel(
