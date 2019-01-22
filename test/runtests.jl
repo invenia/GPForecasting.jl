@@ -52,6 +52,5 @@ end
     include("pdf.jl")
     include("core/nabla.jl")
     include("synthetic.jl")
-    include("experiment.jl")
     include("datahandling.jl")
 end

@@ -9,16 +9,19 @@ using Compat.LinearAlgebra
 using Compat.Random
 using Compat.SparseArrays
 import Distributions: MvNormal, sample, logpdf
+
 export sample
-using Nabla
-using LineSearches
-using Optim
-using Memento
+
 using DataFrames
 using Distributions
 using FillArrays
 using Missings
 using Nullables
+using LineSearches
+using Memento
+using Missings
+using Nabla
+using Optim
 
 const LOGGER = getlogger(@__MODULE__)
 const _EPSILON_ = 1e-6 # Precision constant
@@ -113,10 +116,6 @@ include("gp.jl")
 include("core/datahandling.jl")
 include("pdf.jl")
 include("core/optimise.jl")
-include("core/parsing.jl")
-include("core/experiment.jl")
 
-include("experiments/Experiments.jl")
-using GPForecasting.Experiments
 
 end
