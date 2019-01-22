@@ -1,5 +1,5 @@
 @testset "Synthetic" begin
-    _TOL_ = 2.0e-3
+    _TOL_ = 2.5e-3
 
     function mse(means, y_true)
         return mean((y_true .- means).^2)
@@ -109,7 +109,7 @@
                 [2π for i=1:d]), 0.001 * DiagonalKernel())
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
             [0.34025623421380025, -21.45435835111746,
-            0.1309171532520091, -0.4750931597229358] atol = _TOL_
+            0.13077005642111741, -0.4729004732789996] atol = _TOL_
         k = NoiseKernel(2.0 * (RQ(Fixed(2.0)) ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
             [0.45069841363296914, -8.104167427835442,
