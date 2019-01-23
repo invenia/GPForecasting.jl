@@ -7,6 +7,7 @@
         B = rand(size(b2)...)
         C = B'
 
+        @test isa(sprint(show, b1), String)
         @test b1 ≈ b1
         @test b1 ≈ Matrix(b1)
         @test Matrix(b1) ≈ b1

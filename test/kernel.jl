@@ -22,6 +22,7 @@
             @test isa(k([1], [1]), AbstractMatrix)
             @test isa(k(1, [1, 2]), AbstractMatrix)
             @test isa(k([1, 2], 1), AbstractMatrix)
+            @test isa(sprint(show, k), String)
         end
         @test_throws ArgumentError MA(6)([4.])
 
@@ -59,6 +60,7 @@
             @test GPForecasting.unwrap(set(k, k[:]).Θ₃) ≈ 6 atol = _ATOL_
             @test k([1, 0, 1]) ≈ [500 6 500; 6 1 6; 500 6 500]
             @test !isMulti(k)
+            @test isa(sprint(show, k), String)
         end
 
         @test_throws ArgumentError SimilarHourKernel(30, zeros(30))
@@ -114,6 +116,7 @@
             k = periodicise(k ▷ [2.0, 3.0], [2π, 3π])
             @test k[:][1:2] ≈ [1.8378769072543897, 2.2433420684142087] atol = _ATOL_
             @test k[:][3:4] ≈ [0.6931466805598203, 1.0986119553347207] atol = _ATOL_
+            @test isa(sprint(show, k), String)
         end
 
         x = collect(1.:0.1:5)
@@ -129,6 +132,7 @@
         @test !isMulti(sqk1)
         @test !(sqk1(df) ≈ sqk2(df))
         @test sqk2(df) ≈ ones(3, 3) atol = _ATOL_
+        @test isa(sprint(show, k), String)
     end
 
     @testset "Sum and Products" begin
@@ -140,6 +144,8 @@
         @test k_sum([1.], [2.])[1, 1] ≈ 1.2130613194252668 atol = _ATOL_
         @test k_prod([1.], [1.])[1, 1] ≈ 6.0 atol = _ATOL_
         @test k_prod([1.], [2.])[1, 1] ≈ 6 * 0.36787944117144233 atol = _ATOL_
+        @test isa(sprint(show, k_sum), String)
+        @test isa(sprint(show, k_prod), String)
     end
 
     @testset "Set and Get" begin
@@ -155,6 +161,7 @@
         pk = PosteriorKernel(ConstantKernel(), [1,2,3], Eye(3))
         @test !isMulti(pk)
         @test pk([1,2], [1,2]) ≈ [-2. -2.; -2. -2.] atol = _ATOL_
+        @test isa(sprint(show, pk), String)
     end
 
     @testset "Noise and Multi-output kernels" begin
@@ -172,6 +179,7 @@
         @test diag(hourly_cov(m, x)) ≈ diag(m(x)) atol = _ATOL_
         @test hourly_cov(m, x)[1:2, 1:2] ≈ m(x)[1:2, 1:2] atol = _ATOL_
         @test !isapprox(hourly_cov(m, x)[2:4, 1:2], m(x)[2:4, 1:2], atol = _ATOL_)
+        @test isa(sprint(show, m), String)
 
         ox = Observed(x)
         oy = Observed(y)
@@ -192,6 +200,7 @@
         @test hourly_cov(nk, x)[1:2, 1:2] ≈ nk(x)[1:2, 1:2] atol = _ATOL_
         @test !isapprox(hourly_cov(nk, x)[2:4, 1:2], nk(x)[2:4, 1:2], atol = _ATOL_)
         @test diag(hourly_cov(nk, mx)) ≈ diag(nk(mx)) atol = _ATOL_
+        @test isa(sprint(show, nk), String)
 
         nk = GPForecasting.NoiseKernel(m, 12*DiagonalKernel())
         @test isMulti(nk)

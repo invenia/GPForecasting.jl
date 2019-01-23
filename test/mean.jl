@@ -4,26 +4,32 @@
     c = ConstantMean(5)
     @test c(x) == [5, 5, 5, 5, 5]
     @test (c * c)(x) == [5, 5, 5, 5, 5] .* [5, 5, 5, 5, 5]
+    @test isa(sprint(show, c), String)
 
     fm = FunctionMean(x -> 2*x)
     @test fm(x) == 2 .* x
     @test (3 * fm)(x) == 6 .* x
+    @test isa(sprint(show, fm), String)
 
     s = c + fm
     @test s(x) == [5, 5, 5, 5, 5] .+ 2 .* x
+    @test isa(sprint(show, s), String)
 
     pos = PosteriorMean(ConstantKernel(), ConstantMean(), x, Eye(5), 2 .* x)
     @test pos(x) == 26.0 * ones(5)
+    @test isa(sprint(show, pos), String)
 
     # Test Scaled Mean
     μ1 = ConstantMean(5)
     μ1 = 6 * μ1
     @test μ1(x) == [30.0, 30.0, 30.0, 30.0, 30.0]
+    @test isa(sprint(show, μ1), String)
 
     # Test Product Mean
     μ2 = ConstantMean(8)
     μ3 = (μ2 * μ1)^2
     @test μ3(x) == [57600.0, 57600.0, 57600.0, 57600.0, 57600.0]
+    @test isa(sprint(show, μ3), String)
 
     # Test multiplication by zero
     μ8 = 0.0 * μ1
@@ -37,6 +43,7 @@
     @test 3μ8 == μ8
     @test (3 + μ8)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_
     @test (μ8 + 3)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_
+    @test isa(sprint(show, μ8), String)
 
     @test μ8(x) == [0.0, 0.0, 0.0, 0.0, 0.0]
     @test μ9(x) == [0.0, 0.0, 0.0, 0.0, 0.0]

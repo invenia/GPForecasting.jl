@@ -12,4 +12,5 @@
     @test GPForecasting.flatten(n4) == [44, 22, 11, 33]
     @test GPForecasting.interpret(n2, [222, 333]).x == [222]
     @test GPForecasting.interpret(n2, [222, 333]).children[1].x == [333]
+    @test isa(sprint(show, n1), String)
 end
