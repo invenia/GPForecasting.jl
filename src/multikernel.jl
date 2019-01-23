@@ -337,7 +337,7 @@ end
 create_instance(T::Type{LMMKernel}, args...) = _unsafe_LMMKernel(args...)
 size(k::LMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
 function show(io::IO, k::LMMKernel)
-    print(io, "$(unwrap(k.H)) * $(k.ks) * $(ctranspose(unwrap(k.H)))")
+    print(io, "$(unwrap(k.H)) * $(k.ks) * $(unwrap(k.H)')")
 end
 function LMMKernel(m::Int, p::Int, σ²::Union{Float64, Vector{Float64}}, H::Matrix, k::Kernel)
     isa(σ², Vector) && length(σ²) != p &&
