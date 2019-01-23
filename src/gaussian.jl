@@ -1,9 +1,5 @@
 export Gaussian
 
-import Base: size
-import Distributions: rand, dim, mean, cov, var
-import ModelAnalysis: mll_joint
-
 """
     Gaussian <: Random
 
@@ -20,7 +16,7 @@ mutable struct Gaussian{
 } <: Distribution{Matrixvariate, Continuous}
     μ::Wrapped{T}
     Σ::Wrapped{G}
-    U::Wrapped{<:AbstractMatrix}
+    U::Wrapped{<:Union{AbstractMatrix, Cholesky}}
 end
 
 function Gaussian(
@@ -30,57 +26,54 @@ function Gaussian(
     return Gaussian{T, G}(μ, Σ, Matrix(undef, 0, 0))
 end
 
-# The Adjoint type does not exist in 0.6, so it is a non-issue there
-if VERSION >= v"0.7"
-    function Gaussian(
-        μ::Adjoint{H, T},
-        Σ::Wrapped{G},
-    ) where {H, T <: AbstractArray, G <: AbstractArray}
-        return Gaussian{T, G}(T(μ), Σ, Matrix(undef, 0, 0))
-    end
-
-    function Gaussian(
-        μ::Adjoint{H, T},
-        Σ::Wrapped{G},
-        U::Wrapped{<:AbstractMatrix},
-    ) where {H, T <: AbstractArray, G <: AbstractArray}
-        return Gaussian{T, G}(T(μ), Σ, U)
-    end
-
-    function Gaussian(
-        μ::Wrapped{T},
-        Σ::Adjoint{H, G},
-    ) where {H, T <: AbstractArray, G <: AbstractArray}
-        return Gaussian{T, G}(μ, G(Σ), Matrix(undef, 0, 0))
-    end
-
-    function Gaussian(
-        μ::Wrapped{T},
-        Σ::Adjoint{H, G},
-        U::Wrapped{<:AbstractMatrix},
-    ) where {H, T <: AbstractArray, G <: AbstractArray}
-        return Gaussian{T, G}(μ, G(Σ), U)
-    end
-
-    function Gaussian(
-        μ::Adjoint{H, T},
-        Σ::Adjoint{H, G},
-    ) where {H, T <: AbstractArray, G <: AbstractArray}
-        return Gaussian{T, G}(T(μ), G(Σ), Matrix(undef, 0, 0))
-    end
-
-    function Gaussian(
-        μ::Adjoint{H, T},
-        Σ::Adjoint{H, G},
-        U::Wrapped{<:AbstractMatrix},
-    ) where {H, T <: AbstractArray, G <: AbstractArray}
-        return Gaussian{T, G}(T(μ), G(Σ), U)
-    end
+function Gaussian(
+    μ::Adjoint{H, T},
+    Σ::Wrapped{G},
+) where {H, T <: AbstractArray, G <: AbstractArray}
+    return Gaussian{T, G}(T(μ), Σ, Matrix(undef, 0, 0))
 end
 
-mean(g::Gaussian) = g.μ
-cov(g::Gaussian) = g.Σ
-var(g::Gaussian) = reshape(diag(cov(g)), size(mean(g), 2), size(mean(g), 1))'
+function Gaussian(
+    μ::Adjoint{H, T},
+    Σ::Wrapped{G},
+    U::Wrapped{<:AbstractMatrix},
+) where {H, T <: AbstractArray, G <: AbstractArray}
+    return Gaussian{T, G}(T(μ), Σ, U)
+end
+
+function Gaussian(
+    μ::Wrapped{T},
+    Σ::Adjoint{H, G},
+) where {H, T <: AbstractArray, G <: AbstractArray}
+    return Gaussian{T, G}(μ, G(Σ), Matrix(undef, 0, 0))
+end
+
+function Gaussian(
+    μ::Wrapped{T},
+    Σ::Adjoint{H, G},
+    U::Wrapped{<:AbstractMatrix},
+) where {H, T <: AbstractArray, G <: AbstractArray}
+    return Gaussian{T, G}(μ, G(Σ), U)
+end
+
+function Gaussian(
+    μ::Adjoint{H, T},
+    Σ::Adjoint{H, G},
+) where {H, T <: AbstractArray, G <: AbstractArray}
+    return Gaussian{T, G}(T(μ), G(Σ), Matrix(undef, 0, 0))
+end
+
+function Gaussian(
+    μ::Adjoint{H, T},
+    Σ::Adjoint{H, G},
+    U::Wrapped{<:AbstractMatrix},
+) where {H, T <: AbstractArray, G <: AbstractArray}
+    return Gaussian{T, G}(T(μ), G(Σ), U)
+end
+
+Statistics.mean(g::Gaussian) = g.μ
+Statistics.cov(g::Gaussian) = g.Σ
+Statistics.var(g::Gaussian) = reshape(diag(cov(g)), size(mean(g), 2), size(mean(g), 1))'
 
 """
     dim(dist::Gaussian) -> Int
@@ -93,12 +86,12 @@ Get the dimensionality of a distribution `dist`.
 # Returns
 - `Int`: The dimension of the distribution
 """
-@unionise dim(dist::Gaussian) = length(dist.μ)
+@unionise Distributions.dim(dist::Gaussian) = length(dist.μ)
 
-size(dist::Gaussian) = size(mean(dist))
+Base.size(dist::Gaussian) = size(mean(dist))
 
 """
-    chol(dist::Gaussian) -> AbstractMatrix
+    cholesky(dist::Gaussian) -> AbstractMatrix
 
 Compute the Cholesky of the covariance matrix of a MVN `dist`
 
@@ -108,16 +101,19 @@ Compute the Cholesky of the covariance matrix of a MVN `dist`
 # Returns
 - `AbstractMatrix`: Computed Cholesky decomposition.
 """
-@unionise function Nabla.chol(dist::Gaussian)
+@unionise function LinearAlgebra.cholesky(dist::Gaussian)
     if dist.U == Matrix(undef, 0, 0)
-        dist.U = Nabla.chol(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist)))
+        dist.U = cholesky(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist))).U
     end
     return dist.U
 end
 
-@unionise function Nabla.chol(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
+@unionise function LinearAlgebra.cholesky(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
     if dist.U == Matrix(undef, 0, 0)
-        dist.U = BlockDiagonal(chol.(Symmetric.(blocks(dist.Σ)) .+ _EPSILON_ .* Eye.(blocks(dist.Σ))))
+        # extended for BlockDiagonal based on cholesky(::BlockDiagonal)
+        dist.U = BlockDiagonal(map(blocks(dist.Σ)) do block
+            cholesky(block + _EPSILON_ * Eye(block)).U
+        end)
     end
     return dist.U
 end
@@ -134,23 +130,23 @@ Sample `n` samples from a MVN `dist`.
 # Returns
 - `AbstractMatrix{<:Real}`: Samples where the columns correspond to different samples.
 """
-function sample(dist::Gaussian, n::Integer=1)
-    U = Nabla.chol(dist)
+function StatsBase.sample(dist::Gaussian, n::Integer=1)
+    U = cholesky(dist)
     if n > 1
         return mean(dist) .+ reshape(U' * randn(dim(dist), n), size(dist)..., n)
     else
         return mean(dist) .+ reshape(U' * randn(dim(dist), n), size(dist)...)
     end
 end
-rand(dist::Gaussian) = sample(dist)
-rand(dist::Gaussian, n::Int) = sample(dist, n)
+Statistics.rand(dist::Gaussian) = sample(dist)
+Statistics.rand(dist::Gaussian, n::Int) = sample(dist, n)
 
-MvNormal(d::Gaussian{T}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
+Distributions.MvNormal(d::Gaussian{T}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
 
 # handles old version of Eye on old versions of FillArrays (with Julia 0.6)
-MvNormal(d::Gaussian{T, <:Eye}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), collect(d.Σ))
+Distributions.MvNormal(d::Gaussian{T, <:Eye}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), collect(d.Σ))
 
-function mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
+function ModelAnalysis.mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
     if length(blocks(d.Σ)) != size(y, 1) # Not sure why one would ever do this, but anyway
         return -logpdf(d, y) / prod(size(y))
     elseif isa(d.U, BlockDiagonal)

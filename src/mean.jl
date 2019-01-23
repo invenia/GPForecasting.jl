@@ -1,7 +1,7 @@
 export Mean, SumMean, ProductMeant, ConstantMean, FunctionMean, ZeroMean, ScaledMean,
 PosteriorMean
 
-(^)(m::Mean, n::Integer) = Base.power_by_squaring(m, n)
+Base.:^(m::Mean, n::Integer) = Base.power_by_squaring(m, n)
 
 """
     ScaledMean <: Mean
@@ -13,12 +13,12 @@ mutable struct ScaledMean <: Mean
     m::Mean
 end
 (m::ScaledMean)(x) = unwrap(m.scale) .* m.m(x)
-function (*)(x, k::Mean)
+function Base.:*(x, k::Mean)
     return isconstrained(x) ?
         ScaledMean(x, k) :
         (unwrap(x) ≈ zero(unwrap(x)) ? ZeroMean() : ScaledMean(x, k))
 end
-function (*)(x, k::ScaledMean)
+function Base.:*(x, k::ScaledMean)
     if isconstrained(x)
         return ScaledMean(x, k)
     else
@@ -30,14 +30,14 @@ function (*)(x, k::ScaledMean)
             )
     end
 end
-(*)(k::Mean, x) = (*)(x, k::Mean)
-function (+)(k1::Mean, k2::ScaledMean)
+Base.:*(k::Mean, x) = (*)(x, k::Mean)
+function Base.:+(k1::Mean, k2::ScaledMean)
     return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? k1 : SumMean(k1, k2)
 end
-function (+)(k1::ScaledMean, k2::Mean)
+function Base.:+(k1::ScaledMean, k2::Mean)
     return unwrap(k1.scale) ≈ zero(unwrap(k1.scale)) ? k2 : SumMean(k1, k2)
 end
-function (+)(k1::ScaledMean, k2::ScaledMean)
+function Base.:+(k1::ScaledMean, k2::ScaledMean)
     if unwrap(k1.scale) ≈ zero(unwrap(k1.scale))
         return k2
     elseif unwrap(k2.scale) ≈ zero(unwrap(k2.scale))
@@ -46,7 +46,7 @@ function (+)(k1::ScaledMean, k2::ScaledMean)
         return SumMean(k1, k2)
     end
 end
-show(io::IO, k::ScaledMean) = print(io, "($(k.scale) * $(k.m))")
+Base.show(io::IO, k::ScaledMean) = print(io, "($(k.scale) * $(k.m))")
 
 """
     SumMean <: Mean
@@ -57,9 +57,9 @@ mutable struct SumMean <: Mean
     m1::Mean
     m2::Mean
 end
-(+)(k1::Mean, k2::Mean) = SumMean(k1, k2)
+Base.:+(k1::Mean, k2::Mean) = SumMean(k1, k2)
 (k::SumMean)(x) = k.m1(x) .+ k.m2(x)
-show(io::IO, k::SumMean) = print(io, "($(k.m1) + $(k.m2))")
+Base.show(io::IO, k::SumMean) = print(io, "($(k.m1) + $(k.m2))")
 
 """
     ProductMean <: Mean
@@ -70,14 +70,14 @@ mutable struct ProductMean <: Mean
     m1::Mean
     m2::Mean
 end
-(*)(k1::Mean, k2::Mean) = ProductMean(k1, k2)
-function (*)(k1::Mean, k2::ScaledMean)
+Base.:*(k1::Mean, k2::Mean) = ProductMean(k1, k2)
+function Base.:*(k1::Mean, k2::ScaledMean)
     return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? Mean(0) : ProductMean(k1, k2)
 end
-function (*)(k1::ScaledMean, k2::Mean)
+function Base.:*(k1::ScaledMean, k2::Mean)
     return unwrap(k1.scale) ≈ zero(unwrap(k1.scale)) ? Mean(0) : ProductMean(k1, k2)
 end
-function (*)(k1::ScaledMean, k2::ScaledMean)
+function Base.:*(k1::ScaledMean, k2::ScaledMean)
     if unwrap(k1.scale) ≈ zero(unwrap(k1.scale))
         return Mean(0)
     elseif unwrap(k2.scale) ≈ zero(unwrap(k2.scale))
@@ -87,7 +87,7 @@ function (*)(k1::ScaledMean, k2::ScaledMean)
     end
 end
 (k::ProductMean)(x) = k.m1(x) .* k.m2(x)
-show(io::IO, k::ProductMean) = print(io, "($(k.m1) * $(k.m2))")
+Base.show(io::IO, k::ProductMean) = print(io, "($(k.m1) * $(k.m2))")
 
 """
     ConstantMean <: Mean
@@ -98,14 +98,14 @@ struct ConstantMean <: Mean end
 (k::ConstantMean)(x) = ones(Float64, size(x, 1))
 (k::ConstantMean)(x::Vector{Input}) = ones(Float64, size(vcat([c.val for c in x]...), 1))
 (k::ConstantMean)(x::Real, y::Real) = 1.0
-function (+)(k::Mean, x)
+function Base.:+(k::Mean, x)
     return isconstrained(x) ?
         SumMean(k, x * ConstantMean()) :
         (unwrap(x) ≈ zero(unwrap(x)) ? k : SumMean(k, x * ConstantMean()))
 end
-(+)(x, k::Mean) = (+)(k::Mean, x)
-convert(::Type{Mean}, x::Real) = x ≈ 0.0 ? ZeroMean() : Fixed(x) * ConstantMean()
-show(io::IO, k::ConstantMean) = print(io, "𝟏")
+Base.:+(x, k::Mean) = (+)(k::Mean, x)
+Base.convert(::Type{Mean}, x::Real) = x ≈ 0.0 ? ZeroMean() : Fixed(x) * ConstantMean()
+Base.show(io::IO, k::ConstantMean) = print(io, "𝟏")
 ConstantMean(x) = unwrap(x) == 0 ? ZeroMean() : x * ConstantMean()
 
 """
@@ -116,22 +116,22 @@ Zero Mean. Returns zero.
 struct ZeroMean <: Mean; end
 (::ZeroMean)(x) = zeros(size(x, 1))
 (::ZeroMean)(x::Vector{Input}) = zeros(size(vcat([c.val for c in x]...), 1))
-(+)(k::Mean, z::ZeroMean) = k
-(+)(z::ZeroMean, k::Mean) = k + z
-(+)(z::ZeroMean, k::ZeroMean) = z
-(+)(z::ZeroMean, k::ScaledMean) = k
-(+)(k::ScaledMean, z::ZeroMean) = z + k
-(*)(k::Mean, z::ZeroMean) = z
-(*)(z::ZeroMean, k::Mean) = k * z
-(*)(z::ZeroMean, k::ZeroMean) = z
-(*)(z::ZeroMean, k::ScaledMean) = z
-(*)(k::ScaledMean, z::ZeroMean) = z * k
-(*)(x, z::ZeroMean) = z
-(*)(z::ZeroMean, x) = x * z
-show(io::IO, z::ZeroMean) = print(io, "𝟎")
+Base.:+(k::Mean, z::ZeroMean) = k
+Base.:+(z::ZeroMean, k::Mean) = k + z
+Base.:+(z::ZeroMean, k::ZeroMean) = z
+Base.:+(z::ZeroMean, k::ScaledMean) = k
+Base.:+(k::ScaledMean, z::ZeroMean) = z + k
+Base.:*(k::Mean, z::ZeroMean) = z
+Base.:*(z::ZeroMean, k::Mean) = k * z
+Base.:*(z::ZeroMean, k::ZeroMean) = z
+Base.:*(z::ZeroMean, k::ScaledMean) = z
+Base.:*(k::ScaledMean, z::ZeroMean) = z * k
+Base.:*(x, z::ZeroMean) = z
+Base.:*(z::ZeroMean, x) = x * z
+Base.show(io::IO, z::ZeroMean) = print(io, "𝟎")
 
-zero(::Mean) = ZeroMean()
-zero(::Type{GPForecasting.Mean}) = ZeroMean()
+Base.zero(::Mean) = ZeroMean()
+Base.zero(::Type{GPForecasting.Mean}) = ZeroMean()
 
 """
     FunctionMean <: Mean
@@ -166,7 +166,7 @@ struct PosteriorMean <: Mean
     y
     PosteriorMean(k, m, x, U, y) = new(k, m, Fixed(x), Fixed(U), Fixed(y))
 end
-show(io::IO, k::PosteriorMean) = print(io, "Posterior($(k.k), $(k.m))")
+Base.show(io::IO, k::PosteriorMean) = print(io, "Posterior($(k.k), $(k.m))")
 function (m::PosteriorMean)(x)
     xd = unwrap(m.x)
     U = unwrap(m.U)

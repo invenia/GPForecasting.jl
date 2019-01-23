@@ -10,7 +10,7 @@ function cov_EB(X)
     n = size(X)[1]
     p = size(X)[2]
 
-    S = covdims(X, 1, corrected=false)
+    S = cov(X, dims=1, corrected=false)
     m = tr(S) / p
     return ((p * n - 2 * n - 2) / (p * n^2) * m) .* Eye(S) .+ (n / (n+1)) .* S
 end
@@ -24,14 +24,14 @@ function cov_LW(X)
     n = size(X)[1]
     p = size(X)[2]
 
-    S = covdims(X, 1, corrected=false)
-    Y = X .- meandims(X, 1)
+    S = cov(X, dims=1, corrected=false)
+    Y = X .- mean(X, dims=1)
     m = tr(S) / p
-    d2 = Compat.norm(S .- m .* Eye(S))^2 / p
+    d2 = norm(S .- m .* Eye(S))^2 / p
     b2 = 0.0
     for k=1:n
         y = Y[k,:]
-        b2 += Compat.norm(y * y' .- S)^2
+        b2 += norm(y * y' .- S)^2
     end
     b2 = b2 / n^2 / p
     b2 = min(b2, d2)

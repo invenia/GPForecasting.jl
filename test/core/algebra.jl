@@ -30,9 +30,9 @@
         @test tr(b1) ≈ tr(Matrix(b1))
 
         b1 = BlockDiagonal(Hermitian.([(rand(3, 3) + 15Eye(3)), (rand(4, 4) + 15Eye(4)), (rand(5, 5) + 15Eye(5))]))
-        Ub = Nabla.chol(b1)
-        Um = Nabla.chol(Matrix(b1))
-        @test Ub' * Ub ≈ Matrix(b1) ≈ b1 ≈ Um' * Um
+        Ub = cholesky(b1)
+        Um = cholesky(Matrix(b1))
+        @test Ub.L * Ub.U ≈ Matrix(b1) ≈ b1 ≈ Um.L * Um.U
         @test det(b1) ≈ det(Matrix(b1))
         @test eigvals(b1) ≈ eigvals(Matrix(b1))
 

@@ -7,8 +7,8 @@ Abstract type used for dispatching `NoisyKernel`s.
 """
 abstract type Input end
 
-size(x::Input) = size(x.val)
-size(x::Input, i::Int) = size(x.val, i)
+Base.size(x::Input) = size(x.val)
+Base.size(x::Input, i::Int) = size(x.val, i)
 
 """
     Observed <: Input
@@ -28,10 +28,10 @@ struct Latent <: Input
     val
 end
 
-function getindex(x::Input, i::Int, j::Colon)
+function Base.getindex(x::Input, i::Int, j::Colon)
     return typeof(x)(x.val[i, :])
 end
 
-function getindex(x::Input, i::Int)
+function Base.getindex(x::Input, i::Int)
     return typeof(x)(x.val[i])
 end

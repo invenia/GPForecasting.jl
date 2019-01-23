@@ -1,36 +1,20 @@
 using GPForecasting
-using Compat.Test
+using Test
 
-using GPForecasting: sumdims, meandims, stddims
-
-import Compat
-using Compat: tr, undef, repeat
-using Compat.Dates
-using Compat.Distributed
-using Compat.LinearAlgebra
 using CSV
 using DataFrames
+using Dates
 using Distributions
 using FDM
 using FillArrays
+using LinearAlgebra
 using LineSearches
 using Memento
 using Nabla
 using Nullables
+using Random: seed!
 
 _ATOL_ = 1e-5
-
-if isdefined(Compat.Random, :seed!)
-    using Compat.Random: seed!
-else
-    const seed! = Compat.Random.srand
-end
-
-if VERSION >= v"0.7"
-    proddims(A, dims) = prod(A, dims=dims)
-else
-    proddims(A, dims) = prod(A, dims)
-end
 
 
 # Write your own tests here.

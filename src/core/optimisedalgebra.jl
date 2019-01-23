@@ -1,135 +1,55 @@
 module OptimisedAlgebra
 
-import ..GPForecasting: sumdims
-
+using LinearAlgebra
 using Nabla
 
 export outer, kron_lid_lmul, kron_lid_lmul_lt_s, kron_lid_lmul_lt_m,
 kron_rid_lmul_s, kron_rid_lmul_m, kron_lmul_lr, kron_lmul_rl, diag_outer_kron,
 diag_outer, Js, Ms, sum_kron_J_ut, sum_kron_M, eye_sum_kron_M_ut, BlockDiagonal, blocks
 
-import Base: size, Matrix, show, display, *, +, /, isapprox, getindex
-
-import Compat.LinearAlgebra: diag, eigvals, det, transpose
-using Compat.LinearAlgebra: UpperTriangular, isdiag, Diagonal
-import Compat
-import Compat: tr, undef
-
-if VERSION >= v"0.7"
-    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
-
-    A_mul_Bt!(Y, A, B) = mul!(Y, A, transpose(B))
-    At_mul_B(A, B) = transpose(A) * B
-else
-    import Base: Ac_mul_B, A_mul_Bc
-    import Base: ctranspose
-    const adjoint = ctranspose
-    const mul! = Base.A_mul_B!
-end
-
-"""
-    @linalg_compat <function definition>
-
-Given a method definition for `Ac_mul_B` or `A_mul_Bc`, generate a corresponding method for
-`*` on Julia 0.7+ which is defined in terms of the original method definition.
-
-For example, a method `Ac_mul_B(b::BlockDiagonal, m::BlockDiagonal)` will generate a
-companion method
-`(*)(b::Adjoint{BlockDiagonal}, m::BlockDiagonal) = Ac_mul_B(parent(b), m)`.
-
-At some point these methods should be rewritten in terms of * on `Adjoint` types, so this
-macro can be purged from existence.
-
-!!! note
-
-    This macro currently requires a long-form unparameterized method definition where the
-    types of both arguments are specified.
-"""
-macro linalg_compat(expr)
-    if VERSION < v"0.7"
-        return esc(expr)
-    end
-
-    e = ArgumentError("Function definition did not match format expected by @linalg_compat")
-
-    # aggressive input checking to replace the MacroTools matcher
-    if expr.head !== :function || length(expr.args) != 2
-        throw(e)
-    end
-
-    sig, body = expr.args
-
-    if sig.head !== :call || length(sig.args) != 3
-        throw(e)
-    end
-
-    f = sig.args[1]
-
-    if sig.args[2].head !== :(::) || length(sig.args[2].args) != 2 ||
-        sig.args[3].head !== :(::) || length(sig.args[3].args) != 2
-        throw(e)
-    end
-    arg1, Type1 = sig.args[2].args
-    arg2, Type2 = sig.args[3].args
-
-    if f === :Ac_mul_B
-        Type1 = :(Adjoint{$Type1})
-        reassignment = :($arg1 = parent($arg1))
-    elseif f === :A_mul_Bc
-        Type2 = :(Adjoint{$Type2})
-        reassignment = :($arg2 = parent($arg2))
-    else
-        error("Unrecognized method $f")
-    end
-
-    return quote
-        function Base.:(*)(($(arg1))::($(Type1)), ($(arg2))::($(Type2)))
-            $reassignment
-            $(f)($(arg1), $(arg2))
-        end
-        $(esc(expr))
-    end
-end
 
 struct BlockDiagonal{T} <: AbstractMatrix{T}
     blocks::Vector{<:AbstractMatrix{T}}
 end
 
 blocks(b::BlockDiagonal) = b.blocks
-diag(b::BlockDiagonal) = vcat(diag.(blocks(b))...)
+LinearAlgebra.diag(b::BlockDiagonal) = vcat(diag.(blocks(b))...)
 
-function size(b::BlockDiagonal)
+function Base.size(b::BlockDiagonal)
     sizes = size.(blocks(b))
     return sum.(([s[1] for s in sizes], [s[2] for s in sizes]))
 end
 
-function isapprox(b1::BlockDiagonal, b2::BlockDiagonal; atol::Real=0)
+function Base.isapprox(b1::BlockDiagonal, b2::BlockDiagonal; atol::Real=0)
     size(b1) != size(b2) && return false
     !all(size.(blocks(b1)) == size.(blocks(b2))) && return false
     return all(isapprox.(blocks(b1), blocks(b2), atol=atol))
 end
-function isapprox(b1::BlockDiagonal, b2::AbstractMatrix; atol::Real=0)
+function Base.isapprox(b1::BlockDiagonal, b2::AbstractMatrix; atol::Real=0)
     return isapprox(Matrix(b1), b2, atol=atol)
 end
-function isapprox(b1::AbstractMatrix, b2::BlockDiagonal; atol::Real=0)
+function Base.isapprox(b1::AbstractMatrix, b2::BlockDiagonal; atol::Real=0)
     return isapprox(b1, Matrix(b2), atol=atol)
 end
 
-Matrix(b::BlockDiagonal) = Compat.cat(blocks(b)...; dims=(1, 2))
+Base.Matrix(b::BlockDiagonal) = cat(blocks(b)...; dims=(1, 2))
 
-Nabla.chol(b::BlockDiagonal) = BlockDiagonal(Nabla.chol.(blocks(b)))
-det(b::BlockDiagonal) = prod(det.(blocks(b)))
-function eigvals(b::BlockDiagonal)
+function LinearAlgebra.cholesky(B::BlockDiagonal)
+    return Cholesky(BlockDiagonal(map(b->cholesky(b).U, blocks(B))), 'U', 0)
+end
+
+LinearAlgebra.det(b::BlockDiagonal) = prod(det.(blocks(b)))
+function LinearAlgebra.eigvals(b::BlockDiagonal)
     eigs = vcat(eigvals.(blocks(b))...)
     !isa(eigs, Vector{<:Complex}) && return sort(eigs)
     return eigs
 end
-tr(b::BlockDiagonal) = sum(tr.(blocks(b)))
+LinearAlgebra.tr(b::BlockDiagonal) = sum(tr.(blocks(b)))
 
-transpose(b::BlockDiagonal) = BlockDiagonal(transpose.(blocks(b)))
-adjoint(b::BlockDiagonal) = BlockDiagonal(adjoint.(blocks(b)))
+LinearAlgebra.transpose(b::BlockDiagonal) = BlockDiagonal(transpose.(blocks(b)))
+LinearAlgebra.adjoint(b::BlockDiagonal) = BlockDiagonal(adjoint.(blocks(b)))
 
-function getindex(b::BlockDiagonal{T}, i::Int, j::Int) where T
+function Base.getindex(b::BlockDiagonal{T}, i::Int, j::Int) where T
     cols = [size(bb, 2) for bb in blocks(b)]
     rows = [size(bb, 1) for bb in blocks(b)]
     c = 0
@@ -142,7 +62,7 @@ function getindex(b::BlockDiagonal{T}, i::Int, j::Int) where T
     return blocks(b)[c][i, end + j]
 end
 
-function (*)(b::BlockDiagonal, m::AbstractMatrix)
+function Base.:*(b::BlockDiagonal, m::AbstractMatrix)
     size(b, 2) != size(m, 1) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m))")
     )
@@ -156,7 +76,7 @@ function (*)(b::BlockDiagonal, m::AbstractMatrix)
     end
     return vcat(d...)
 end
-function (*)(m::AbstractMatrix, b::BlockDiagonal)
+function Base.:*(m::AbstractMatrix, b::BlockDiagonal)
     size(b, 1) != size(m, 2) && throw(
         DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m))")
     )
@@ -170,89 +90,19 @@ function (*)(m::AbstractMatrix, b::BlockDiagonal)
     end
     return hcat(d...)
 end
-function (*)(b::BlockDiagonal, m::BlockDiagonal)
+function Base.:*(b::BlockDiagonal, m::BlockDiagonal)
     if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
         return BlockDiagonal(blocks(b) .* blocks(m))
     else
-        Matrix(b) * Matrix(m)
+        return Matrix(b) * Matrix(m)
     end
 end
-@linalg_compat function Ac_mul_B(b::BlockDiagonal, m::BlockDiagonal)
-    if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
-        return BlockDiagonal(Ac_mul_B.(blocks(b), blocks(m)))
-    else
-        Ac_mul_B(Matrix(b), Matrix(m))
-    end
-end
-@linalg_compat function Ac_mul_B(b::BlockDiagonal, m::AbstractMatrix)
-    size(b, 1) != size(m, 1) && throw(
-        DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
-    )
-    st = 1
-    ed = 1
-    d = []
-    for block in blocks(b)
-        ed = st + size(block, 1) - 1
-        push!(d, Ac_mul_B(block, m[st:ed, :]))
-        st = ed + 1
-    end
-    return vcat(d...)
-end
-@linalg_compat function Ac_mul_B(m::AbstractMatrix, b::BlockDiagonal)
-    size(b, 1) != size(m, 1) && throw(
-        DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
-    )
-    st = 1
-    ed = 1
-    d = []
-    for block in blocks(b)
-        ed = st + size(block, 1) - 1
-        push!(d, Ac_mul_B(m[st:ed, :], block))
-        st = ed + 1
-    end
-    return hcat(d...)
-end
-@linalg_compat function A_mul_Bc(b::BlockDiagonal, m::BlockDiagonal)
-    if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
-        return BlockDiagonal(A_mul_Bc.(blocks(b), blocks(m)))
-    else
-        A_mul_Bc(Matrix(b), Matrix(m))
-    end
-end
-@linalg_compat function A_mul_Bc(b::BlockDiagonal, m::AbstractMatrix)
-    size(b, 2) != size(m, 2) && throw(
-        DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
-    )
-    st = 1
-    ed = 1
-    d = []
-    for block in blocks(b)
-        ed = st + size(block, 2) - 1
-        push!(d, A_mul_Bc(block, m[:, st:ed]))
-        st = ed + 1
-    end
-    return vcat(d...)
-end
-@linalg_compat function A_mul_Bc(m::AbstractMatrix, b::BlockDiagonal)
-    size(b, 2) != size(m, 2) && throw(
-        DimensionMismatch("A has dimensions $(size(b)) but B has dimensions $(size(m'))")
-    )
-    st = 1
-    ed = 1
-    d = []
-    for block in blocks(b)
-        ed = st + size(block, 2) - 1
-        push!(d, A_mul_Bc(m[:, st:ed], block))
-        st = ed + 1
-    end
-    return hcat(d...)
-end
-(*)(b::BlockDiagonal, n::Real) = BlockDiagonal(n .* blocks(b))
-(*)(n::Real, b::BlockDiagonal) = b * n
+Base.:*(b::BlockDiagonal, n::Real) = BlockDiagonal(n .* blocks(b))
+Base.:*(n::Real, b::BlockDiagonal) = b * n
 
-(/)(b::BlockDiagonal, n::Real) = BlockDiagonal(blocks(b) ./ n)
+Base.:/(b::BlockDiagonal, n::Real) = BlockDiagonal(blocks(b) ./ n)
 
-function (+)(b::BlockDiagonal, m::AbstractMatrix)
+function Base.:+(b::BlockDiagonal, m::AbstractMatrix)
     !isdiag(m) && return Matrix(b) + m
     size(b) != size(m) && throw(DimensionMismatch("Can't add matrices of different sizes."))
     d = diag(m)
@@ -268,8 +118,8 @@ function (+)(b::BlockDiagonal, m::AbstractMatrix)
     return BlockDiagonal(nb)
 end
 
-(+)(m::AbstractMatrix, b::BlockDiagonal) = b + m
-function (+)(b::BlockDiagonal, m::BlockDiagonal)
+Base.:+(m::AbstractMatrix, b::BlockDiagonal) = b + m
+function Base.:+(b::BlockDiagonal, m::BlockDiagonal)
     if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
         return BlockDiagonal(blocks(b) .+ blocks(m))
     else
@@ -360,10 +210,10 @@ function kron_rid_lmul_m(A::AbstractMatrix, B::AbstractMatrix)
     (k, l), (m, n), eye_n = check_sizes(A, B)
     C = Matrix{Float64}(undef, k * eye_n, n)
     for i = 1:n
-        @inbounds A_mul_Bt!(
+        @inbounds mul!(
             reshape(view(C, :, i), eye_n, k),
             reshape(view(B, :, i), eye_n, l),
-            A
+            transpose(A)
         )
     end
     return C
@@ -395,7 +245,7 @@ end
 Efficiently compute `diag(outer(kron(A, B)))`.
 """
 function diag_outer_kron(A::AbstractMatrix, B::AbstractMatrix)
-    kron(sumdims(A .^ 2, 2), sumdims(B .^ 2, 2))
+    kron(sum(A .^ 2, dims=2), sum(B .^ 2, dims=2))
 end
 
 """
@@ -414,7 +264,7 @@ function diag_outer_kron(
     C::AbstractArray,
     D::AbstractArray
 )
-    return kron(sumdims(A .* C, 2), sumdims(B .* D, 2))
+    return kron(sum(A .* C, dims=2), sum(B .* D, dims=2))
 end
 
 """
@@ -422,14 +272,14 @@ end
 
 Efficiently compute `diag(outer(A, B))`.
 """
-diag_outer(A::AbstractArray, B::AbstractArray) = sumdims(A .* B, 2)
+diag_outer(A::AbstractArray, B::AbstractArray) = sum(A .* B, dims=2)
 
 """
     diag_outer(A::AbstractMatrix)
 
 Efficiently compute `diag(outer(A))`.
 """
-diag_outer(A::AbstractArray) = sumdims(A .^ 2, 2)
+diag_outer(A::AbstractArray) = sum(A .^ 2, dims=2)
 
 """
     Js(m::Int) -> Vector{Matrix}
@@ -517,7 +367,7 @@ function _eye_sum_kron_M_ut(B::Mat{T}, L::UpperTriangular{T}...) where T
     res = Matrix{T}(undef, m * n, m * n)
     L_prod = Matrix{T}(undef, n, n)
     for i = 1:m, j = i:m
-        A_mul_Bt!(L_prod, L[i], L[j])
+        mul!(L_prod, L[i], transpose(L[j]))
         _eskmu_fill_triu!(res, n, m, i, j, B, L_prod)
         i == j ? _eskmu_fill_diag!(res, n, m, i) :
                  _eskmu_fill_triu_Lt!(res, n, m, j, i, B, L_prod)
@@ -570,7 +420,7 @@ function Nabla.∇(
     B̄ = zeros(T, size(B))
     L_prod = Matrix{T}(undef, n, n)
     @inbounds for i = 1:m, j = 1:m
-        A_mul_Bt!(L_prod, L[i], L[j])
+        mul!(L_prod, L[i], transpose(L[j]))
         _esku_sum!(B̄, m, n, i, j, ȳ, L_prod)
     end
     return B̄
@@ -604,7 +454,7 @@ function Nabla.∇(
     for l = 1:m
         @inbounds bsl = B[s, l]
         @inbounds L̄s .+= bsl .* (view(ȳ, s:m:n * m, l:m:n * m) * L[l])
-        @inbounds L̄s .+= bsl .* At_mul_B(view(ȳ, l:m:n * m, s:m:n * m), L[l])
+        @inbounds L̄s .+= bsl .* (transpose(view(ȳ, l:m:n * m, s:m:n * m)) * L[l])
     end
     return L̄s
 end

@@ -62,7 +62,7 @@
     @test isa(GPForecasting.name(b), Nullable{String})
     @test GPForecasting.set(b, 5.) ≈ Bounded(5., -10., 10.)
     @test isa(sprint(show, b), String)
-    for x in Compat.range(0., stop=10., length=10)
+    for x in range(0., stop=10., length=10)
         b = Bounded(x, 10.)
         @test GPForecasting.unwrap(GPForecasting.unpack(b, GPForecasting.pack(b))) ≈ x  atol = _ATOL_
     end

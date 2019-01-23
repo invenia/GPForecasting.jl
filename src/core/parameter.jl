@@ -1,6 +1,6 @@
 export Parameter, Fixed, Positive, Named, Bounded, isconstrained,
 DynamicBound
-isapprox(x::String, y::String) = x == y
+Base.isapprox(x::String, y::String) = x == y
 isconstrained(x) = false
 
 # Base cases of parameter recursions:
@@ -35,12 +35,7 @@ abstract type Parameter end
 # first field. We could do something similar to the kernels to make this fully flexible,
 # but I think this suffices.
 parameter(p::Parameter) = getfield(p, 1)
-
-if VERSION >= v"0.7"
-    others(p::Parameter) = collect(Iterators.rest(getfields(p), 1))
-else
-    others(p::Parameter) = collect(Iterators.rest(getfields(p), 2))
-end
+others(p::Parameter) = collect(Iterators.rest(getfields(p), 1))
 
 # Default parameter behaviour:
 reconstruct(p::Parameter, parameter, others) = typeof(p)(parameter, others...)
@@ -66,12 +61,13 @@ Used for updating parameter values.
 @unionise unpack(x::Parameter, y::Vector) =
     reconstruct(x, unpack(parameter(x), y), others(x))
 set(x::Parameter, y) = reconstruct(x, set(parameter(x), y), others(x))
-function isapprox(x::Parameter, y::Parameter)
+function Base.isapprox(x::Parameter, y::Parameter)
     return typeof(x) == typeof(y) &&
         isapprox(parameter(x), parameter(y)) &&
         length(others(x)) == length(others(y)) &&
         all(isapprox.(others(x), others(y)))
 end
+
 """
     isconstrained(x::Parameter)
 

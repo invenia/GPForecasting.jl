@@ -1,14 +1,10 @@
 module GPForecasting
 
-import Base: *, +, -, ^, reduce, map, zip, show, getindex, get, isapprox, convert, zero,
-size, hcat
-using Compat: Compat, @__MODULE__, tr, undef
-using Compat.Distributed: pmap
-import Compat.LinearAlgebra: diag
-using Compat.LinearAlgebra
-using Compat.Random
-using Compat.SparseArrays
-import Distributions: MvNormal, sample, logpdf
+using LinearAlgebra
+using Random
+using SparseArrays
+using Statistics
+using StatsBase
 
 export sample
 
@@ -20,6 +16,7 @@ using Nullables
 using LineSearches
 using Memento
 using Missings
+using ModelAnalysis
 using Nabla
 using Optim
 
@@ -27,23 +24,6 @@ const LOGGER = getlogger(@__MODULE__)
 const _EPSILON_ = 1e-6 # Precision constant
 const packagehomedir = dirname(@__DIR__) #dirname ascends the directory...
 const Wrapped{T} = Union{T, Node{T}}
-
-if VERSION >= v"0.7"
-    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
-
-    A_mul_Bt(A, B) = A * transpose(B)
-    sumdims(A, dims) = sum(A, dims=dims)
-    meandims(A, dims) = mean(A, dims=dims)
-    stddims(A, dims) = std(A, dims=dims)
-    covdims(A, dims; kwargs...) = cov(A; dims=dims, kwargs...)
-else
-    import Base: A_mul_Bt
-
-    sumdims(A, dims) = sum(A, dims)
-    meandims(A, dims) = mean(A, dims)
-    stddims(A, dims) = std(A, dims)
-    covdims(A, dims; kwargs...) = cov(A, dims; kwargs...)
-end
 
 function __init__()
     Memento.register(LOGGER) # Register the Logger

@@ -10,10 +10,10 @@ function GP(n::Real, k::Kernel)
 end
 GP(k::Kernel) = GP(0.0, k)
 
-(*)(gp::GP, x) = GP(x * gp.m, x * gp.k * x')
-(*)(n, gp::GP) = (*)(gp::GP, n)
-(+)(g1::GP, g2::GP) = GP(g1.m + g2.m, g1.k + g2.k)
-(-)(g1::GP, g2::GP) = GP(g1.m - g2.m, g1.k + g2.k)
+Base.:*(gp::GP, x) = GP(x * gp.m, x * gp.k * x')
+Base.:*(n, gp::GP) = gp * n
+Base.:+(g1::GP, g2::GP) = GP(g1.m + g2.m, g1.k + g2.k)
+Base.:-(g1::GP, g2::GP) = GP(g1.m - g2.m, g1.k + g2.k)
 
 """
     condition(gp::GP, x, y) -> GP
@@ -32,7 +32,7 @@ is the posterior process corresponding to the prior updated with the observation
 """
 function condition(gp::GP, x, y::AbstractArray{<:Real})
     K = gp.k(x)
-    U = Nabla.chol(K + _EPSILON_ * Eye(K))
+    U = cholesky(K + _EPSILON_ * Eye(K)).U
     m = PosteriorMean(gp.k, gp.m, x, U, y)
     k = PosteriorKernel(gp.k, x, U)
     return GP(m, k)
@@ -56,11 +56,11 @@ function condition(
 # convert back before returning the output.
     yt = y'
 
-    Us = [Nabla.chol(k(x, x) + _EPSILON_ * Eye(n)) for k in gp.k.ks]
+    Us = [cholesky(k(x, x) + _EPSILON_ * Eye(n)).U for k in gp.k.ks]
     yiσ² = yt ./ σ²
     HiΛy = reshape(H' * yiσ², n * m, 1)
     UQ = sum_kron_J_ut(m, Us...)
-    M = Nabla.chol(Symmetric(eye_sum_kron_M_ut(transpose(H) * (H ./ σ²), Us...)))
+    M = cholesky(Symmetric(eye_sum_kron_M_ut(transpose(H) * (H ./ σ²), Us...))).U
     Z = UQ' / M
 
     m = LMMPosMean(gp.k, x, Z, y) # NOTE: assuming here zero prior mean for the LMM.
@@ -98,7 +98,7 @@ function optcondition(
     kx = gp.k.ks(x)
     K = kx + (σ² + d) * I
 
-    U = Nabla.chol(Hermitian(K + _EPSILON_^2 * Eye(K)))
+    U = cholesky(Hermitian(K + _EPSILON_^2 * Eye(K))).U
     ms = [PosteriorMean(gp.k.ks, ZeroMean(), x, U, yp[:, i]) for i in 1:m]
     ks = PosteriorKernel(gp.k.ks, x, U)
     # create the posterior mean
@@ -138,7 +138,7 @@ function condition(
         kx = k(x)
         push!(Ks, kx + (σ²/s^2 + d) * Eye(kx))
     end
-    Us = [Nabla.chol(Hermitian(K + _EPSILON_^2 * Eye(K))) for K in Ks]
+    Us = [cholesky(Hermitian(K + _EPSILON_^2 * Eye(K))).U for K in Ks]
     ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
     ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
     # create the posterior mean
@@ -175,16 +175,16 @@ function (p::GP{K, L})(x) where {K <: NoiseKernel, L <: MultiMean}
     return Gaussian(p.m(x), p.k(x))
 end
 
-MvNormal(gp::GP, x) = MvNormal(collect(vec(gp.m(x)[:, :]')), Matrix(Hermitian(gp.k(x))))
-function MvNormal(p::GP{K, M}, x::Input) where {K <: NoiseKernel, M <: Mean}
+Distributions.MvNormal(gp::GP, x) = MvNormal(collect(vec(gp.m(x)[:, :]')), Matrix(Hermitian(gp.k(x))))
+function Distributions.MvNormal(p::GP{K, M}, x::Input) where {K <: NoiseKernel, M <: Mean}
     return MvNormal(collect(vec(p.m(x.val)[:, :]')), Matrix(Hermitian(p.k(x))))
 end
-function MvNormal(p::GP{K, L}, x) where {K <: NoiseKernel, L <: Mean}
+function Distributions.MvNormal(p::GP{K, L}, x) where {K <: NoiseKernel, L <: Mean}
     # Here we will work in the extended input space
     M = p.m(x)
     return MvNormal(collect(vec(stack([M, M])[:, :]')), Matrix(Hermitian(p.k(x))))
 end
-function MvNormal(p::GP{K, L}, x) where {K <: NoiseKernel, L <: MultiMean}
+function Distributions.MvNormal(p::GP{K, L}, x) where {K <: NoiseKernel, L <: MultiMean}
     return MvNormal(collect(vec(p.m(x)[:, :]')), Matrix(Hermitian(p.k(x))))
 end
 

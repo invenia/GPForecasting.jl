@@ -4,10 +4,10 @@ NaiveLMMKernel, MultiOutputKernel, OLMMKernel
 abstract type MultiOutputKernel <: Kernel end
 isMulti(k::MultiOutputKernel) = true
 
-var(k::MultiOutputKernel, x) = hcat([diag(k(x[i, :])) for i in 1:size(x, 1)]...)'
-diag(x::Real) = x
+Statistics.var(k::MultiOutputKernel, x) = hcat([diag(k(x[i, :])) for i in 1:size(x, 1)]...)'
+LinearAlgebra.diag(x::Real) = x
 
-size(k::MultiOutputKernel, i::Int) = size(k([1.0]), i)
+Base.size(k::MultiOutputKernel, i::Int) = size(k([1.0]), i)
 
 function hourly_cov(k::MultiOutputKernel, x)
      ks = [k(x[i, :]) for i in 1:size(x, 1)]
@@ -36,13 +36,13 @@ mutable struct NoiseKernel <: MultiOutputKernel
     k_true::Kernel
     k_noise::Kernel
 end
-show(io::IO, k::NoiseKernel) = print(io, "NoiseKernel($(k.k_true), $(k.k_noise))")
+Base.show(io::IO, k::NoiseKernel) = print(io, "NoiseKernel($(k.k_true), $(k.k_noise))")
 isMulti(k::NoiseKernel) = isMulti(k.k_true)
 (k::NoiseKernel)(x::Input, y::Input) = k.k_true(x.val, y.val)
 function (k::NoiseKernel)(x::Observed, y::Observed)
     return (k.k_true + k.k_noise)(x.val, y.val)
 end
-var(k::NoiseKernel, x::Input) = hcat([diag(k(typeof(x)(xx))) for xx in x.val]...)'
+Statistics.var(k::NoiseKernel, x::Input) = hcat([diag(k(typeof(x)(xx))) for xx in x.val]...)'
 function hourly_cov(k::NoiseKernel, x::Input)
     isMulti(k) || return k(x)
     ks = [k(typeof(x)(xx)) for xx in x.val]
@@ -53,7 +53,7 @@ function (k::NoiseKernel)(x, y)
     K = [(k.k_true + k.k_noise) k.k_true; k.k_true k.k_true]
     return MultiKernel(K)(x, y)
 end
-var(k::NoiseKernel, x) = stack([var(k.k_true + k.k_noise, x), var(k.k_true, x)])
+Statistics.var(k::NoiseKernel, x) = stack([var(k.k_true + k.k_noise, x), var(k.k_true, x)])
 function hourly_cov(k::NoiseKernel, x)
     ks = [k(xx) for xx in x]
     return BlockDiagonal(ks)
@@ -73,7 +73,7 @@ end
 (k::NoiseKernel)(x::Vector{<:Input}, y::Input) = k(x, [y])
 (k::NoiseKernel)(x::Input, y::Vector{<:Input}) = k([x], y)
 (k::NoiseKernel)(x) = k(x, x)
-function var(k::NoiseKernel, x::Vector{Input})
+function Statistics.var(k::NoiseKernel, x::Vector{Input})
     ks = [k(x[i, :]) for i in 1:size(x, 1)]
     p = Int(size(ks[1], 1) / size(x[1], 1)) # number of outputs
     return vcat([reshape(diag(kk), p, Int(size(kk, 1) / p))' for kk in ks]...)
@@ -185,7 +185,7 @@ matrix.
 mutable struct MultiKernel <: MultiOutputKernel
     k::Matrix{Kernel}
 end
-show(io::IO, k::MultiKernel) = print(io, "$(k.k)")
+Base.show(io::IO, k::MultiKernel) = print(io, "$(k.k)")
 function (m::MultiKernel)(x, y)
     tmp = [k(x, y) for k in m.k]
    return stack(tmp)
@@ -194,20 +194,20 @@ end
 (m::MultiKernel)(x, y, i::Int, j::Int) = m.k[i, j](x, y)
 (m::MultiKernel)(x) = m(x, x)
 (m::MultiKernel)(x, i::Int, j::Int) = m(x, x, i, j)
-(+)(m::MultiKernel, k::Kernel) = MultiKernel(m.k .+ k) ## ref
-(+)(k::Kernel, m::MultiKernel) = m + k
-(+)(m1::MultiKernel, m2::MultiKernel) = SumKernel(m1, m2)
-size(k::MultiKernel, i::Int) = size(k.k, i)
+Base.:+(m::MultiKernel, k::Kernel) = MultiKernel(m.k .+ k) ## ref
+Base.:+(k::Kernel, m::MultiKernel) = m + k
+Base.:+(m1::MultiKernel, m2::MultiKernel) = SumKernel(m1, m2)
+Base.size(k::MultiKernel, i::Int) = size(k.k, i)
 isMulti(k::MultiKernel) = size(k.k) != (1, 1) || isMulti(k.k[1])
 
-function (+)(m::MultiKernel, k::ScaledKernel)
+function Base.:+(m::MultiKernel, k::ScaledKernel)
     unwrap(k.scale) ≈ 0.0 && return m
     isMulti(k) && return SumKernel(m, k)
     return MultiKernel(m.k .+ k)
 end
-(+)(k::ScaledKernel, m::MultiKernel) = m + k
-(+)(m::MultiKernel, k::SumKernel) = isMulti(k) ? SumKernel(m, k) : MultiKernel(m.k .+ k)
-(+)(k::SumKernel, m::MultiKernel) = m + k
+Base.:+(k::ScaledKernel, m::MultiKernel) = m + k
+Base.:+(m::MultiKernel, k::SumKernel) = isMulti(k) ? SumKernel(m, k) : MultiKernel(m.k .+ k)
+Base.:+(k::SumKernel, m::MultiKernel) = m + k
 
 """
     verynaiveLMMKernel(m, p, σ², H, k)
@@ -236,7 +236,7 @@ mutable struct NaiveLMMKernel <: MultiOutputKernel
     σ²
     k::MultiKernel
 end
-show(io::IO, k::NaiveLMMKernel) = print(io, "$(k.k)")
+Base.show(io::IO, k::NaiveLMMKernel) = print(io, "$(k.k)")
 function NaiveLMMKernel(m, σ², H, k)
     K = Matrix{Kernel}(undef, m, m)
     K .= 0
@@ -340,8 +340,8 @@ mutable struct LMMKernel <: MultiOutputKernel
     end
 end
 create_instance(T::Type{LMMKernel}, args...) = _unsafe_LMMKernel(args...)
-size(k::LMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
-function show(io::IO, k::LMMKernel)
+Base.size(k::LMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
+function Base.show(io::IO, k::LMMKernel)
     print(io, "$(unwrap(k.H)) * $(k.ks) * $(unwrap(k.H)')")
 end
 function LMMKernel(m::Int, p::Int, σ²::Union{Float64, Vector{Float64}}, H::Matrix, k::Kernel)
@@ -368,10 +368,10 @@ mutable struct LMMPosKernel <: MultiOutputKernel
     Z
     LMMPosKernel(k, x, Z) = new(k, Fixed(x), Fixed(Z))
 end
-show(io::IO, k::LMMPosKernel) = print(io, "Posterior($(k.k))")
+Base.show(io::IO, k::LMMPosKernel) = print(io, "Posterior($(k.k))")
 # There is a good amount of repeated code here. We should see if we can clean some, without
 # losing optimisations.
-size(k::LMMPosKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.k.p) : 1)
+Base.size(k::LMMPosKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.k.p) : 1)
 function (k::LMMPosKernel)(x, y)
     # NOTE: Our LMM notes have all been derived assuming a different convention for inputs
     # and outputs. Thus, inside this function we will convert them to old conventions and
@@ -417,7 +417,7 @@ function (k::LMMPosKernel)(x)
     Z = unwrap(k.Z)
 
     ks = [k(x) for k in k.k.ks]
-    chols = chol.([(Hermitian(k) + _EPSILON_^2 * Eye(n)) for k in ks])
+    chols = [cholesky(Hermitian(k) + _EPSILON_^2 * Eye(n)).U for k in ks]
     Uₓₓ = stack(BlockDiagonal(chols))
     Tₓₓ = kron_lid_lmul_lt_m(H, Uₓₓ')
 
@@ -434,7 +434,7 @@ function (k::LMMPosKernel)(x)
 end
 
 # TODO: optimise the LMM covariance matrix only for hourly blocks.
-function var(k::LMMPosKernel, x)
+function Statistics.var(k::LMMPosKernel, x)
     m = unwrap(k.k.m)
     n = size(x, 1)
     H = unwrap(k.k.H)
@@ -459,7 +459,7 @@ function var(k::LMMPosKernel, x)
             # non-diagonal terms.
             scale = j > i ? 2. : 1.
             σ²_pred .-= scale .* diag_outer_kron(Kx[i], outer_HsiΛ[i], Kx[j], outer_HsiΛ[j])
-            W = A_mul_Bt(Kx[i] * A_mul_Bt(inners[i], inners[j]), Kx[j])
+            W = (Kx[i] * (inners[i] * transpose(inners[j]))) * transpose(Kx[j])
             σ²_pred .+= scale .* kron(diag(W), diag_outer(H[:, i], H[:, j]))
         end
     end
@@ -676,8 +676,7 @@ function greedy_U(k::OLMMKernel, x, y)
 
     function Σ(i)
         K = S_sqrt[i] * k.ks[i](x) + σ² * I + S_sqrt[i] * D[i] * I
-        Uk = Nabla.chol(K)
-        Z = Uk' \ y
+        Z = cholesky(K).L \ y
         return (y' * y) ./ σ² - Z' * Z
     end
 
@@ -746,26 +745,26 @@ function (k::OLMMKernel)(x)
     return fuse_equal(mix_Σs)
 end
 isMulti(k::OLMMKernel) = unwrap(k.p) > 1
-size(k::OLMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
+Base.size(k::OLMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
 
 # Matrix-Kernel multiplications
-(*)(m::Matrix, k::Kernel) = MultiKernel(m .* k)
-(*)(k::Kernel, m::Matrix) = m * k
+Base.:*(m::Matrix, k::Kernel) = MultiKernel(m .* k)
+Base.:*(k::Kernel, m::Matrix) = m * k
 
-(*)(m::Matrix, k::ZeroKernel) = zeros(Kernel, size(m))
-(*)(k::ZeroKernel, m::Matrix) = m * k
+Base.:*(m::Matrix, k::ZeroKernel) = zeros(Kernel, size(m))
+Base.:*(k::ZeroKernel, m::Matrix) = m * k
 
-(*)(m::Matrix, k::ScaledKernel) = ScaledKernel(k.scale, m * k.k)
-(*)(k::ScaledKernel, m::Matrix) = ScaledKernel(k.scale, k.k * m)
+Base.:*(m::Matrix, k::ScaledKernel) = ScaledKernel(k.scale, m * k.k)
+Base.:*(k::ScaledKernel, m::Matrix) = ScaledKernel(k.scale, k.k * m)
 
-(*)(m::Matrix, k::StretchedKernel) = StretchedKernel(k.stretch, m * k.k)
-(*)(k::StretchedKernel, m::Matrix) = StretchedKernel(k.stretch, k.k * m)
+Base.:*(m::Matrix, k::StretchedKernel) = StretchedKernel(k.stretch, m * k.k)
+Base.:*(k::StretchedKernel, m::Matrix) = StretchedKernel(k.stretch, k.k * m)
 
-(*)(m::Matrix, k::SumKernel) = SumKernel(m * k.k1, m * k.k2)
-(*)(k::SumKernel, m::Matrix) = SumKernel(k.k1 * m, k.k2 * m)
+Base.:*(m::Matrix, k::SumKernel) = SumKernel(m * k.k1, m * k.k2)
+Base.:*(k::SumKernel, m::Matrix) = SumKernel(k.k1 * m, k.k2 * m)
 
-(*)(m::Matrix, k::PeriodicKernel) = PeriodicKernel(k.T, m * k.k)
-(*)(k::PeriodicKernel, m::Matrix) = PeriodicKernel(k.T, k.k * m)
+Base.:*(m::Matrix, k::PeriodicKernel) = PeriodicKernel(k.T, m * k.k)
+Base.:*(k::PeriodicKernel, m::Matrix) = PeriodicKernel(k.T, k.k * m)
 
-(*)(m::Matrix, k::MultiKernel) = MultiKernel(m * k.k)
-(*)(k::MultiKernel, m::Matrix) = MultiKernel(k.k * m)
+Base.:*(m::Matrix, k::MultiKernel) = MultiKernel(m * k.k)
+Base.:*(k::MultiKernel, m::Matrix) = MultiKernel(k.k * m)
