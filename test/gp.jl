@@ -142,6 +142,7 @@ end
     H = [1 2 3; 4 3 2; 4 4 4; 1 3 2; 7 6 3]
     y = (H * xs')'
     gp = GP(LMMKernel(3, 5, 1e-2, H, EQ()))
+    @test isa(sprint(show, gp), String)
     x = collect(1.0:6.0)
     ngp = condition(gp, x, y)
     xx = collect(3.0:6.0)
@@ -187,6 +188,8 @@ end
     # check optimised versions
     sgp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, Matrix(U[:, 1:3]), EQ()))
     gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, Matrix(U[:, 1:3]), [EQ() for i in 1:3]))
+    @test isa(sprint(show, gp), String)
+    @test isa(sprint(show, sgp), String)
     x = collect(0:0.1:2)
     @test mean(sgp(x)) ≈ mean(gp(x)) atol = _ATOL_
     @test cov(sgp(x)) ≈ cov(gp(x)) atol = _ATOL_

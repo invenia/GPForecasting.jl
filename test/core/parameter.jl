@@ -11,6 +11,7 @@
     @test GPForecasting.unpack(fx, [0]) ≈ fx
     @test isa(GPForecasting.name(fx), Nullable{String})
     @test GPForecasting.set(fx, 12.3) ≈ Fixed(12.3)
+    @test isa(sprint(show, fx), String)
 
     v = [5.5, 7.7]
     fv = Fixed(v)
@@ -21,6 +22,7 @@
     @test GPForecasting.unpack(fv, []) ≈ fv
     @test isa(GPForecasting.name(fv), Nullable{String})
     @test GPForecasting.set(fv, [1.1, 3.3]) ≈ Fixed([1.1, 3.3])
+    @test isa(sprint(show, fv), String)
 
     p = Positive(5.5)
 
@@ -30,6 +32,7 @@
     @test GPForecasting.unpack(p, [log(5.5 - p.ε)]) ≈ p
     @test isa(GPForecasting.name(p), Nullable{String})
     @test GPForecasting.set(p, 12.3) ≈ Positive(12.3)
+    @test isa(sprint(show, p), String)
 
     v = [-1.0, 1.0]
     pv = Positive(v)
@@ -40,6 +43,7 @@
     @test GPForecasting.unpack(pv, GPForecasting.pack(pv)).p ≈ [2.0e-6, 1.0] atol = _ATOL_
     @test isa(GPForecasting.name(p), Nullable{String})
     @test GPForecasting.set(pv, [0.5, 1.5]) ≈ Positive([0.5, 1.5])
+    @test isa(sprint(show, pv), String)
 
     n = Named(5.5, "secret")
 
@@ -49,6 +53,7 @@
     @test GPForecasting.unpack(n, [5.5]) ≈ n
     @test GPForecasting.name(n) == "secret"
     @test GPForecasting.set(n, 12.3) ≈ Named(12.3, "secret")
+    @test isa(sprint(show, n), String)
 
     b = Bounded(0., -10., 10.)
 
@@ -56,6 +61,7 @@
     @test GPForecasting.unwrap(b) ≈ 0. atol = _ATOL_
     @test isa(GPForecasting.name(b), Nullable{String})
     @test GPForecasting.set(b, 5.) ≈ Bounded(5., -10., 10.)
+    @test isa(sprint(show, b), String)
     for x in Compat.range(0., stop=10., length=10)
         b = Bounded(x, 10.)
         @test GPForecasting.unwrap(GPForecasting.unpack(b, GPForecasting.pack(b))) ≈ x  atol = _ATOL_
@@ -76,4 +82,5 @@
     @test GPForecasting.unpack(bv, GPForecasting.pack(bv)).p ≈ [4.0, 7.0] atol = _ATOL_
     @test isa(GPForecasting.name(bv), Nullable{String})
     @test GPForecasting.set(bv, [5.0, 2.0]) ≈ Bounded([5.0, 2.0], lb, ub)
+    @test isa(sprint(show, bv), String)
 end
