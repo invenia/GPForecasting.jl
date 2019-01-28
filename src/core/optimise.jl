@@ -176,7 +176,6 @@ function learn_summary(
     return Θ_opt, GP(gp.m, set(gp.k, Θ_opt.minimizer))
 end
 
-#NOTE: The code below currently breaks due to Nabla issues. TODO: Fix it.
 function learn(
     gp::GP{OLMMKernel, <:Mean},
     x,
@@ -196,8 +195,8 @@ function learn(
         H, P = build_H_and_P(U, unwrap(gp.k.S_sqrt))
         ngp.k.U, ngp.k.H, ngp.k.P = Fixed(U), Fixed(H), Fixed(P)
     end
+    Θ_init = isempty(Θ_init) ? ngp.k[:] : Θ_init
     if K_U_cycles == 0
-        Θ_init = isempty(Θ_init) ? ngp.k[:] : Θ_init
         Θ_opt = minimise(
             obj(ngp, x, y),
             Θ_init,
@@ -210,7 +209,6 @@ function learn(
     # Got to overload if we want parameters in the means as well
     end
     for i in 1:K_U_cycles
-        Θ_init = isempty(Θ_init) ? ngp.k[:] : Θ_init
         Θ_opt = minimise(
             obj(ngp, x, y),
             Θ_init,
@@ -220,9 +218,10 @@ function learn(
             linesearch=linesearch,
         )
         ngp.k = set(ngp.k, Θ_opt)
-        U = greedy_U(gp.k, x, y)
-        H, P = build_H_and_P(U, unwrap(gp.k.S_sqrt))
+        U = greedy_U(ngp.k, x, y)
+        H, P = build_H_and_P(U, unwrap(ngp.k.S_sqrt))
         ngp.k.U, ngp.k.H, ngp.k.P = Fixed(U), Fixed(H), Fixed(P)
+        Θ_init = Θ_opt
     end
     return ngp
 end
