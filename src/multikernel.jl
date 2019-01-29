@@ -670,6 +670,13 @@ function greedy_U(k::OLMMKernel, x, y)
     D = unwrap(k.D)
     D = isa(D, Vector) ? D : ones(m) .* D
 
+    !all([d ≈ D[1] for d in D]) && warn(
+        """
+        The latent noise, D, must be uniformly diagonal in order to call greedy_U. There is
+        no guarantee that this method will output something sensible otherwise.
+        """
+    )
+
     function Σ(i)
         K = S_sqrt[i] * k.ks[i](x) + σ² * I + S_sqrt[i] * D[i] * I
         Uk = Nabla.chol(K)
@@ -678,13 +685,13 @@ function greedy_U(k::OLMMKernel, x, y)
     end
 
     U, _, _ = svd(Σ(1))
-    us = [U[:, end]]
-    V = U[:, 1:end - 1]
+    us = [U[:, 1]]
+    V = U[:, 2:end]
 
     for i in 2:m
         U, _, _ = svd(V' * Σ(i) * V)
-        push!(us, V * U[:, end])
-        V = V * U[:, 1:end - 1]
+        push!(us, V * U[:, 1])
+        V = V * U[:, 2:end]
     end
 
     return hcat(us...)
