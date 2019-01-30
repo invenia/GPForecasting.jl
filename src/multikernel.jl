@@ -659,8 +659,7 @@ end
 """
     greedy_U(k::OLMMKernel, x, y)
 
-Compute the greedy solution for the optimal `U` matrix of the OLMM model. This assumes that
-`D` (the latent noises) is uniformly diagonal, which is not necessarily true.
+Compute the greedy solution for the optimal `U` matrix of the OLMM model.
 """
 function greedy_U(k::OLMMKernel, x, y)
     n = size(x, 1)
@@ -669,13 +668,6 @@ function greedy_U(k::OLMMKernel, x, y)
     S_sqrt = unwrap(k.S_sqrt)
     D = unwrap(k.D)
     D = isa(D, Vector) ? D : ones(m) .* D
-
-    !all([d ≈ D[1] for d in D]) && warn(
-        """
-        The latent noise, D, must be uniformly diagonal in order to call greedy_U. There is
-        no guarantee that this method will output something sensible otherwise.
-        """
-    )
 
     function Σ(i)
         K = S_sqrt[i] * k.ks[i](x) + σ² * I + S_sqrt[i] * D[i] * I
