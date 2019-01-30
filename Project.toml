@@ -40,7 +40,7 @@ LineSearches = ">=3.2.5"
 Memento = ">=0.10"
 Missings = ">=0.2.9"
 ModelAnalysis = "0.2"
-Nabla = ">=0.5"
+Nabla = ">=0.6"
 Optim = ">=0.14.1"
 julia = "0.7, 1.0"
 

@@ -91,7 +91,7 @@ Get the dimensionality of a distribution `dist`.
 Base.size(dist::Gaussian) = size(mean(dist))
 
 """
-    cholesky(dist::Gaussian) -> AbstractMatrix
+    cholesky(dist::Gaussian) -> Cholesky
 
 Compute the Cholesky of the covariance matrix of a MVN `dist`
 
@@ -99,13 +99,16 @@ Compute the Cholesky of the covariance matrix of a MVN `dist`
 - `dist::Gaussian`: MVN that contains the covariance matrix to compute the Cholesky of.
 
 # Returns
-- `AbstractMatrix`: Computed Cholesky decomposition.
+- `Cholesky`: Computed Cholesky decomposition.
 """
 @unionise function LinearAlgebra.cholesky(dist::Gaussian)
     if dist.U == Matrix(undef, 0, 0)
+        # NOTE: Adding a tiny regularizer to the main diagonal shifts the eigenvalues
+        # and ensures that the matrix is positive definite, which avoids the possibility
+        # of a PosDefException
         dist.U = cholesky(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist))).U
     end
-    return dist.U
+    return Cholesky(dist.U, 'U', 0)
 end
 
 @unionise function LinearAlgebra.cholesky(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
@@ -115,7 +118,7 @@ end
             cholesky(block + _EPSILON_ * Eye(block)).U
         end)
     end
-    return dist.U
+    return Cholesky(dist.U, 'U', 0)
 end
 
 """
@@ -131,7 +134,7 @@ Sample `n` samples from a MVN `dist`.
 - `AbstractMatrix{<:Real}`: Samples where the columns correspond to different samples.
 """
 function StatsBase.sample(dist::Gaussian, n::Integer=1)
-    U = cholesky(dist)
+    U = cholesky(dist).U
     if n > 1
         return mean(dist) .+ reshape(U' * randn(dim(dist), n), size(dist)..., n)
     else

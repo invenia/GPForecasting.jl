@@ -37,7 +37,7 @@ Update `gp` parameter values with `params` and then call logpdf(ngp, x, y), wher
 the updated `GP`. Does NOT affect `gp`.
 """
 @unionise function Distributions.logpdf(dist::Gaussian, x::AbstractArray)
-    U = cholesky(dist)
+    U = cholesky(dist).U
     log_det = 2 * sum(log.(diag(U)))
     if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
@@ -57,7 +57,7 @@ end
 # to the unionise, since Distributions.jl has its own logpdf methods that can be as
 # especialised as the above.
 function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
-    U = cholesky(dist)
+    U = cholesky(dist).U
     log_det = 2 * sum(log.(diag(U)))
     if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
@@ -123,7 +123,7 @@ end
 end
 
 @unionise function Distributions.logpdf(dist::Gaussian, xs::Vector{<:Vector})
-    U = cholesky(dist)
+    U = cholesky(dist).U
     log_det = 2 * sum(log.(diag(U)))
     out = 0.0
     for x in xs
