@@ -38,6 +38,25 @@ function LinearAlgebra.cholesky(B::BlockDiagonal)
     return Cholesky(BlockDiagonal(map(b->cholesky(b).U, blocks(B))), 'U', 0)
 end
 
+# Make getproperty on a Cholesky factorized BlockDiagonal return another BlockDiagonal
+# where each block is an upper or lower triangular matrix. This ensures that optimizations
+# for BlockDiagonal matrices are preserved, though it comes at the cost of reallocating
+# a vector of triangular wrappers on each call.
+function Base.getproperty(C::Cholesky{T,BlockDiagonal{T}}, x::Symbol) where T
+    B = getfield(C, :factors)
+    uplo = getfield(C, :uplo)
+    if x === :U
+        f = uplo === 'U' ? UpperTriangular : (X->UpperTriangular(X'))
+    elseif x === :L
+        f = uplo === 'L' ? LowerTriangular : (X->LowerTriangular(X'))
+    elseif x === :UL
+        f = uplo === 'U' ? UpperTriangular : LowerTriangular
+    else
+        return getfield(C, x)
+    end
+    return BlockDiagonal{T}(map(f, blocks(B)))
+end
+
 LinearAlgebra.det(b::BlockDiagonal) = prod(det.(blocks(b)))
 function LinearAlgebra.eigvals(b::BlockDiagonal)
     eigs = vcat(eigvals.(blocks(b))...)

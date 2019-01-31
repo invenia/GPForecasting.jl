@@ -95,4 +95,28 @@
                 [kron(V[i]*V[j]', A[i,j] * MM[i][j]) for i=1:5, j=1:5]
             )) atol = _ATOL_
     end
+
+    @testset "Cholesky decomposition of block diagonal matrices" begin
+        X = [  4  12 -16
+              12  37 -43
+             -16 -43  98]
+        U = [ 2.0 6.0 -8.0
+              0.0 1.0  5.0
+              0.0 0.0  3.0]
+        B = BlockDiagonal([X, X])
+        C = cholesky(B)
+        @test C isa Cholesky{Float64,BlockDiagonal{Float64}}
+        @test C.U ≈ BlockDiagonal([U, U])
+        @test C.L ≈ BlockDiagonal([U', U'])
+        @test C.UL ≈ C.U
+        @test C.uplo === 'U'
+        @test C.info == 0
+        M = BlockDiagonal(map(Matrix, blocks(C.L)))
+        C = Cholesky(M, 'L', 0)
+        @test C.U ≈ BlockDiagonal([U, U])
+        @test C.L ≈ BlockDiagonal([U', U'])
+        @test C.UL ≈ C.L
+        @test C.uplo === 'L'
+        @test C.info == 0
+    end
 end
