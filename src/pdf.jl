@@ -37,18 +37,18 @@ Update `gp` parameter values with `params` and then call logpdf(ngp, x, y), wher
 the updated `GP`. Does NOT affect `gp`.
 """
 @unionise function Distributions.logpdf(dist::Gaussian, x::AbstractArray)
-    U = cholesky(dist).U
-    log_det = 2 * sum(log.(diag(U)))
-    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    L = cholesky(dist).L
+    log_det = 2 * sum(log.(diag(L)))
+    if size(x, 2) > 1 && size(L, 2) == prod(size(x)) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
-        z = U' \ (x .- dist.μ)'[:]
-    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+        z = L \ (x .- dist.μ)'[:]
+    elseif size(L, 2) == size(x, 2) # This means we have a covariance matrix that has entries
     # only for the different outputs, but for a single timestamp. This allows for the
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
-        z = U' \ (x .- dist.μ')'
+        z = L \ (x .- dist.μ')'
         return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
     else
-        z = U' \ (x .- dist.μ)
+        z = L \ (x .- dist.μ)
     end
     return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
@@ -57,15 +57,15 @@ end
 # to the unionise, since Distributions.jl has its own logpdf methods that can be as
 # especialised as the above.
 function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
-    U = cholesky(dist).U
-    log_det = 2 * sum(log.(diag(U)))
-    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    L = cholesky(dist).L
+    log_det = 2 * sum(log.(diag(L)))
+    if size(x, 2) > 1 && size(L, 2) == prod(size(x)) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
-        z = U' \ (x .- dist.μ)'[:]
-    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+        z = L \ (x .- dist.μ)'[:]
+    elseif size(L, 2) == size(x, 2) # This means we have a covariance matrix that has entries
     # only for the different outputs, but for a single timestamp. This allows for the
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
-        z = U' \ (x .- dist.μ')'
+        z = L \ (x .- dist.μ')'
         return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
     end
     return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
@@ -116,18 +116,18 @@ end
     M = cholesky(
         Symmetric(eye_sum_kron_M_ut(transpose(H) * (H ./ σ²), Ls...)) .+
         _EPSILON_ .* Eye(m * n_d)
-    ).U
+    ).L
     log_det = n_d * sum(log.(σ²)) + 2sum(log.(diag(M)))
-    z = M' \ (LQ * HiΛy)
+    z = M \ (LQ * HiΛy)
     return -.5(n_d * p * log(2π) + log_det + dot(yiσ², yt) - dot(z, z))
 end
 
 @unionise function Distributions.logpdf(dist::Gaussian, xs::Vector{<:Vector})
-    U = cholesky(dist).U
-    log_det = 2 * sum(log.(diag(U)))
+    L = cholesky(dist).L
+    log_det = 2 * sum(log.(diag(L)))
     out = 0.0
     for x in xs
-        z = U' \ (x .- dist.μ)
+        z = L \ (x .- dist.μ)
         out += -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
     end
     return out

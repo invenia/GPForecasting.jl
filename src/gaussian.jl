@@ -134,11 +134,11 @@ Sample `n` samples from a MVN `dist`.
 - `AbstractMatrix{<:Real}`: Samples where the columns correspond to different samples.
 """
 function StatsBase.sample(dist::Gaussian, n::Integer=1)
-    U = cholesky(dist).U
+    L = cholesky(dist).L
     if n > 1
-        return mean(dist) .+ reshape(U' * randn(dim(dist), n), size(dist)..., n)
+        return mean(dist) .+ reshape(L * randn(dim(dist), n), size(dist)..., n)
     else
-        return mean(dist) .+ reshape(U' * randn(dim(dist), n), size(dist)...)
+        return mean(dist) .+ reshape(L * randn(dim(dist), n), size(dist)...)
     end
 end
 Statistics.rand(dist::Gaussian) = sample(dist)
