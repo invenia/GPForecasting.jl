@@ -14,6 +14,11 @@ function hourly_cov(k::MultiOutputKernel, x)
     return BlockDiagonal(ks)
 end
 
+function hourly_cov(k::MultiOutputKernel, x::DataFrame)
+     ks = [k(DataFrame(x[i, :])) for i in 1:size(x, 1)]
+    return BlockDiagonal(ks)
+end
+
 """
     NoiseKernel <: MultiOutputKernel
 
