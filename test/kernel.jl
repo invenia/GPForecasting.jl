@@ -170,6 +170,7 @@
         mk = MultiKernel([k k2; k2 k])
         input = DataFrame([rand(5), rand(5)], [:in, :bs])
         @test isa(hourly_cov(mk, input), BlockDiagonal)
+        @test isa(var(k, input), Vector)
 
         m = MultiKernel([EQ() 2*EQ(); EQ()+2 EQ()▷3])
 

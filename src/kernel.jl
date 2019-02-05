@@ -11,6 +11,7 @@ export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel
 #########################################################
 
 var(k::Kernel, x) = [k(x[i, :])[1] for i in 1:size(x, 1)]
+var(k::Kernel, x::DataFrame) = [k(DataFrame(x[i, :]))[1] for i in 1:size(x, 1)]
 var(k::Kernel, x::Vector{Input}) = vcat(broadcast(c -> var(k, c), x)...)
 
 size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
