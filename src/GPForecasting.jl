@@ -113,7 +113,6 @@ include("multikernel.jl")
 include("mean.jl")
 include("multimean.jl")
 include("gp.jl")
-include("core/datahandling.jl")
 include("pdf.jl")
 include("core/optimise.jl")
 
