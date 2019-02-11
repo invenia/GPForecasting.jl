@@ -64,6 +64,8 @@ function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
         z = L \ (x .- dist.μ')'
         return (-size(x, 1) * (log_det + size(x, 2) * log(2π)) - sum(abs2, z)) / 2
+    else
+        z = U' \ (x .- dist.μ)
     end
     return -(log_det + length(x) * log(2π) + sum(abs2, z)) / 2
 end
@@ -218,3 +220,39 @@ a `gp` evaluated at points `x`. Returns a function of the `GP` parameters.
         return -logpdf(gp::GP, x, y, params)
     end
 end
+
+"""
+"""
+@unionise function titsiasELBO(gp::GP, x, y::AbstractArray{<:Real})
+    Xm = unwrap(gp.k.Xm)
+    k = gp.k.k
+    m = gp.m
+    σ² = unwrap(gp.k.σ²)
+    num_m = unwrap(gp.k.n)
+    # Compute Qnn
+    Kmm = k(Xm, Xm)
+    Kmn = k(Xm, x)
+    Umm = Nabla.chol(Kmm + _EPSILON_^2 * Eye(num_m))
+    Q_sqrt = Umm' \ Kmn
+    Qnn = Q_sqrt' * Q_sqrt
+    # Compute first term
+    log_N = logpdf(Gaussian(m(x), Qnn + σ² * Eye(size(Qnn, 1))), y)
+    # Compute K̅
+    return log_N - (2 * σ²)^(-1) * tr(k(x) - Qnn)
+end
+
+@unionise function titsiasELBO(gp::GP, x, y::AbstractArray{<:Real}, params::Vector{<:Real})
+    ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
+    # if we want to update the means as well, we should overload this.
+    return titsiasELBO(ngp::GP, x, y)
+end
+
+"""
+"""
+@unionise function titsiasobj(gp::GP, x, y::AbstractArray{<:Real}, Xm, σ²)
+    sk = SparseKernel(gp.k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
+    return function f(params)
+        return -titsiasELBO(GP(gp.m, sk), x, y, params)
+    end
+end
+# TODO: A method that let's specify only the number of inducing points
