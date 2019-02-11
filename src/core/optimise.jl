@@ -249,3 +249,39 @@ function learn(
     end
     return ngp
 end
+
+function learn_sparse(
+    gp::GP,
+    x,
+    y::AbstractArray{<:Real},
+    Xm,
+    σ²,
+    obj::Function=titsiasobj;
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+)
+
+    Θ_init = isempty(Θ_init) ?
+        vcat(pack(Xm), pack(σ²), gp.k[:]) : # NAO FUNCIONA COM DATAFRAMES!!!!!
+        Θ_init
+    Θ_opt = minimise(
+        obj(gp, x, y, Xm, σ²),
+        Θ_init,
+        its=its,
+        trace=trace,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+    )
+
+    # Again, assuming we are only optimising kernels
+    # Got to overload if we want parameters in the means as well
+    sk = SparseKernel(gp.k, Xm, Fixed(length(unwrap(Xm))), σ²)
+    sparse_gp = GP(gp.m, set(sk, Θ_opt))
+    return GP(sparse_gp.m, sparse_gp.k.k), sparse_gp.k.Xm, sparse_gp.k.σ²
+end
+
+# TODO: Provavelmente o caminho é definir o pack e unpack pros DataFrames. Quando eles sofrerem
+# o pack, tem que achatar, igual qdo faz vec. Assim deve dar pra aproveitar o resto
