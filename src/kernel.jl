@@ -71,6 +71,33 @@ function (k::PosteriorKernel)(x, y)
 end
 
 """
+"""
+mutable struct TitsiasPosteriorKernel <: Kernel
+    k::Kernel
+    Xm
+    Uz
+    Umm
+    TitsiasPosteriorKernel(k, Xm, Uz, Umm) = new(k, Fixed(Xm), Fixed(Uz), Fixed(Umm))
+end
+
+function (k::TitsiasPosteriorKernel)(x)
+    Xm = unwrap(k.Xm)
+    Uz = unwrap(k.Uz)
+    Umm = unwrap(k.Umm)
+
+    Kx = k.k(x)
+    Kmx = k.k(Xm, x)
+    sqrt₁ = Umm' \ Kmx
+    sqrt₂ = Uz' \ Kmx
+    return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂)
+end
+
+function (k::TitsiasPosteriorKernel)(x, y)
+
+end
+
+
+"""
     EQ <: Kernel
 
 Squared exponential kernel. Computes exp((-1/2) * |x - x′|²).
@@ -552,3 +579,20 @@ end
 
 Base.zero(::Kernel) = ZeroKernel()
 Base.zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
+
+"""
+    SparseKernel <: Kernel
+
+Not supposed to be used directly by the user. This is automatically called under the hood,
+whenever necessary.
+"""
+mutable struct SparseKernel <: Kernel
+    k::Kernel
+    Xm
+    n
+    σ²
+end
+# SparseKernel(k::Kernel, )
+(k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
+(k::SparseKernel)() = k.k(unwrap(k.Xm))
+show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")
