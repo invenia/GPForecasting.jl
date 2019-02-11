@@ -175,3 +175,41 @@ function (m::PosteriorMean)(x)
     posmeans = meansv .+ (m.k(x, xd) / U) * (U' \ ydv)
     return unstack(posmeans, size(means, 2))
 end
+
+"""
+"""
+mutable struct TitsiasPosteriorMean <: Mean
+    k::Kernel
+    m::Mean # Check if things work for non-zero prior mean
+    x
+    Xm
+    Uz
+    σ²
+    y
+    function TitsiasPosteriorMean(k, m, x, Xm, Uz, σ², y)
+        return new(
+            k,
+            m,
+            Fixed(x),
+            Fixed(Xm),
+            Fixed(Uz),
+            Fixed(σ²),
+            Fixed(y)
+        )
+    end 
+end
+
+function (m::TitsiasPosteriorMean)(x)
+    xn = unwrap(m.x)
+    Xm = unwrap(m.Xm)
+    Uz = unwrap(m.Uz)
+    σ² = unwrap(m.σ²)
+    yd = unwrap(m.y)
+
+    ymm = yd .- m.m(xd) # Assuming it works for non-zero mean, CHECK IT!!!
+    ydv = stack([ymm[:, i] for i in 1:size(ymm, 2)])
+    Kxm = m.k(x, Xm)
+    Kmn = m.k(Xm, xn)
+    posmeans = (1/σ²) .* ((Kxm / Uz) * (Uz' \ Kmn)) * ydv
+    return unstack(posmeans, size(yd, 2))
+end
