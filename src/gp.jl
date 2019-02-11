@@ -181,6 +181,32 @@ function condition(
     return GP(pos_m, pos_k)
 end
 
+"""
+"""
+function sparse_condition(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
+    xm = unwrap(Xm)
+    # Compute the relevant Choleskys
+    Kmm = gp.k(xm, xm)
+    Umm = Nabla.chol(Kmm + _EPSILON_^2 * I)
+    Knm = gp.k(x, xm)
+    T = Umm' \ Knm'
+    P = I + (1/unwrap(σ²)) .* (T * T')
+    Up = Nabla.chol(P + _EPSILON_^2 * I)
+    Uz = Up * Umm
+    # The implementation above should be mathematically equivalent to the one below, but
+    # numerically more stable.
+    # Z = Kmm + (1/unwrap(σ²)) .* Knm' * Knm # Z = inv(Σ)
+    # Uz = Nabla.chol(Z + _EPSILON_^2 * I)
+    # Build posterior TitsiasPosteriorKernel and TitsiasPosteriorMean
+    pos_m = TitsiasPosteriorMean(gp.k, gp.m, x, xm, Uz, σ², y)
+    pos_k = TitsiasPosteriorKernel(gp.k, xm, Uz, Umm)
+    return GP(pos_m, pos_k)
+end
+
+function sparse_condition(gp::GP{<:OLMMKernel, <:Mean})
+
+end
+
 (p::GP)(x; hourly=false) = Gaussian(p.m(x), hourly ? hourly_cov(p.k, x) : p.k(x))
 function (p::GP{K, M})(x::Input; hourly=false) where {K <: NoiseKernel, M <: Mean}
     return Gaussian(p.m(x.val), hourly ? hourly_cov(p.k, x) : p.k(x))
