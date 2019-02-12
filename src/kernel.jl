@@ -466,7 +466,7 @@ struct DiagonalKernel <: Kernel end
 function (::DiagonalKernel)(x, y)
     xl = [x[i, :] for i in 1:size(x, 1)]
     yl = [y[i, :]' for i in 1:size(y, 1)]
-    return float.(isapprox.(float.(xl), float.(yl')))
+    return float.(isapprox.(xl, yl'))
 end
 (k::GPForecasting.DiagonalKernel)(x::DataFrame, y::DataFrame) = k(Matrix(x), Matrix(y))
 function (k::DiagonalKernel)(x::DataFrameRow, y::DataFrameRow)
