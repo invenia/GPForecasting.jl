@@ -199,7 +199,7 @@ function sparse_condition(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
     # Uz = Nabla.chol(Z + _EPSILON_^2 * I)
     # Build posterior TitsiasPosteriorKernel and TitsiasPosteriorMean
     pos_m = TitsiasPosteriorMean(gp.k, gp.m, x, xm, Uz, σ², y)
-    pos_k = TitsiasPosteriorKernel(gp.k, xm, Uz, Umm)
+    pos_k = TitsiasPosteriorKernel(gp.k, xm, Uz, Umm, σ²)
     return GP(pos_m, pos_k)
 end
 

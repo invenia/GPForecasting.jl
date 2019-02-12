@@ -77,7 +77,10 @@ mutable struct TitsiasPosteriorKernel <: Kernel
     Xm
     Uz
     Umm
-    TitsiasPosteriorKernel(k, Xm, Uz, Umm) = new(k, Fixed(Xm), Fixed(Uz), Fixed(Umm))
+    σ²
+    function TitsiasPosteriorKernel(k, Xm, Uz, Umm, σ²)
+        return new(k, Fixed(Xm), Fixed(Uz), Fixed(Umm), Fixed(σ²))
+    end 
 end
 
 function (k::TitsiasPosteriorKernel)(x)
@@ -89,7 +92,7 @@ function (k::TitsiasPosteriorKernel)(x)
     Kmx = k.k(Xm, x)
     sqrt₁ = Umm' \ Kmx
     sqrt₂ = Uz' \ Kmx
-    return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂)
+    return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂) .+ unwrap(σ²) * I
 end
 
 function (k::TitsiasPosteriorKernel)(x, y)
