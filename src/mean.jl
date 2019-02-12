@@ -196,7 +196,7 @@ mutable struct TitsiasPosteriorMean <: Mean
             Fixed(σ²),
             Fixed(y)
         )
-    end 
+    end
 end
 
 function (m::TitsiasPosteriorMean)(x)
@@ -206,7 +206,7 @@ function (m::TitsiasPosteriorMean)(x)
     σ² = unwrap(m.σ²)
     yd = unwrap(m.y)
 
-    ymm = yd .- m.m(xd) # Assuming it works for non-zero mean, CHECK IT!!!
+    ymm = yd .- m.m(xn) # Assuming it works for non-zero mean, CHECK IT!!!
     ydv = stack([ymm[:, i] for i in 1:size(ymm, 2)])
     Kxm = m.k(x, Xm)
     Kmn = m.k(Xm, xn)
