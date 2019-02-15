@@ -30,6 +30,54 @@ function Gaussian(
     return Gaussian{T, G}(μ, Σ, Matrix(undef, 0, 0))
 end
 
+# The Adjoint type does not exist in 0.6, so it is a non-issue there
+if VERSION >= v"0.7"
+    function Gaussian(
+        μ::Adjoint{H, T},
+        Σ::Wrapped{G},
+    ) where {H, T <: AbstractArray, G <: AbstractArray}
+        return Gaussian{T, G}(T(μ), Σ, Matrix(undef, 0, 0))
+    end
+
+    function Gaussian(
+        μ::Adjoint{H, T},
+        Σ::Wrapped{G},
+        U::Wrapped{<:AbstractMatrix},
+    ) where {H, T <: AbstractArray, G <: AbstractArray}
+        return Gaussian{T, G}(T(μ), Σ, U)
+    end
+
+    function Gaussian(
+        μ::Wrapped{T},
+        Σ::Adjoint{H, G},
+    ) where {H, T <: AbstractArray, G <: AbstractArray}
+        return Gaussian{T, G}(μ, G(Σ), Matrix(undef, 0, 0))
+    end
+
+    function Gaussian(
+        μ::Wrapped{T},
+        Σ::Adjoint{H, G},
+        U::Wrapped{<:AbstractMatrix},
+    ) where {H, T <: AbstractArray, G <: AbstractArray}
+        return Gaussian{T, G}(μ, G(Σ), U)
+    end
+
+    function Gaussian(
+        μ::Adjoint{H, T},
+        Σ::Adjoint{H, G},
+    ) where {H, T <: AbstractArray, G <: AbstractArray}
+        return Gaussian{T, G}(T(μ), G(Σ), Matrix(undef, 0, 0))
+    end
+
+    function Gaussian(
+        μ::Adjoint{H, T},
+        Σ::Adjoint{H, G},
+        U::Wrapped{<:AbstractMatrix},
+    ) where {H, T <: AbstractArray, G <: AbstractArray}
+        return Gaussian{T, G}(T(μ), G(Σ), U)
+    end
+end
+
 mean(g::Gaussian) = g.μ
 cov(g::Gaussian) = g.Σ
 var(g::Gaussian) = reshape(diag(cov(g)), size(mean(g), 2), size(mean(g), 1))'

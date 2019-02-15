@@ -39,4 +39,24 @@ using ModelAnalysis
     @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g2, ones(3, 5)) atol = _ATOL_
     @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g3, ones(3, 5)) atol = _ATOL_
     @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g4, ones(3, 5)) atol = _ATOL_
+
+    # Test Adjoint constructors
+    g = Gaussian(rand(3, 2), rand(6, 6)')
+    @test isa(mean(g), Matrix)
+    @test isa(cov(g), Matrix)
+    g = Gaussian(rand(3, 2)', rand(6, 6))
+    @test isa(mean(g), Matrix)
+    @test isa(cov(g), Matrix)
+    g = Gaussian(rand(3, 2)', rand(6, 6)')
+    @test isa(mean(g), Matrix)
+    @test isa(cov(g), Matrix)
+    g = Gaussian(rand(3, 2), rand(6, 6)', rand(6, 6))
+    @test isa(mean(g), Matrix)
+    @test isa(cov(g), Matrix)
+    g = Gaussian(rand(3, 2)', rand(6, 6), rand(6, 6))
+    @test isa(mean(g), Matrix)
+    @test isa(cov(g), Matrix)
+    g = Gaussian(rand(3, 2)', rand(6, 6)', rand(6, 6))
+    @test isa(mean(g), Matrix)
+    @test isa(cov(g), Matrix)
 end
