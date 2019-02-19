@@ -92,6 +92,45 @@ end
     return logpdf(ngp::GP, x, y)
 end
 
+# We need a different one now for the OLMM that ensures that H is updated properly.
+@unionise function Distributions.logpdf(
+    gp::GP{K, M},
+    x,
+    y::AbstractArray{<:Real},
+    params::Vector{G}
+) where {K <: OLMMKernel, M <: Mean, G <: Real}
+    ngp = GP(gp.m, set(gp.k, params)) # This has the updated H, but the old U. H might (and
+    # usually will) not be of the form H = U. S.
+    if !isa(ngp.k.H, Fixed) # None of this is necessary if we don't learn H.
+        H = unwrap(ngp.k.H)
+        # Using the S_sqrt from the kernel, and not the one from decomposing `H`, allows us to
+        # optimise just `S_sqrt`, just `U`, or both.
+        S_sqrt = unwrap(ngp.k.S_sqrt)
+        # Obtain projector `P` and eigenvalues `U` from `H`. We won't directly use gp.k.P
+        # nor gp.k.U as before, because we
+        # want to tie it to `H` for learning and enforcing all constraints.
+        # First thing we need is to be able to reconstruct `U` from `H`. The issue here is that,
+        # even for H = U * Diagonal(S_sqrt), there are multiple solutions that comprise flipping
+        # the direction of eigenvectors. A way of doing the decomposition while still fixing the
+        # directions of the eigenvectors is by `U̅, S, V̅ = svd(H)`, `U = U̅ * V̅'`.
+        # Proof: `U * S * I = H = U̅ * S * V̅` (here using the fact that `H = U * S`, S diagonal
+        # and positive). Thus, `U * S = U̅ * V̅' * V̅ * S * V̅`. Now, we know that `U` and `U̅` can
+        # differ only by the direction of the eigenvectors, thus, `V̅` can only differ from the
+        # identity by having flipped signals in the main diagonal. Since both `V̅` and `S` 
+        # are diagonal, `V̅ * S` will be equal to `S` with some values with flipped signals, so
+        # `V̅ * S * V̅ = V̅`, meaning that `U = U̅ * V̅'`.
+        U̅, _, V̅ = svd(H)
+        U = U̅ * V̅' # new U.
+        P = Diagonal(S_sqrt.^(-1.0)) * U' # new P.
+        ngp2 = deepcopy(ngp) # not sure if this is necessary, just running from inplace ops.
+        ngp2.k.H = typeof(ngp2.k.H)(U * Diagonal(S_sqrt))
+        ngp2.k.P = Fixed(P)
+        ngp2.k.U = Fixed(U)
+        return logpdf(ngp2::GP, x, y::AbstractArray)
+    end
+    return logpdf(ngp::GP, x, y::AbstractArray)
+end
+
 @unionise function Distributions.logpdf(
     gp::GP{K, U},
     x,
@@ -178,30 +217,14 @@ end
     σ² = Ones(p) .* unwrap(gp.k.σ²)
     H = float(unwrap(gp.k.H)) # Prevents Nabla from breaking in case H has Ints.
     D = unwrap(gp.k.D)
-    # Using the S_sqrt from the kernel, and not the one from decomposing `H`, allows us to
-    # optimise just `S_sqrt`, just `U`, or both.
     S_sqrt = unwrap(gp.k.S_sqrt)
     isa(gp.k.ks, Kernel) && !isa(D, Vector) && S_sqrt ≈ ones(m) && return optlogpdf(gp, x, y) # TODO: voltar aqui
 
+
     D = isa(D, Vector) ? D : Ones(m) .* D
+    P = unwrap(gp.k.P)
 
-    # Obtain projector `P` from `H`. We won't directly use gp.k.P as before, because we
-    # want to tie it to `H` for learning and enforcing all constraints.
-    # First thing we need is to be able to reconstruct `U` from `H`. The issue here is that,
-    # even for H = U * Diagonal(S_sqrt), there are multiple solutions that comprise flipping
-    # the direction of eigenvectors. A way of doing the decomposition while still fixing the
-    # directions of the eigenvectors is by `U̅, S, V̅ = svd(H)`, `U = U̅ * V̅'`.
-    # Proof: `U * S * I = H = U̅ * S * V̅` (here using the fact that `H = U * S`, S diagonal
-    # and positive). Thus, `U * S = U̅ * V̅' * V̅ * S * V̅`. Now, we know that `U` and `U̅` can
-    # differ only by the direction of the eigenvectors, thus, `V̅` can only differ from the
-    # idenity by having flipped signals in the main diagonal. Now, since both `V̅` and `S` 
-    # are diagonal, `V̅ * S` will be equal to `S` with some values with flipped signals, so
-    # `V̅ * S * V̅ = V̅`, meaning that `U = U̅ * V̅'`.
-    U̅, _, V̅ = svd(H)
-    U = U̅ * V̅'
-    P = Diagonal(S_sqrt.^(-1.0)) * U'
-
-    Σn = Diagonal(σ²) .+ (U * Diagonal(S_sqrt)) * Diagonal(D) * (U * Diagonal(S_sqrt))'
+    Σn = Diagonal(σ²) .+ H * Diagonal(D) * H'
     gn = Gaussian(Zeros(p), Σn)
     lpdf = 0.0
 
