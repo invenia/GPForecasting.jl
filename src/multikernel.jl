@@ -520,12 +520,12 @@ mutable struct OLMMKernel <: MultiOutputKernel
     σ² # Observation noise
     D # latent noise(s)
     H # Mixing matrix, (p x m)
-    P::Fixed, # Projection matrix, (m x p). Can only be learned through H, since PH=I.
-    U::Fixed, # Orthogonal component of the mixing matrix, i.e. its eigenvectors.
+    P::Fixed # Projection matrix, (m x p). Can only be learned through H, since PH=I.
+    U::Fixed # Orthogonal component of the mixing matrix, i.e. its eigenvectors.
     # This is already truncated!
     # U is required to be Fixed because, in order to enforce the constraints, it can
     # only be learned through H.
-    S_sqrt::Union{<:Positive, <:Fixed}, # Eigenvalues of the latent processes.
+    S_sqrt::Union{<:Positive, <:Fixed} # Eigenvalues of the latent processes.
     # This is already truncated!
     # S_sqrt is restricted to be Positive or Fixed because it can never be non-positive.
     ks::Union{<:Kernel, Vector{<:Kernel}} # Kernels for the latent processes, m-long or the same for all
