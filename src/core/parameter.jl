@@ -104,6 +104,9 @@ mutable struct Positive{T} <: Parameter
     ε::Float64
 end
 Positive(p) = Positive(p, _EPSILON_)
+function Positive{T}(p::T) where T
+    return Positive{T}(p, _EPSILON_)
+end
 pack(x::Positive) = map(y -> log.(max.(y .- x.ε, x.ε)), pack(x.p))
 @unionise function unpack(x::Positive, y::Vector)
     return Positive(unpack(x.p, map(z -> exp.(z) .+ x.ε, y)), x.ε)
@@ -123,7 +126,13 @@ mutable struct Bounded{T} <: Parameter
     ε::Float64
 end
 Bounded(p, lb, ub) = Bounded(p, lb, ub, _EPSILON_)
+function Bounded{T}(p::T, lb, ub) where T
+   return Bounded{T}(p, lb, ub, _EPSILON_)
+end
 Bounded(p, ub) = Bounded(p, 0.0, ub, _EPSILON_)
+function Bounded{T}(p::T, ub) where T
+   return Bounded{T}(p, 0.0, ub, _EPSILON_)
+end
 clip(x, lb, ub) = min.(max.(x, lb), ub)
 function bounded2R(x, lb, ub, ε)
     # Map x from [lb, ub] to [lb + ε, ub - ε].
