@@ -494,8 +494,13 @@ Kernel that corresponds to the Orthogonal Linear Mixing Model.
 
 - `m`: Number of latent processes
 - `p`: Number of outputs
-- `σ²`: Variance. Same for all processes (so you should normalise the data first)
+- `σ²`: Observation noise variance. Same for all processes (so you should normalise the data
+    first)
+- `D`: Noise variance for the latent processes.
 - `H`: Mixing matrix of shape `p`x`m`
+- `P`: Projection matrix. `PH=I`.
+- `U`: Orthogonal component of the mixing matrix, i.e. its eigenvectors.
+- `S_sqrt`: Eigenvalues of the mixing matrix.
 - `ks`: Vector containing the kernel for each latent process
 
 * Constructors:
@@ -515,9 +520,14 @@ mutable struct OLMMKernel <: MultiOutputKernel
     σ² # Observation noise
     D # latent noise(s)
     H # Mixing matrix, (p x m)
-    P # Projection matrix, (m x p)
-    U # Orthogonal component of the mixing matrix. This is already truncated!
-    S_sqrt # Eigenvalues of the latent processes. This is already truncated!
+    P::Fixed, # Projection matrix, (m x p). Can only be learned through H, since PH=I.
+    U::Fixed, # Orthogonal component of the mixing matrix, i.e. its eigenvectors.
+    # This is already truncated!
+    # U is required to be Fixed because, in order to enforce the constraints, it can
+    # only be learned through H.
+    S_sqrt::Union{<:Positive, <:Fixed}, # Eigenvalues of the latent processes.
+    # This is already truncated!
+    # S_sqrt is restricted to be Positive or Fixed because it can never be non-positive.
     ks::Union{<:Kernel, Vector{<:Kernel}} # Kernels for the latent processes, m-long or the same for all
 
     global function _unsafe_OLMMKernel(
@@ -550,9 +560,9 @@ mutable struct OLMMKernel <: MultiOutputKernel
         σ², # Observation noise
         D, # latent noise(s)
         H, # Mixing matrix, (p x m)
-        P, # Projection matrix, (m x p)
-        U, # Orthogonal component of the mixing matrix. This is already truncated!
-        S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+        P, # Projection matrix, (m x p). Can only be learned through H, since PH=I.
+        U, # Orthogonal component of the mixing matrix, i.e. its eigenvectors.
+        S_sqrt, # Eigenvalues of the latent processes.
         ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
     )
         # Do a bunch of consistency checks
@@ -648,10 +658,10 @@ function OLMMKernel( # Initialise with H. IT HAS TO BE OF THE FORM `U * S`, with
         Fixed(p),
         Positive(σ²),
         Positive(D),
-        Fixed(H),
+        H,
         Fixed(P),
         Fixed(U),
-        Fixed(S_sqrt),
+        Positive(S_sqrt),
         ks
     )
 end
@@ -672,10 +682,10 @@ function OLMMKernel( # Initialise with U and S
         Fixed(p),
         Positive(σ²),
         Positive(D),
-        Fixed(H),
+        H,
         Fixed(P),
         Fixed(U),
-        Fixed(S_sqrt),
+        Positive(S_sqrt),
         ks
     )
 end
