@@ -119,11 +119,14 @@ end
         # identity by having flipped signals in the main diagonal. Since both `V̅` and `S` 
         # are diagonal, `V̅ * S` will be equal to `S` with some values with flipped signals, so
         # `V̅ * S * V̅ = V̅`, meaning that `U = U̅ * V̅'`.
-        U̅, _, V̅ = svd(H)
+        dec = svd(H)
+        U̅ = dec.U
+        V̅ = dec.V
+        # U̅, _, V̅ = svd(H) # This breaks in Nabla.
         U = U̅ * V̅' # new U.
         P = Diagonal(S_sqrt.^(-1.0)) * U' # new P.
         ngp2 = deepcopy(ngp) # not sure if this is necessary, just running from inplace ops.
-        ngp2.k.H = typeof(ngp2.k.H)(U * Diagonal(S_sqrt))
+        ngp2.k.H = U * Diagonal(S_sqrt)
         ngp2.k.P = Fixed(P)
         ngp2.k.U = Fixed(U)
         return logpdf(ngp2::GP, x, y::AbstractArray)
