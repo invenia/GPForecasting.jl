@@ -15,20 +15,65 @@ variables:
   JULIA_BAKED_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-baked:1.0
   GP_IMAGE: ${PROB_FORECASTING_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/gpforecasting/gpforecasting:${CI_COMMIT_REF_SLUG}
 
+"1.0 (Mac)":
+  tags:
+    - mac
+    - shell-ci
+  extends: .test_shell_1_0
 
 "1.0 (Linux, 64-bit)":
   tags:
     - linux
     - 64-bit
+    - docker-ci
+  extends: .test_docker_1_0
+
+"1.0 (Linux, 32-bit)":
+  tags:
+    - linux
+    - 32-bit
     - shell-ci
   extends: .test_shell_1_0
+
+"1.1 (Mac)":
+  tags:
+    - mac
+    - shell-ci
+  extends: .test_shell_1_1
 
 "1.1 (Linux, 64-bit)":
   tags:
     - linux
     - 64-bit
+    - docker-ci
+  extends: .test_docker_1_1
+
+"1.1 (Linux, 32-bit)":
+  tags:
+    - linux
+    - 32-bit
     - shell-ci
   extends: .test_shell_1_1
+
+"Nightly (Mac)":
+  tags:
+    - mac
+    - shell-ci
+  extends: .test_shell_nightly
+
+"Nightly (Linux, 64-bit)":
+  tags:
+    - linux
+    - 64-bit
+    - docker-ci
+  extends: .test_docker_nightly
+
+"Nightly (Linux, 32-bit)":
+  tags:
+    - linux
+    - 32-bit
+    - shell-ci
+  extends: .test_shell_nightly
 
 "Docker Build":
   stage: teardown
