@@ -1,18 +1,17 @@
-using GPForecasting
-using Test
-
 using CSV
 using DataFrames
 using Dates
 using Distributions
 using FDM
 using FillArrays
-using LinearAlgebra
+using GPForecasting
 using LineSearches
+using LinearAlgebra
 using Memento
 using Nabla
 using Nullables
 using Random: seed!
+using Test
 
 _ATOL_ = 1e-5
 
