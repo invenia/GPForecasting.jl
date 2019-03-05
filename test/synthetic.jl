@@ -12,7 +12,7 @@
     function gpforecasting(m, k, x_train, y_train, x_test, y_test)
         gp = GP(m, k)
         b = condition(gp, Observed(x_train), y_train)
-        pgp = learn(gp, Observed(x_train), y_train, objective, trace=false)
+        pgp = learn(gp, Observed(x_train), y_train, objective, its=50, trace=false)
         a = condition(pgp, Observed(x_train), y_train)
         return [
             mse(b.m(Latent(x_test)), y_test),
@@ -36,46 +36,46 @@
         @testset "Kernels" begin
             k = NoiseKernel(2.0 * (EQ() ▷ 10.0), 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.14825538985245576, -1476.7191748828689,
-                0.006339639909681591, 0.572904063004879] atol = _TOL_
+                [0.14825538985254585, -1476.7191748817445,
+                0.006339639909681351, 0.5729040630047109] atol = _TOL_
             k = NoiseKernel(2.0 * periodicise(EQ() ▷ 10.0, 2π), 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.13079765742457203, -760.2721834283418,
-                0.0101082770781702, -0.36499061897453666] atol = _TOL_
+                [0.13079765742455027, -760.2721834289244,
+                0.010108277078091326, -0.3649906189846872] atol = _TOL_
             k = NoiseKernel(2.0 * (RQ(2.0) ▷ 5.0), 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.12226859947646129, -771.9774842426579,
-                0.006339647377187701, 0.5728382447611549] atol = _TOL_
+                [0.12226859947646133, -771.9774842426579,
+                0.006339625546752299, 0.5728913634245152] atol = _TOL_
             k = NoiseKernel(2.0 * (MA(5/2) ▷ 10.0), 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.110754882488376, -625.1263034474591,
-                0.0058380317446004625, 0.8934805590278987] atol = _TOL_
+                [0.11075488248840884, 625.1263034476407,
+                0.005838031744600918, 0.8934805590277801] atol = _TOL_
             k = NoiseKernel(2.0 * (EQ() ▷ 10.0 + periodicise(EQ() ▷ 10.0, 2π) * RQ(2.0) ▷ 10.0)
                 + MA(5/2) ▷ 10.0, 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.11769231376321873, -745.8368568753356,
-                0.005939526953344254, 0.8604613342026686] atol = _TOL_
+                [0.11769231376325562, -745.8368568684314,
+                0.005939526953412218, 0.8604613338907132] atol = _TOL_
         end
 
         @testset "Parameters" begin
             k = NoiseKernel(2.0 * (EQ() ▷ Positive(10.0)), 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.14825538985245576, -1476.7191748828689,
-                0.006339639909681591, 0.572904063004879] atol = _TOL_
+                [0.14825538985254585, -1476.7191748817445,
+                0.006339639909681351, 0.5729040630047109] atol = _TOL_
             k = NoiseKernel(2.0 * (EQ() ▷ Fixed(10.0)), 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.14825538985245576, -1476.7191748828689,
-                0.15858203241160362, -9.226749455378185] atol = _TOL_
+                [0.14825538985254585, -1476.7191748817445,
+                0.15858203241161153, -9.226749455383052] atol = _TOL_
             k = NoiseKernel(2.0 * (EQ() ▷ Bounded(10.0, 9.0, 11.0)), 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.14825538985245576, -1476.7191748828689,
-                0.15799166609934295, -9.145120578228152] atol = _TOL_
+                [0.14825538985254585, -1476.7191748817445,
+                0.15799166609928814, -9.14512057822587] atol = _TOL_
             k = NoiseKernel(Fixed(2.0) * (EQ() ▷ Positive(10.0) +
                 periodicise(EQ() ▷ 10.0, Fixed(2π)) * RQ(Bounded(2.0, 1.5, 4.0)) ▷ 10.0) +
                 MA(5/2) ▷ 10.0, 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.11769231376321873, -745.8368568753356,
-                0.0059346146440780664, 0.8602727132150634] atol = _TOL_
+                [0.11769231376325562, -745.8368568684314,
+                0.005934614644065813, 0.8602727131669052] atol = _TOL_
         end
 
         @testset "Sampled from GP" begin
@@ -83,8 +83,8 @@
             p = condition(GP(m, k), Observed(x_train), y_train)
             y_sample = vec(sample(p(Observed(x_train))))
             k = NoiseKernel(EQ() ▷ 2.0, 0.02 * DiagonalKernel())
-            pgp = learn(GP(m, k), Observed(x_train), y_sample, objective, trace=false)
-            @test exp.(pgp.k[:]) ≈ [0.787194, 0.00574296] atol = _TOL_
+            pgp = learn(GP(m, k), Observed(x_train), y_sample, objective, its=50, trace=false)
+            @test exp.(pgp.k[:]) ≈ [0.7871941956023578, 0.0057429604540995775] atol = _TOL_
         end
     end
 
@@ -104,20 +104,20 @@
         k = NoiseKernel(2.0 * (EQ() ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
             [0.5375517536959576, -35.84754149283952,
-            0.0981019604966694, -0.2253175147006799] atol = _TOL_
+            0.0981019604979731, -0.22531751470866418] atol = _TOL_
         k = NoiseKernel(2.0 * periodicise(EQ() ▷ [2.5 for i=1:d],
                 [2π for i=1:d]), 0.001 * DiagonalKernel())
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
             [0.2615748718960823, -42.38878652665365,
-            0.12302128816099143, -0.37269922388958104] atol = _TOL_
+            0.13076717959919315, -0.5944302592213119] atol = _TOL_
         k = NoiseKernel(2.0 * (RQ(Fixed(2.0)) ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-            [0.45069841363296914, -8.104167427835442,
-            0.10054178097162188, -0.24119368608047453] atol = _TOL_
+            [0.45069841363296925, -8.10416742783544,
+            0.10054178097161147, -0.24119368608041608] atol = _TOL_
         k = NoiseKernel(2.0 * (MA(5/2) ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
             [0.2387315118745936, -0.875735261494879,
-            0.09881765784593713, -0.23168536130876932] atol = _TOL_
+            0.09881765784593782, -0.23168536130875633] atol = _TOL_
     end
 
     @testset "Multidimensional output problems" begin
