@@ -1,6 +1,3 @@
-export NoiseKernel, MultiKernel, LMMKernel, verynaiveLMMKernel, LMMPosKernel,
-NaiveLMMKernel, MultiOutputKernel, OLMMKernel
-
 abstract type MultiOutputKernel <: Kernel end
 isMulti(k::MultiOutputKernel) = true
 

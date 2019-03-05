@@ -1,5 +1,3 @@
-export minimise, learn, learn_summary, minimise_summary
-
 """
     minimise(f::Function,
         x_init::Vector;

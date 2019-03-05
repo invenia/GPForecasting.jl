@@ -1,6 +1,3 @@
-export Mean, SumMean, ProductMeant, ConstantMean, FunctionMean, ZeroMean, ScaledMean,
-PosteriorMean
-
 Base.:^(m::Mean, n::Integer) = Base.power_by_squaring(m, n)
 
 """

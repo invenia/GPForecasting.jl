@@ -1,5 +1,3 @@
-export Parameter, Fixed, Positive, Named, Bounded, isconstrained,
-DynamicBound
 Base.isapprox(x::String, y::String) = x == y
 isconstrained(x) = false
 

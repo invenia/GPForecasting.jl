@@ -21,7 +21,6 @@ export ConstantMean,
 # multimean.jl
 export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
 
-
 # pdf.jl
 export logpdf, objective
 
@@ -40,6 +39,7 @@ export ▷,
     PeriodicKernel,
     PosteriorKernel,
     RQ,
+    RootLog,
     ScaledKernel,
     SimilarHourKernel,
     SpecifiedQuantityKernel,
@@ -62,6 +62,20 @@ export LMMKernel,
     OLMMKernel,
     verynaiveLMMKernel
 
+# core/pairwise
+export pairwise_dist, sq_pairwise_dist
+
+# core/input
+export Input, Observed, Latent
+
+# core/util
+export cov_EB, cov_LW
+
+# core/optimise
+export minimise, learn, learn_summary, minimise_summary
+
+# core/parameter
+export Bounded, DynamicBound, Fixed, Named, Parameter, Positive, isconstrained
 
 using DataFrames
 using Distributions
@@ -97,6 +111,7 @@ include("core/node.jl")
 include("core/optimisedalgebra.jl")
 using GPForecasting.OptimisedAlgebra
 
+
 """
     Kernel <: AbstractNode
 
@@ -111,43 +126,6 @@ Abstract supertype for all Means.
 """
 abstract type Mean <: AbstractNode end
 
-"""
-    Process <: Random
-
-Abstract supertype for all stochastic processes.
-"""
-abstract type Process <: Random end
-
-"""
-    GP{K<:Kernel, M<:Mean} <: Process
-
-Gaussian process.
-
-# Fields:
-- `m::Mean`: Mean
-- `k::Kernel`: Kernel
-
-# Constructors:
-    GP(m::Mean, k::Kernel)
-
-    GP(n::Real, k::Kernel)
-
-Return GP with constant mean `n`.
-
-    GP(k::Kernel)
-
-Return GP with zero mean.
-"""
-mutable struct GP{K<:Kernel, M<:Mean} <: Process
-    m::M
-    k::K
-end
-
-include("core/optimisedalgebra.jl")
-
-using GPForecasting.OptimisedAlgebra
-export BlockDiagonal, blocks
-
 include("core/util.jl")
 include("core/input.jl")
 include("core/parameter.jl")
@@ -161,5 +139,4 @@ include("gp.jl")
 include("pdf.jl")
 include("core/optimise.jl")
 
-
-end
+end  # module

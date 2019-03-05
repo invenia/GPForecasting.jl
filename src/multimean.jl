@@ -1,5 +1,3 @@
-export MultiMean, LMMPosMean, MultiOutputMean, OLMMPosMean
-
 abstract type MultiOutputMean <: Mean end
 
 """

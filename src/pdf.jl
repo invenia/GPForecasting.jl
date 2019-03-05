@@ -1,6 +1,3 @@
-export logpdf, objective
-
-
 """
     logpdf(dist::Gaussian, x::AbstractArray) -> Float64
 

@@ -1,6 +1,3 @@
-export cov_EB, cov_LW
-
-
 """
     cov_EB(X::AbstractArray)
 

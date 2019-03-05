@@ -1,8 +1,3 @@
-export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel, set,
-    DiagonalKernel, PosteriorKernel, MA, ∿, periodicise, stretch, RQ, PeriodicKernel,
-    SpecifiedQuantityKernel, ←, hourly_cov, BinaryKernel, ZeroKernel, isMulti,
-    SimilarHourKernel, DotKernel, HazardKernel, RootLog
-
 #########################################################
 # Default kernel behaviour:
 # k(x) = k(x, x), as a definition for k(x).
