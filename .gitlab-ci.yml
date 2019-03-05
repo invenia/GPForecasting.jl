@@ -6,15 +6,6 @@ include:
   - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/hidden-jobs.yml
   - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/teardown.yml
 
-variables:
-  CONDA_JL_VERSION: "2"
-  AWS_DEFAULT_REGION: us-east-1
-  OPS_ACCOUNT_ID: 468665244580
-  PROB_FORECASTING_ACCOUNT_ID: 052722095006
-  JULIA_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:1.0  # for coverage and test_docker
-  JULIA_BAKED_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-baked:1.0
-  GP_IMAGE: ${PROB_FORECASTING_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/gpforecasting/gpforecasting:${CI_COMMIT_REF_SLUG}
-
 "1.0 (Mac)":
   tags:
     - mac
@@ -75,22 +66,33 @@ variables:
     - shell-ci
   extends: .test_shell_nightly
 
-"Docker Build":
-  stage: teardown
+.test_docker_build: &test_docker_build
   tags:
     - docker-build
-  only:
-    - master
-    - develop
-    - docs
-    - tags  # special keyword for all tags
+  variables:
+    OPS_ACCOUNT_ID: 468665244580
+    JULIA_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:1.0.3  # for coverage and test_docker
+    JULIA_BAKED_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-baked:1.0.3
+    PROB_FORECASTING_ACCOUNT_ID: 052722095006
+    GP_IMAGE: ${PROB_FORECASTING_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/gpforecasting/gpforecasting:${CI_COMMIT_REF_SLUG}
   script:
     - aws ecr get-login --no-include-email --registry-ids $OPS_ACCOUNT_ID $PROB_FORECASTING_ACCOUNT_ID | eval $SHELL
     - docker pull $JULIA_BAKED_IMAGE
-    - docker tag $JULIA_BAKED_IMAGE julia-baked:1.0
+    - docker tag $JULIA_BAKED_IMAGE julia-baked:1.0.3
     - docker build --no-cache -t $GP_IMAGE .
     - docker push $GP_IMAGE
   after_script:
     - docker rmi $GP_IMAGE
-    - docker rmi $JULIA_BAKED_IMAGE
-    - docker rmi julia-baked:0.6
+    - docker rmi -f $JULIA_BAKED_IMAGE
+
+"Docker Build":
+  stage: teardown
+  only:
+    - master
+    - tags  # special keyword for all tags
+  <<: *test_docker_build
+
+"Docker Build":
+  stage: teardown
+  when: manual
+  <<: *test_docker_build
