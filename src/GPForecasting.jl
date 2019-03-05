@@ -1,36 +1,101 @@
 module GPForecasting
 
-using LinearAlgebra
-using Random
-using SparseArrays
-using Statistics
-using StatsBase
+export BlockDiagonal, blocks, sample
 
-export sample
+# gp.jl
+export Process, GP, condition, credible_interval
+
+# gaussian.jl
+export Gaussian
+
+# mean.jl
+export ConstantMean,
+    FunctionMean,
+    Mean,
+    PosteriorMean,
+    ProductMeant,
+    ScaledMean,
+    SumMean,
+    ZeroMean
+
+# multimean.jl
+export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
+
+
+# pdf.jl
+export logpdf, objective
+
+# kernel.jl
+export ▷,
+    ←,
+    ∿,
+    BinaryKernel,
+    ConstantKernel,
+    DiagonalKernel,
+    DotKernel,
+    EQ,
+    HazardKernel,
+    Kernel,
+    MA,
+    PeriodicKernel,
+    PosteriorKernel,
+    RQ,
+    ScaledKernel,
+    SimilarHourKernel,
+    SpecifiedQuantityKernel,
+    StretchedKernel,
+    SumKernel,
+    ZeroKernel,
+    hourly_cov,
+    isMulti,
+    periodicise,
+    set,
+    stretch
+
+# multikernel.jl
+export LMMKernel,
+    LMMPosKernel,
+    MultiKernel,
+    MultiOutputKernel,
+    NaiveLMMKernel,
+    NoiseKernel,
+    OLMMKernel,
+    verynaiveLMMKernel
+
 
 using DataFrames
 using Distributions
 using FillArrays
-using Missings
-using Nullables
 using LineSearches
+using LinearAlgebra
 using Memento
-using Missings
 using ModelAnalysis
 using Nabla
+using Nullables
 using Optim
+using Random
+using SparseArrays
+using Statistics
+using StatsBase
 
 const LOGGER = getlogger(@__MODULE__)
 const _EPSILON_ = 1e-6 # Precision constant
 const packagehomedir = dirname(@__DIR__) #dirname ascends the directory...
 const Wrapped{T} = Union{T, Node{T}}
 
-function __init__()
-    Memento.register(LOGGER) # Register the Logger
-end
-abstract type Random end
+__init__() = Memento.register(LOGGER)  # Register the Logger
 
+"""
+    Process
+
+Abstract supertype for all stochastic processes.
+"""
+abstract type Process end
+
+# must be included after defining `Process` and before subtyping `AbstractNode`
 include("core/node.jl")
+include("core/optimisedalgebra.jl")
+using GPForecasting.OptimisedAlgebra
 
 """
     Kernel <: AbstractNode

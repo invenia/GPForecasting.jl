@@ -1,7 +1,5 @@
-export Gaussian
-
 """
-    Gaussian <: Random
+    Gaussian
 
 A Gaussian distribution.
 

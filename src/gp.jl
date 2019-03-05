@@ -1,4 +1,27 @@
-export Process, GP, condition, credible_interval
+"""
+    GP{K<:Kernel, M<:Mean} <: Process
+
+Gaussian process.
+
+# Fields:
+- `m::Mean`: Mean
+- `k::Kernel`: Kernel
+
+# Constructors:
+    GP(m::Mean, k::Kernel)
+
+    GP(n::Real, k::Kernel)
+
+Return GP with constant mean `n`.
+
+    GP(k::Kernel)
+
+Return GP with zero mean.
+"""
+mutable struct GP{K<:Kernel, M<:Mean} <: Process
+    m::M
+    k::K
+end
 
 function GP(n::Real, k::Kernel)
     return GP(
