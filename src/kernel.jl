@@ -6,7 +6,10 @@
 #########################################################
 
 Statistics.var(k::Kernel, x) = [k(x[i, :])[1] for i in 1:size(x, 1)]
-Statistics.var(k::Kernel, x::Vector{Input}) = vcat(broadcast(c -> var(k, c), x)...)
+Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
+function Statistics.var(k::Kernel, x::AbstractDataFrame)
+    return [k(DataFrame(r))[1] for r in eachrow(x)]
+end
 
 Base.size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
 
@@ -365,10 +368,10 @@ mutable struct SpecifiedQuantityKernel <: Kernel
     k::Kernel
 end
 (←)(k::Kernel, s::Symbol) = SpecifiedQuantityKernel(Fixed(s), k)
-function (k::SpecifiedQuantityKernel)(x::DataFrame, y::DataFrame)
+function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::AbstractDataFrame)
     return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
 end
-(k::SpecifiedQuantityKernel)(x::DataFrame) = k(x, x)
+(k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
 Base.show(io::IO, k::SpecifiedQuantityKernel) = print(io, "($(k.k) ← $(k.col))")
 isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 

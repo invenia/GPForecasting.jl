@@ -1,7 +1,14 @@
 abstract type MultiOutputKernel <: Kernel end
 isMulti(k::MultiOutputKernel) = true
 
-Statistics.var(k::MultiOutputKernel, x) = hcat([diag(k(x[i, :])) for i in 1:size(x, 1)]...)'
+function Statistics.var(k::MultiOutputKernel, x)
+    return reduce(hcat, [diag(k(x[i, :])) for i in 1:size(x, 1)])'
+end
+
+function Statistics.var(k::MultiOutputKernel, x::AbstractDataFrame)
+    return reduce(hcat, [diag(k(DataFrame(r))) for r in eachrow(x)])'
+end
+
 LinearAlgebra.diag(x::Real) = x
 
 Base.size(k::MultiOutputKernel, i::Int) = size(k([1.0]), i)
@@ -12,7 +19,7 @@ function hourly_cov(k::MultiOutputKernel, x)
 end
 
 function hourly_cov(k::MultiOutputKernel, x::DataFrame)
-     ks = [k(DataFrame(x[i, :])) for i in 1:size(x, 1)]
+     ks = [k(DataFrame(r)) for r in eachrow(x)]
     return BlockDiagonal(ks)
 end
 
