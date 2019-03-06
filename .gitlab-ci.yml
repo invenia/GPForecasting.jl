@@ -6,6 +6,8 @@ include:
   - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/hidden-jobs.yml
   - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/teardown.yml
 
+# Do not test on 32-bit machines becuase of the memory requirements of this package
+# https://gitlab.invenia.ca/research/GPForecasting.jl/issues/31
 "1.0 (Mac)":
   tags:
     - mac
@@ -18,13 +20,6 @@ include:
     - 64-bit
     - docker-ci
   extends: .test_docker_1_0
-
-"1.0 (Linux, 32-bit)":
-  tags:
-    - linux
-    - 32-bit
-    - shell-ci
-  extends: .test_shell_1_0
 
 "1.1 (Mac)":
   tags:
@@ -39,13 +34,6 @@ include:
     - docker-ci
   extends: .test_docker_1_1
 
-"1.1 (Linux, 32-bit)":
-  tags:
-    - linux
-    - 32-bit
-    - shell-ci
-  extends: .test_shell_1_1
-
 "Nightly (Mac)":
   tags:
     - mac
@@ -58,13 +46,6 @@ include:
     - 64-bit
     - docker-ci
   extends: .test_docker_nightly
-
-"Nightly (Linux, 32-bit)":
-  tags:
-    - linux
-    - 32-bit
-    - shell-ci
-  extends: .test_shell_nightly
 
 .test_docker_build: &test_docker_build
   tags:
