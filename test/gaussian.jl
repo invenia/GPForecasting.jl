@@ -15,7 +15,7 @@ using ModelAnalysis
     @test mvn.μ == [1, 2, 3, 4, 5, 6]
 
     g = Gaussian(ones(3, 2), Eye(6))
-    @test g.U == Matrix(undef, 0, 0)
+    @test g.chol === nothing
     @test cholesky(g).U ≈ UpperTriangular(Eye(6)) atol = _ATOL_
     @test mean(g) ≈ ones(3, 2) atol = _ATOL_
     @test cov(g) ≈ Eye(6) atol = _ATOL_
@@ -25,7 +25,7 @@ using ModelAnalysis
     @test var(g) ≈ [1 2 3 4 5; 1 2 3 4 5; 1 2 3 4 5; 1 2 3 4 5] atol = _ATOL_
 
     g = Gaussian(ones(5, 2), BlockDiagonal(AbstractMatrix{Float64}[Eye(2) for i in 1:5]));
-    @test g.U == Matrix(undef, 0, 0)
+    @test g.chol === nothing
     @test cholesky(g).U ≈ BlockDiagonal([cholesky(Eye(2)).U for i in 1:5]) atol = _ATOL_
     @test mean(g) ≈ ones(5, 2) atol = _ATOL_
     @test cov(g) ≈ BlockDiagonal([Eye(2) for i in 1:5]) atol = _ATOL_

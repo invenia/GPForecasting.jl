@@ -6,7 +6,7 @@ A Gaussian distribution.
 # Fields
 - `μ`: Mean.
 - `Σ`: Covariance.
-- `U`: `Σ`'s upper triangular Cholesky decomposition.
+- `chol`: Cholesky factorization of `Σ`.
 """
 mutable struct Gaussian{
     T <: AbstractArray,
@@ -14,21 +14,30 @@ mutable struct Gaussian{
 } <: Distribution{Matrixvariate, Continuous}
     μ::Wrapped{T}
     Σ::Wrapped{G}
-    U::Wrapped{<:Union{AbstractMatrix, Cholesky}}
+    chol::Union{Wrapped{<:Cholesky}, Nothing}
+end
+
+function Base.getproperty(g::Gaussian, x::Symbol)
+    if x === :U
+        Base.depwarn("`(g::Gaussian).U` is deprecated, use g.chol.U instead", :getproperty)
+        return g.chol.U
+    else
+        return getfield(g, x)
+    end
 end
 
 function Gaussian(
     μ::Wrapped{T},
     Σ::Wrapped{G},
 ) where {T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(μ, Σ, Matrix(undef, 0, 0))
+    return Gaussian{T, G}(μ, Σ, nothing)
 end
 
 function Gaussian(
     μ::Adjoint{H, T},
     Σ::Wrapped{G},
 ) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(T(μ), Σ, Matrix(undef, 0, 0))
+    return Gaussian{T, G}(T(μ), Σ, nothing)
 end
 
 function Gaussian(
@@ -36,14 +45,14 @@ function Gaussian(
     Σ::Wrapped{G},
     U::Wrapped{<:AbstractMatrix},
 ) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(T(μ), Σ, U)
+    return Gaussian{T, G}(T(μ), Σ, Cholesky(U, 'U', 0))
 end
 
 function Gaussian(
     μ::Wrapped{T},
     Σ::Adjoint{H, G},
 ) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(μ, G(Σ), Matrix(undef, 0, 0))
+    return Gaussian{T, G}(μ, G(Σ), nothing)
 end
 
 function Gaussian(
@@ -51,14 +60,14 @@ function Gaussian(
     Σ::Adjoint{H, G},
     U::Wrapped{<:AbstractMatrix},
 ) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(μ, G(Σ), U)
+    return Gaussian{T, G}(μ, G(Σ), Cholesky(U, 'U', 0))
 end
 
 function Gaussian(
     μ::Adjoint{H, T},
     Σ::Adjoint{H, G},
 ) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(T(μ), G(Σ), Matrix(undef, 0, 0))
+    return Gaussian{T, G}(T(μ), G(Σ), nothing)
 end
 
 function Gaussian(
@@ -66,7 +75,15 @@ function Gaussian(
     Σ::Adjoint{H, G},
     U::Wrapped{<:AbstractMatrix},
 ) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(T(μ), G(Σ), U)
+    return Gaussian{T, G}(T(μ), G(Σ), Cholesky(U, 'U', 0))
+end
+
+function Gaussian(
+    μ::Wrapped{T},
+    Σ::Wrapped{G},
+    U::Wrapped{<:AbstractMatrix},
+) where {T <: AbstractArray, G <: AbstractArray}
+    return Gaussian{T, G}(μ, Σ, Cholesky(U, 'U', 0))
 end
 
 Statistics.mean(g::Gaussian) = g.μ
@@ -100,23 +117,24 @@ Compute the Cholesky of the covariance matrix of a MVN `dist`
 - `Cholesky`: Computed Cholesky decomposition.
 """
 @unionise function LinearAlgebra.cholesky(dist::Gaussian)
-    if dist.U == Matrix(undef, 0, 0)
+    if dist.chol === nothing
         # NOTE: Adding a tiny regularizer to the main diagonal shifts the eigenvalues
         # and ensures that the matrix is positive definite, which avoids the possibility
         # of a PosDefException
-        dist.U = cholesky(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist))).U
+        dist.chol = cholesky(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist)))
     end
-    return Cholesky(dist.U, 'U', 0)
+    return dist.chol
 end
 
-@unionise function LinearAlgebra.cholesky(dist::Gaussian{T, G}) where {T <: AbstractArray, G <: BlockDiagonal}
-    if dist.U == Matrix(undef, 0, 0)
+@unionise function LinearAlgebra.cholesky(dist::Gaussian{<:AbstractArray, <:BlockDiagonal})
+    if dist.chol === nothing
         # extended for BlockDiagonal based on cholesky(::BlockDiagonal)
-        dist.U = BlockDiagonal(map(blocks(dist.Σ)) do block
+        U = BlockDiagonal(map(blocks(dist.Σ)) do block
             cholesky(block + _EPSILON_ * Eye(block)).U
         end)
+        dist.chol = Cholesky(U, 'U', 0)
     end
-    return Cholesky(dist.U, 'U', 0)
+    return dist.chol
 end
 
 """
@@ -150,11 +168,11 @@ Distributions.MvNormal(d::Gaussian{T, <:Eye}) where {T} = MvNormal(collect(vec(d
 function ModelAnalysis.mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
     if length(blocks(d.Σ)) != size(y, 1) # Not sure why one would ever do this, but anyway
         return -logpdf(d, y) / prod(size(y))
-    elseif isa(d.U, BlockDiagonal)
+    elseif d.chol !== nothing && isa(d.chol.U, BlockDiagonal)
         return sum([-logpdf(Gaussian(
             reshape(d.μ[i, :], 1, size(d.μ, 2)),
             blocks(d.Σ)[i],
-            blocks(d.U)[i]
+            blocks(d.chol.U)[i]
         ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / prod(size(y))
     else
         return sum([-logpdf(Gaussian(
