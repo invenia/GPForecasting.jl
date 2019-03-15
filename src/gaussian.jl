@@ -1,4 +1,20 @@
 """
+    materialize(X)
+
+For values, materialize `Adjoint`- and `Transpose`-wrapped matrices but leave all other
+values as-is.
+For types, determine the type of a materialized value of the given type.
+
+This is used internally to ensure that `Gaussian`s do not end up holding `Adjoint`- or
+`Transpose`-wrapped matrices.
+"""
+materialize(X::Wrapped{<:Union{Adjoint,Transpose}}) = copy(X)
+materialize(X::Wrapped{<:AbstractArray}) = X
+materialize(::Type{Wrapped{T}}) where {T} = materialize(T)
+materialize(::Type{<:Union{Adjoint{T,S},Transpose{T,S}}}) where {T,S} = materialize(S)
+materialize(::Type{T}) where {T<:AbstractArray} = T
+
+"""
     Gaussian
 
 A Gaussian distribution.
@@ -15,6 +31,26 @@ mutable struct Gaussian{
     μ::Wrapped{T}
     Σ::Wrapped{G}
     chol::Union{Wrapped{<:Cholesky}, Nothing}
+
+    function Gaussian(
+        μ::Wrapped{T},
+        Σ::Wrapped{G},
+        chol::Union{Wrapped{<:Cholesky}, Nothing}=nothing,
+    ) where {T <: AbstractArray, G <: AbstractArray}
+        return new{materialize(T), materialize(G)}(materialize(μ), materialize(Σ), chol)
+    end
+end
+
+function Gaussian(
+    μ::Wrapped{T},
+    Σ::Wrapped{G},
+    U::Wrapped{<:AbstractMatrix},
+) where {T <: AbstractArray, G <: AbstractArray}
+    Base.depwarn(
+        "`Gaussian(μ, Σ, U)` is deprecated, use `Gaussian(μ, Σ, cholesky(Σ))` instead",
+        :Gaussian,
+    )
+    return Gaussian(μ, Σ, Cholesky(U, 'U', 0))
 end
 
 function Base.getproperty(g::Gaussian, x::Symbol)
@@ -26,64 +62,25 @@ function Base.getproperty(g::Gaussian, x::Symbol)
     end
 end
 
-function Gaussian(
-    μ::Wrapped{T},
-    Σ::Wrapped{G},
-) where {T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(μ, Σ, nothing)
-end
-
-function Gaussian(
-    μ::Adjoint{H, T},
-    Σ::Wrapped{G},
-) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(T(μ), Σ, nothing)
-end
-
-function Gaussian(
-    μ::Adjoint{H, T},
-    Σ::Wrapped{G},
-    U::Wrapped{<:AbstractMatrix},
-) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(T(μ), Σ, Cholesky(U, 'U', 0))
-end
-
-function Gaussian(
-    μ::Wrapped{T},
-    Σ::Adjoint{H, G},
-) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(μ, G(Σ), nothing)
-end
-
-function Gaussian(
-    μ::Wrapped{T},
-    Σ::Adjoint{H, G},
-    U::Wrapped{<:AbstractMatrix},
-) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(μ, G(Σ), Cholesky(U, 'U', 0))
-end
-
-function Gaussian(
-    μ::Adjoint{H, T},
-    Σ::Adjoint{H, G},
-) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(T(μ), G(Σ), nothing)
-end
-
-function Gaussian(
-    μ::Adjoint{H, T},
-    Σ::Adjoint{H, G},
-    U::Wrapped{<:AbstractMatrix},
-) where {H, T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(T(μ), G(Σ), Cholesky(U, 'U', 0))
-end
-
-function Gaussian(
-    μ::Wrapped{T},
-    Σ::Wrapped{G},
-    U::Wrapped{<:AbstractMatrix},
-) where {T <: AbstractArray, G <: AbstractArray}
-    return Gaussian{T, G}(μ, Σ, Cholesky(U, 'U', 0))
+# We can't use the default printing for `Distribution`s because it calls `print` on the
+# internal fields, which errors for `Gaussian` as it might contain a `nothing`
+function Base.show(io::IO, g::Gaussian{T, G}) where {T, G}
+    println(io, "Gaussian{", T, ", ", G, "}(")
+    print(io, "    μ: ")
+    # Use compact and limited printing to ensure we don't spit out entire huge matrices
+    show(IOContext(io, :compact=>true, :limit=>true), g.μ)
+    print(io, "\n    Σ: ")
+    show(IOContext(io, :compact=>true, :limit=>true), g.Σ)
+    print(io, "\n    chol: ")
+    if g.chol === nothing
+        # `nothing` can't be `print`ed, but even if we `show` it, just saying that it's
+        # nothing is not particularly informative, so we can instead show what it means
+        # for it to be nothing
+        print(io, "<not yet computed>")
+    else
+        show(IOContext(io, :compact=>true, :limit=>true), g.chol)
+    end
+    print(io, "\n)")
 end
 
 Statistics.mean(g::Gaussian) = g.μ
@@ -172,7 +169,7 @@ function ModelAnalysis.mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) w
         return sum([-logpdf(Gaussian(
             reshape(d.μ[i, :], 1, size(d.μ, 2)),
             blocks(d.Σ)[i],
-            blocks(d.chol.U)[i]
+            Cholesky(blocks(d.chol.U)[i], 'U', 0),
         ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / prod(size(y))
     else
         return sum([-logpdf(Gaussian(

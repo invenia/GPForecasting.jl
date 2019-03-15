@@ -39,7 +39,7 @@ others(p::Parameter) = collect(Iterators.rest(getfields(p), 1))
 reconstruct(p::Parameter, parameter, others) = typeof(p)(parameter, others...)
 unwrap(p::Parameter) = unwrap(parameter(p))
 name(p::Parameter) = name(parameter(p))
-show(io::IO, p::Parameter) = show(IOContext(io, :compact => true), parameter(p))
+Base.show(io::IO, p::Parameter) = show(IOContext(io, :compact => true), parameter(p))
 
 """
     pack(k::Parameter) -> Vector

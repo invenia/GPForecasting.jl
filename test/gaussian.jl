@@ -32,7 +32,8 @@ using ModelAnalysis
     @test var(g) ≈ ones(5, 2) atol = _ATOL_
     @test size(rand(g, 5)) == (5, 2, 5)
 
-    g1 = Gaussian(zeros(3, 5), BlockDiagonal(fill(Eye(5), 3)), BlockDiagonal(fill(Eye(5), 3)))
+    Σ = BlockDiagonal(fill(Eye(5), 3))
+    g1 = Gaussian(zeros(3, 5), Σ, cholesky(Σ))
     g2 = Gaussian(zeros(3, 5), BlockDiagonal(fill(Eye(5), 3)))
     g3 = Gaussian(zeros(3, 5), Eye(15))
     g4 = Gaussian(zeros(3, 5), BlockDiagonal([Eye(10), Eye(5)]))
@@ -50,13 +51,33 @@ using ModelAnalysis
     g = Gaussian(rand(3, 2)', rand(6, 6)')
     @test isa(mean(g), Matrix)
     @test isa(cov(g), Matrix)
-    g = Gaussian(rand(3, 2), rand(6, 6)', rand(6, 6))
+    Σ = (Y->Y'Y)(rand(6, 6))'  # doing Y'Y here ensures that cholesky won't fail
+    g = Gaussian(rand(3, 2), Σ, cholesky(copy(Σ)))
     @test isa(mean(g), Matrix)
     @test isa(cov(g), Matrix)
-    g = Gaussian(rand(3, 2)', rand(6, 6), rand(6, 6))
+    Σ = (Y->Y'Y)(rand(6, 6))
+    g = Gaussian(rand(3, 2)', Σ, cholesky(Σ))
     @test isa(mean(g), Matrix)
     @test isa(cov(g), Matrix)
-    g = Gaussian(rand(3, 2)', rand(6, 6)', rand(6, 6))
+    Σ = (Y->Y'Y)(rand(6, 6))'
+    g = Gaussian(rand(3, 2)', Σ, cholesky(copy(Σ)))
     @test isa(mean(g), Matrix)
     @test isa(cov(g), Matrix)
+
+    @testset "show" begin
+        g = Gaussian(Float64[1 2; 3 4; 5 6], Eye(6))
+        @test sprint(show, g) == """
+            Gaussian{Array{Float64,2}, $(typeof(Eye(6)))}(
+                μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
+                Σ: [1.0 0.0 … 0.0 0.0; 0.0 1.0 … 0.0 0.0; … ; 0.0 0.0 … 1.0 0.0; 0.0 0.0 … 0.0 1.0]
+                chol: <not yet computed>
+            )"""
+        c = cholesky(g)
+        @test sprint(show, g) == """
+            Gaussian{Array{Float64,2}, $(typeof(Eye(6)))}(
+                μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
+                Σ: [1.0 0.0 … 0.0 0.0; 0.0 1.0 … 0.0 0.0; … ; 0.0 0.0 … 1.0 0.0; 0.0 0.0 … 0.0 1.0]
+                chol: $(sprint(show, c, context=:limit=>true))
+            )"""
+    end
 end

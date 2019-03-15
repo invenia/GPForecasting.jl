@@ -120,7 +120,7 @@ function (k::SimilarHourKernel)(x, y)
         K
 end
 (k::SimilarHourKernel)(x) = k(x, x)
-function show(io::IO, k::SimilarHourKernel)
+function Base.show(io::IO, k::SimilarHourKernel)
     cs = unwrap(k.coeffs)
     ds = "$(cs[1])*δ(0)"
     for i in 1:(unwrap(k.hdeltas) - 1)
