@@ -1,7 +1,7 @@
 export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel, set,
     DiagonalKernel, PosteriorKernel, MA, ∿, periodicise, stretch, RQ, PeriodicKernel,
     SpecifiedQuantityKernel, ←, hourly_cov, BinaryKernel, ZeroKernel, isMulti,
-    SimilarHourKernel, DotKernel, HazardKernel
+    SimilarHourKernel, DotKernel, HazardKernel, RootLog
 
 #########################################################
 # Default kernel behaviour:
@@ -138,7 +138,7 @@ end
 
 Matérn kernel. Implemented only for ν in [1/2, 3/2, 5/2].
 """
-mutable struct MA <: Kernel
+struct MA <: Kernel
     ν::Fixed
 end
 MA(n::Real) = MA(Fixed(n))
@@ -156,6 +156,20 @@ function (k::MA)(x, y)
 end
 (k::MA)(x) = k(x, x)
 show(io::IO, k::MA) = print(io, "MA($(k.ν))")
+
+"""
+    RootLog <: Kernel
+
+Kernel that computes (1/|x - y|) * log(1 + |x - y|).
+"""
+struct RootLog <: Kernel end
+function (k::RootLog)(x, y)
+    d = pairwise_dist(x, y)
+    # The 1e-16 here is just to make sure that we get the correct limit when d → 0
+    return (log.(d .+ 1) .+ 1e-16) ./ (d .+ 1e-16)
+end
+(k::RootLog)(x) = k(x, x)
+show(io::IO, k::RootLog) = print(io, "RootLog()")
 
 """
     BinaryKernel <: Kernel
