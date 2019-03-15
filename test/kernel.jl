@@ -11,6 +11,7 @@
             SimilarHourKernel(3, [3, 2, 1]),
             DotKernel(),
             HazardKernel(),
+            RootLog(),
         ]
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_
