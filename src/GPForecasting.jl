@@ -137,5 +137,6 @@ include("multimean.jl")
 include("gp.jl")
 include("pdf.jl")
 include("core/optimise.jl")
+include("NN.jl")
 
 end  # module
