@@ -522,5 +522,14 @@ end
 (k::HazardKernel)(x::Number, y::Number) = k([x], [y])
 Base.show(io::IO, k::HazardKernel) = print(io, "Hazard()")
 
+"""
+"""
+struct ManifoldKernel <: Kernel
+    k::Kernel
+    NN::GPFNN
+end
+(k::ManifoldKernel)(x, y) = k.k(k.NN(x), k.NN(y))
+(k::ManifoldKernel)(x) = k(x, x)
+
 Base.zero(::Kernel) = ZeroKernel()
 Base.zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
