@@ -166,7 +166,7 @@ function (k::RootLog)(x, y)
     return (log.(d .+ 1) .+ 1e-16) ./ (d .+ 1e-16)
 end
 (k::RootLog)(x) = k(x, x)
-show(io::IO, k::RootLog) = print(io, "RootLog()")
+Base.show(io::IO, k::RootLog) = print(io, "RootLog()")
 
 """
     BinaryKernel <: Kernel
