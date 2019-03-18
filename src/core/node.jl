@@ -2,10 +2,8 @@ getfields(x) = (getfield(x, i) for i in 1:nfields(x))
 
 abstract type AbstractNode end
 
-if isdefined(Base, :broadcastable)
-    # make nodes act as a scalar in broadcasting
-    Base.broadcastable(tn::AbstractNode) = Ref(tn)
-end
+# make nodes act as a scalar in broadcasting
+Base.broadcastable(tn::AbstractNode) = Ref(tn)
 
 # Extract children and not children.
 extract_children(x) = AbstractNode[]
@@ -20,14 +18,14 @@ extract_others(x::AbstractArray{<:AbstractNode}) = []
 
 Return a vector of all nodes directly referenced by `x`, including those in arrays.
 """
-children(x) = Compat.reduce(vcat, (extract_children(field) for field in getfields(x)), init=AbstractNode[])
+children(x) = reduce(vcat, (extract_children(field) for field in getfields(x)), init=AbstractNode[])
 
 """
     others(x) -> Vector{Any}
 
 Return all non-node fields (leaves) of `x`, i.e., everything not returned by [`children`](@ref).
 """
-others(x) = Compat.reduce(vcat, (extract_others(field) for field in getfields(x)), init=Any[])
+others(x) = reduce(vcat, (extract_others(field) for field in getfields(x)), init=Any[])
 
 """
     create_instance(T::Type, args...)
@@ -97,7 +95,7 @@ julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); map(+, a, a)
 TreeNode(2, [TreeNode(4), TreeNode(6)])
 ```
 """
-function map(f, ns::TreeNode...)
+function Base.map(f, ns::TreeNode...)
     return TreeNode(
         f((n.x for n in ns)...),
         TreeNode[map.(f, ps...) for ps in zip((n.children for n in ns)...)]
@@ -117,8 +115,8 @@ julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); zip(a, a)
 TreeNode((1, 1), [TreeNode((2, 2)), TreeNode((3, 3))])
 ```
 """
-zip(ns::TreeNode...) = map(tuple, ns...)
-reduce(op, n::TreeNode) = op(n.x, _reduce(op, n)...)
+Base.Iterators.zip(ns::TreeNode...) = map(tuple, ns...)
+Base.reduce(op, n::TreeNode) = op(n.x, _reduce(op, n)...)
 _reduce(op, n::TreeNode) = (op(p.x, _reduce(op, p)...) for p in n.children)
 
 """
@@ -145,7 +143,7 @@ julia> reduce(tuple, a, a)
 (1, 1, (2, 2), (3, 3))
 ```
 """
-function reduce(op, ns::TreeNode...)
+function Base.reduce(op, ns::TreeNode...)
     return reduce((xs, children...) -> op(xs..., children...), zip(ns...))
 end
 
@@ -279,13 +277,13 @@ and reconstructed into their original node forms.
     )
 end
 
-# Get set for AbstractNode, might have to also dispatch this for Random
+# Get set for AbstractNode, might have to also dispatch this for Process
 """
     tree(m) -> TreeNode
 
 Construct an explicit tree structure from a node which references other nodes.
 """
-tree(m::Union{AbstractNode, Random}) = TreeNode(m, tree.(children(m)))
+tree(m::Union{AbstractNode, Process}) = TreeNode(m, tree.(children(m)))
 
 """
     pack(m) -> Vector{Vector}
@@ -296,7 +294,7 @@ single vector.
 
 `pack` and [`unpack`](@ref) are usually defined specially for a given node type.
 """
-pack(m::Union{AbstractNode, Random}) = pack.(others(m))
+pack(m::Union{AbstractNode, Process}) = pack.(others(m))
 
 """
     unpack(original::T, data, children...) -> T
@@ -306,7 +304,7 @@ packed leaves.
 
 [`pack`](@ref) and `unpack` are usually defined specially for a given node type.
 """
-unpack(original::Union{AbstractNode, Random}, data, children::Union{AbstractNode, Random}...) =
+unpack(original::Union{AbstractNode, Process}, data, children::Union{AbstractNode, Process}...) =
     reconstruct(original, unpack.(others(original), data), children)
 
 """
@@ -314,7 +312,7 @@ unpack(original::Union{AbstractNode, Random}, data, children::Union{AbstractNode
 
 Make a node into a tree and extract all parameters into a single vector for optimization.
 """
-get(m::Union{AbstractNode, Random}) = flatten2(map(pack, tree(m)), Float64[])
+Base.get(m::Union{AbstractNode, Process}) = flatten2(map(pack, tree(m)), Float64[])
 
 """
     get(m, n::String) -> Vector{Float64}
@@ -325,7 +323,7 @@ If there is only one element in the vector, return the first element (this shoul
 changed).
 It is likely that this function is used when there is only one expected element.
 """
-function get(m::Union{AbstractNode, Random}, n::String)
+function Base.get(m::Union{AbstractNode, Process}, n::String)
     θ = unwrap.(filter(x -> name(x) == n, flatten(map(others, tree(m)))))
     return length(θ) == 1 ? θ[1] : θ
 end
@@ -336,7 +334,7 @@ end
 Reconstruct the original structure of `m` with the modified parameters from `θ`, by first
 converting to a `TreeNode`.
 """
-@unionise function set(m::Union{AbstractNode, Random}, θ::Vector)
+@unionise function set(m::Union{AbstractNode, Process}, θ::Vector)
     t = tree(m)
     return reduce(unpack, t, interpret2(map(pack, t), θ))
 end
@@ -349,11 +347,11 @@ parameters from `v`, for each `k => v` in `updates`.
 
 See also [`set(m, θ::Vector)`](@ref set(m, ::Vector)).
 """
-@unionise function set(m::Union{AbstractNode, Random}, updates::Pair...)
+@unionise function set(m::Union{AbstractNode, Process}, updates::Pair...)
     d, t = Dict(updates...), tree(m)
     update(x) = haskey(d, name(x)) ? set(x, d[name(x)]) : x
     return reduce(unpack, t, map(x -> update.(x), map(others, t)))
 end
-getindex(m::Union{AbstractNode, Random}, ::Colon) = get(m)
-getindex(m::Union{AbstractNode, Random}, n::String) = get(m, n)
-getindex(m::Union{AbstractNode, Random}, ns::String...) = get.(m, ns)
+Base.getindex(m::Union{AbstractNode, Process}, ::Colon) = get(m)
+Base.getindex(m::Union{AbstractNode, Process}, n::String) = get(m, n)
+Base.getindex(m::Union{AbstractNode, Process}, ns::String...) = get.(m, ns)

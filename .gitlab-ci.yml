@@ -1,54 +1,48 @@
 stages:
   - test
-  - coverage
-  - build
-  - documentation
+  - teardown
 
 include:
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/gitlab-templates/test_templates.yml
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/gitlab-templates/coverage.yml
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/gitlab-templates/documentation.yml
+  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/hidden-jobs.yml
+  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/teardown.yml
 
-variables:
-  CONDA_JL_VERSION: "2"
-  AWS_DEFAULT_REGION: us-east-1
-  OPS_ACCOUNT_ID: 468665244580
-  PROB_FORECASTING_ACCOUNT_ID: 052722095006
-  JULIA_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-gitlab-ci:0.6  # for coverage and test_docker
-  JULIA_BAKED_IMAGE: ${OPS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/julia-baked:0.6
-  GP_IMAGE: ${PROB_FORECASTING_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/gpforecasting/gpforecasting:${CI_COMMIT_REF_SLUG}
-
-
-"0.6 (Linux, 64-bit, Docker)":
+# Do not test on 32-bit machines becuase of the memory requirements of this package
+# https://gitlab.invenia.ca/research/GPForecasting.jl/issues/31
+"1.0 (Mac)":
   tags:
-    - linux
-    - 64-bit
-    - docker-ci
-  extends: .test_docker
+    - mac
+    - shell-ci
+  extends: .test_shell_1_0
 
 "1.0 (Linux, 64-bit)":
   tags:
     - linux
     - 64-bit
-    - shell-ci
-  extends: .test_shell_1_0
+    - docker-ci
+  extends: .test_docker_1_0
 
-"Docker Build":
-  stage: build
+"1.1 (Mac)":
   tags:
-    - docker-build
-  only:
-    - master
-    - develop
-    - docs
-    - tags  # special keyword for all tags
-  script:
-    - aws ecr get-login --no-include-email --registry-ids $OPS_ACCOUNT_ID $PROB_FORECASTING_ACCOUNT_ID | eval $SHELL
-    - docker pull $JULIA_BAKED_IMAGE
-    - docker tag $JULIA_BAKED_IMAGE julia-baked:0.6
-    - docker build --no-cache -t $GP_IMAGE .
-    - docker push $GP_IMAGE
-  after_script:
-    - docker rmi $GP_IMAGE
-    - docker rmi $JULIA_BAKED_IMAGE
-    - docker rmi julia-baked:0.6
+    - mac
+    - shell-ci
+  extends: .test_shell_1_1
+
+"1.1 (Linux, 64-bit)":
+  tags:
+    - linux
+    - 64-bit
+    - docker-ci
+  extends: .test_docker_1_1
+
+"Nightly (Mac)":
+  tags:
+    - mac
+    - shell-ci
+  extends: .test_shell_nightly
+
+"Nightly (Linux, 64-bit)":
+  tags:
+    - linux
+    - 64-bit
+    - docker-ci
+  extends: .test_docker_nightly

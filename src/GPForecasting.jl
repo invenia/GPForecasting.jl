@@ -1,56 +1,116 @@
 module GPForecasting
 
-import Base: *, +, -, ^, reduce, map, zip, show, getindex, get, isapprox, convert, zero,
-size, hcat
-using Compat: Compat, @__MODULE__, tr, undef
-using Compat.Distributed: pmap
-import Compat.LinearAlgebra: diag
-using Compat.LinearAlgebra
-using Compat.Random
-using Compat.SparseArrays
-import Distributions: MvNormal, sample, logpdf
+export BlockDiagonal, blocks, sample
 
-export sample
+# gp.jl
+export Process, GP, condition, credible_interval
+
+# gaussian.jl
+export Gaussian
+
+# mean.jl
+export ConstantMean,
+    FunctionMean,
+    Mean,
+    PosteriorMean,
+    ProductMeant,
+    ScaledMean,
+    SumMean,
+    ZeroMean
+
+# multimean.jl
+export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
+
+# pdf.jl
+export logpdf, objective
+
+# kernel.jl
+export ▷,
+    ←,
+    ∿,
+    BinaryKernel,
+    ConstantKernel,
+    DiagonalKernel,
+    DotKernel,
+    EQ,
+    HazardKernel,
+    Kernel,
+    MA,
+    PeriodicKernel,
+    PosteriorKernel,
+    RQ,
+    RootLog,
+    ScaledKernel,
+    SimilarHourKernel,
+    SpecifiedQuantityKernel,
+    StretchedKernel,
+    SumKernel,
+    ZeroKernel,
+    hourly_cov,
+    isMulti,
+    periodicise,
+    set,
+    stretch
+
+# multikernel.jl
+export LMMKernel,
+    LMMPosKernel,
+    MultiKernel,
+    MultiOutputKernel,
+    NaiveLMMKernel,
+    NoiseKernel,
+    OLMMKernel,
+    verynaiveLMMKernel
+
+# core/pairwise
+export pairwise_dist, sq_pairwise_dist
+
+# core/input
+export Input, Observed, Latent
+
+# core/util
+export cov_EB, cov_LW
+
+# core/optimise
+export minimise, learn, learn_summary, minimise_summary
+
+# core/parameter
+export Bounded, DynamicBound, Fixed, Named, Parameter, Positive, isconstrained
 
 using DataFrames
 using Distributions
 using FillArrays
-using Missings
-using Nullables
 using LineSearches
+using LinearAlgebra
 using Memento
-using Missings
+using ModelAnalysis
 using Nabla
+using Nullables
 using Optim
+using Random
+using SparseArrays
+using Statistics
+using StatsBase
 
 const LOGGER = getlogger(@__MODULE__)
 const _EPSILON_ = 1e-6 # Precision constant
 const packagehomedir = dirname(@__DIR__) #dirname ascends the directory...
 const Wrapped{T} = Union{T, Node{T}}
 
-if VERSION >= v"0.7"
-    import LinearAlgebra: LinearAlgebra, adjoint, Adjoint, mul!
+__init__() = Memento.register(LOGGER)  # Register the Logger
 
-    A_mul_Bt(A, B) = A * transpose(B)
-    sumdims(A, dims) = sum(A, dims=dims)
-    meandims(A, dims) = mean(A, dims=dims)
-    stddims(A, dims) = std(A, dims=dims)
-    covdims(A, dims; kwargs...) = cov(A; dims=dims, kwargs...)
-else
-    import Base: A_mul_Bt
+"""
+    Process
 
-    sumdims(A, dims) = sum(A, dims)
-    meandims(A, dims) = mean(A, dims)
-    stddims(A, dims) = std(A, dims)
-    covdims(A, dims; kwargs...) = cov(A, dims; kwargs...)
-end
+Abstract supertype for all stochastic processes.
+"""
+abstract type Process end
 
-function __init__()
-    Memento.register(LOGGER) # Register the Logger
-end
-abstract type Random end
-
+# must be included after defining `Process` and before subtyping `AbstractNode`
 include("core/node.jl")
+include("core/optimisedalgebra.jl")
+using .OptimisedAlgebra
+
 
 """
     Kernel <: AbstractNode
@@ -66,43 +126,6 @@ Abstract supertype for all Means.
 """
 abstract type Mean <: AbstractNode end
 
-"""
-    Process <: Random
-
-Abstract supertype for all stochastic processes.
-"""
-abstract type Process <: Random end
-
-"""
-    GP{K<:Kernel, M<:Mean} <: Process
-
-Gaussian process.
-
-# Fields:
-- `m::Mean`: Mean
-- `k::Kernel`: Kernel
-
-# Constructors:
-    GP(m::Mean, k::Kernel)
-
-    GP(n::Real, k::Kernel)
-
-Return GP with constant mean `n`.
-
-    GP(k::Kernel)
-
-Return GP with zero mean.
-"""
-mutable struct GP{K<:Kernel, M<:Mean} <: Process
-    m::M
-    k::K
-end
-
-include("core/optimisedalgebra.jl")
-
-using GPForecasting.OptimisedAlgebra
-export BlockDiagonal, blocks
-
 include("core/util.jl")
 include("core/input.jl")
 include("core/parameter.jl")
@@ -116,5 +139,4 @@ include("gp.jl")
 include("pdf.jl")
 include("core/optimise.jl")
 
-
-end
+end  # module

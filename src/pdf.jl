@@ -1,7 +1,3 @@
-export logpdf, objective
-
-using .OptimisedAlgebra: At_mul_B
-
 """
     logpdf(dist::Gaussian, x::AbstractArray) -> Float64
 
@@ -37,19 +33,19 @@ for a design matrix `y`.
 Update `gp` parameter values with `params` and then call logpdf(ngp, x, y), where `ngp` is
 the updated `GP`. Does NOT affect `gp`.
 """
-@unionise function logpdf(dist::Gaussian, x::AbstractArray)
-    U = Nabla.chol(dist)
-    log_det = 2 * sum(log.(diag(U)))
-    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+@unionise function Distributions.logpdf(dist::Gaussian, x::AbstractArray)
+    L = cholesky(dist).L
+    log_det = 2 * sum(log.(diag(L)))
+    if size(x, 2) > 1 && size(L, 2) == prod(size(x)) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
-        z = U' \ (x .- dist.μ)'[:]
-    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+        z = L \ (x .- dist.μ)'[:]
+    elseif size(L, 2) == size(x, 2) # This means we have a covariance matrix that has entries
     # only for the different outputs, but for a single timestamp. This allows for the
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
-        z = U' \ (x .- dist.μ')'
+        z = L \ (x .- dist.μ')'
         return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
     else
-        z = U' \ (x .- dist.μ)
+        z = L \ (x .- dist.μ)
     end
     return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
@@ -57,22 +53,22 @@ end
 # This looks quite redundant, but is necessary to remove the ambiguity introduced above due
 # to the unionise, since Distributions.jl has its own logpdf methods that can be as
 # especialised as the above.
-function logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
-    U = Nabla.chol(dist)
-    log_det = 2 * sum(log.(diag(U)))
-    if size(x, 2) > 1 && size(U, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
+    L = cholesky(dist).L
+    log_det = 2 * sum(log.(diag(L)))
+    if size(x, 2) > 1 && size(L, 2) == prod(size(x)) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
-        z = U' \ (x .- dist.μ)'[:]
-    elseif size(U, 2) == size(x, 2) # This means we have a covariance matrix that has entries
+        z = L \ (x .- dist.μ)'[:]
+    elseif size(L, 2) == size(x, 2) # This means we have a covariance matrix that has entries
     # only for the different outputs, but for a single timestamp. This allows for the
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
-        z = U' \ (x .- dist.μ')'
+        z = L \ (x .- dist.μ')'
         return -0.5 * size(x, 1) * (log_det + size(x, 2) * log(2π)) - 0.5 * sum(z .* z)
     end
     return -0.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
 end
 
-@unionise function logpdf(
+@unionise function Distributions.logpdf(
     gp::GP,
     x,
     y::AbstractArray{<:Real},
@@ -83,7 +79,7 @@ end
     return logpdf(ngp::GP, x, y)
 end
 
-@unionise function logpdf(
+@unionise function Distributions.logpdf(
    gp::GP{K, M},
     x,
     y::AbstractMatrix{<:Real},
@@ -94,7 +90,7 @@ end
     return logpdf(ngp::GP, x, y)
 end
 
-@unionise function logpdf(
+@unionise function Distributions.logpdf(
     gp::GP{K, U},
     x,
     y::AbstractMatrix{<:Real}
@@ -111,24 +107,24 @@ end
     Kd = [kern(x) for kern in gp.k.ks]
 
     yiσ² = yt ./ σ²
-    HiΛy = reshape(At_mul_B(H, yiσ²), n_d * m, 1)
-    Ls = [Nabla.chol(Symmetric(K) .+ _EPSILON_ .* Eye(n_d)) for K in Kd]
+    HiΛy = reshape(transpose(H) * yiσ², n_d * m, 1)
+    Ls = [cholesky(Symmetric(K) .+ _EPSILON_ .* Eye(n_d)).U for K in Kd]
     LQ = sum_kron_J_ut(m, Ls...)
-    M = Nabla.chol(
-        Symmetric(eye_sum_kron_M_ut(At_mul_B(H, H ./ σ²), Ls...)) .+
+    M = cholesky(
+        Symmetric(eye_sum_kron_M_ut(transpose(H) * (H ./ σ²), Ls...)) .+
         _EPSILON_ .* Eye(m * n_d)
-    )
+    ).L
     log_det = n_d * sum(log.(σ²)) + 2sum(log.(diag(M)))
-    z = M' \ (LQ * HiΛy)
+    z = M \ (LQ * HiΛy)
     return -.5(n_d * p * log(2π) + log_det + dot(yiσ², yt) - dot(z, z))
 end
 
-@unionise function logpdf(dist::Gaussian, xs::Vector{<:Vector})
-    U = chol(dist)
-    log_det = 2 * sum(log.(diag(U)))
+@unionise function Distributions.logpdf(dist::Gaussian, xs::Vector{<:Vector})
+    L = cholesky(dist).L
+    log_det = 2 * sum(log.(diag(L)))
     out = 0.0
     for x in xs
-        z = U' \ (x .- dist.μ)
+        z = L \ (x .- dist.μ)
         out += -.5 * (log_det + prod(size(x)) * log(2π) + dot(z, z))
     end
     return out
@@ -168,7 +164,7 @@ end
     return lpdf
 end
 
-@unionise function logpdf(
+@unionise function Distributions.logpdf(
     gp::GP{K, U},
     x,
     y::AbstractMatrix{<:Real}
@@ -207,7 +203,7 @@ end
     return lpdf
 end
 
-@unionise function logpdf(gp::GP, x, y::AbstractArray{<:Real})
+@unionise function Distributions.logpdf(gp::GP, x, y::AbstractArray{<:Real})
     return logpdf(gp(x), y)
 end
 

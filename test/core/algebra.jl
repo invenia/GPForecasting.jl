@@ -30,9 +30,9 @@
         @test tr(b1) ≈ tr(Matrix(b1))
 
         b1 = BlockDiagonal(Hermitian.([(rand(3, 3) + 15Eye(3)), (rand(4, 4) + 15Eye(4)), (rand(5, 5) + 15Eye(5))]))
-        Ub = Nabla.chol(b1)
-        Um = Nabla.chol(Matrix(b1))
-        @test Ub' * Ub ≈ Matrix(b1) ≈ b1 ≈ Um' * Um
+        Ub = cholesky(b1)
+        Um = cholesky(Matrix(b1))
+        @test Ub.L * Ub.U ≈ Matrix(b1) ≈ b1 ≈ Um.L * Um.U
         @test det(b1) ≈ det(Matrix(b1))
         @test eigvals(b1) ≈ eigvals(Matrix(b1))
 
@@ -94,5 +94,29 @@
             UpperTriangular(Eye(5*10) + sum(
                 [kron(V[i]*V[j]', A[i,j] * MM[i][j]) for i=1:5, j=1:5]
             )) atol = _ATOL_
+    end
+
+    @testset "Cholesky decomposition of block diagonal matrices" begin
+        X = [  4  12 -16
+              12  37 -43
+             -16 -43  98]
+        U = [ 2.0 6.0 -8.0
+              0.0 1.0  5.0
+              0.0 0.0  3.0]
+        B = BlockDiagonal([X, X])
+        C = cholesky(B)
+        @test C isa Cholesky{Float64,BlockDiagonal{Float64}}
+        @test C.U ≈ BlockDiagonal([U, U])
+        @test C.L ≈ BlockDiagonal([U', U'])
+        @test C.UL ≈ C.U
+        @test C.uplo === 'U'
+        @test C.info == 0
+        M = BlockDiagonal(map(Matrix, blocks(C.L)))
+        C = Cholesky(M, 'L', 0)
+        @test C.U ≈ BlockDiagonal([U, U])
+        @test C.L ≈ BlockDiagonal([U', U'])
+        @test C.UL ≈ C.L
+        @test C.uplo === 'L'
+        @test C.info == 0
     end
 end

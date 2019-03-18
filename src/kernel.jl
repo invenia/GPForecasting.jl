@@ -1,8 +1,3 @@
-export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel, set,
-    DiagonalKernel, PosteriorKernel, MA, ∿, periodicise, stretch, RQ, PeriodicKernel,
-    SpecifiedQuantityKernel, ←, hourly_cov, BinaryKernel, ZeroKernel, isMulti,
-    SimilarHourKernel, DotKernel, HazardKernel, RootLog
-
 #########################################################
 # Default kernel behaviour:
 # k(x) = k(x, x), as a definition for k(x).
@@ -10,11 +5,13 @@ export ▷, Kernel, EQ, ConstantKernel, ScaledKernel, StretchedKernel, SumKernel
 # k(x, y) == transpose(k(y, x))
 #########################################################
 
-var(k::Kernel, x) = [k(x[i, :])[1] for i in 1:size(x, 1)]
-var(k::Kernel, x::DataFrame) = [k(DataFrame(x[i, :]))[1] for i in 1:size(x, 1)]
-var(k::Kernel, x::Vector{Input}) = vcat(broadcast(c -> var(k, c), x)...)
+Statistics.var(k::Kernel, x) = [k(x[i, :])[1] for i in 1:size(x, 1)]
+Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
+function Statistics.var(k::Kernel, x::AbstractDataFrame)
+    return [k(DataFrame(r))[1] for r in eachrow(x)]
+end
 
-size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
+Base.size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
 
 """
     hourly_cov(k::Kernel, x)
@@ -59,7 +56,7 @@ mutable struct PosteriorKernel <: Kernel
     U
     PosteriorKernel(k, x, U) = new(k, Fixed(x), Fixed(U))
 end
-show(io::IO, k::PosteriorKernel) = print(io, "Posterior($(k.k))")
+Base.show(io::IO, k::PosteriorKernel) = print(io, "Posterior($(k.k))")
 isMulti(k::PosteriorKernel) = isMulti(k.k)
 function (k::PosteriorKernel)(x)
     U = unwrap(k.U)
@@ -81,7 +78,7 @@ Squared exponential kernel. Computes exp((-1/2) * |x - x′|²).
 mutable struct EQ <: Kernel end
 (::EQ)(x, y) = exp.((-0.5) .* sq_pairwise_dist(x, y))
 (k::EQ)(x) = k(x, x)
-show(io::IO, k::EQ) = print(io, "EQ()")
+Base.show(io::IO, k::EQ) = print(io, "EQ()")
 
 """
     RQ <: Kernel
@@ -94,7 +91,7 @@ mutable struct RQ <: Kernel
 end
 (k::RQ)(x, y) = (1.0 .+ (sq_pairwise_dist(x, y) ./ (2.0 * unwrap(k.α)))) .^ (-unwrap(k.α))
 (k::RQ)(x) = k(x, x)
-show(io::IO, k::RQ) = print(io, "RQ($(k.α))")
+Base.show(io::IO, k::RQ) = print(io, "RQ($(k.α))")
 
 mutable struct SimilarHourKernel <: Kernel
     hdeltas::Fixed{Int}
@@ -123,7 +120,7 @@ function (k::SimilarHourKernel)(x, y)
         K
 end
 (k::SimilarHourKernel)(x) = k(x, x)
-function show(io::IO, k::SimilarHourKernel)
+function Base.show(io::IO, k::SimilarHourKernel)
     cs = unwrap(k.coeffs)
     ds = "$(cs[1])*δ(0)"
     for i in 1:(unwrap(k.hdeltas) - 1)
@@ -155,7 +152,7 @@ function (k::MA)(x, y)
     end
 end
 (k::MA)(x) = k(x, x)
-show(io::IO, k::MA) = print(io, "MA($(k.ν))")
+Base.show(io::IO, k::MA) = print(io, "MA($(k.ν))")
 
 """
     RootLog <: Kernel
@@ -169,7 +166,7 @@ function (k::RootLog)(x, y)
     return (log.(d .+ 1) .+ 1e-16) ./ (d .+ 1e-16)
 end
 (k::RootLog)(x) = k(x, x)
-show(io::IO, k::RootLog) = print(io, "RootLog()")
+Base.show(io::IO, k::RootLog) = print(io, "RootLog()")
 
 """
     BinaryKernel <: Kernel
@@ -214,12 +211,12 @@ mutable struct ScaledKernel <: Kernel
     k::Kernel
 end
 isMulti(k::ScaledKernel) = isMulti(k.k)
-function (*)(x, k::Kernel)
+function Base.:*(x, k::Kernel)
     return isconstrained(x) ?
         ScaledKernel(x, k) :
         (unwrap(x) ≈ zero(unwrap(x)) ? ZeroKernel() : ScaledKernel(Positive(x), k))
 end
-function (*)(x, k::ScaledKernel)
+function Base.:*(x, k::ScaledKernel)
     if isconstrained(x)
         return ScaledKernel(x, k)
     else
@@ -231,14 +228,14 @@ function (*)(x, k::ScaledKernel)
             )
     end
 end
-(*)(k::Kernel, x) = (*)(x, k::Kernel)
-function (+)(k1::Kernel, k2::ScaledKernel)
+Base.:*(k::Kernel, x) = (*)(x, k::Kernel)
+function Base.:+(k1::Kernel, k2::ScaledKernel)
     return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? k1 : SumKernel(k1, k2)
 end
-function (+)(k1::ScaledKernel, k2::Kernel)
+function Base.:+(k1::ScaledKernel, k2::Kernel)
     return unwrap(k1.scale) ≈ zero(unwrap(k1.scale)) ? k2 : SumKernel(k1, k2)
 end
-function (+)(k1::ScaledKernel, k2::ScaledKernel)
+function Base.:+(k1::ScaledKernel, k2::ScaledKernel)
     if unwrap(k1.scale) ≈ zero(unwrap(k1.scale))
         return k2
     elseif unwrap(k2.scale) ≈ zero(unwrap(k2.scale))
@@ -249,7 +246,7 @@ function (+)(k1::ScaledKernel, k2::ScaledKernel)
 end
 (k::ScaledKernel)(x, y) = unwrap(k.scale) .* k.k(x, y)
 (k::ScaledKernel)(x) = k(x, x)
-show(io::IO, k::ScaledKernel) = print(io, "($(k.scale) * $(k.k))")
+Base.show(io::IO, k::ScaledKernel) = print(io, "($(k.scale) * $(k.k))")
 
 """
     StretchedKernel <: Kernel
@@ -288,7 +285,7 @@ function (k::StretchedKernel)(x, y)
     return k.k(x ./ lscale, y ./ lscale)
 end
 (k::StretchedKernel)(x) = k(x, x)
-show(io::IO, k::StretchedKernel) = print(io, "($(k.k) ▷ $(k.stretch))")
+Base.show(io::IO, k::StretchedKernel) = print(io, "($(k.k) ▷ $(k.stretch))")
 
 """
     SumKernel <: Kernel
@@ -299,10 +296,10 @@ mutable struct SumKernel <: Kernel
     k1::Kernel
     k2::Kernel
 end
-(+)(k1::Kernel, k2::Kernel) = SumKernel(k1, k2)
+Base.:+(k1::Kernel, k2::Kernel) = SumKernel(k1, k2)
 (k::SumKernel)(x, y) = k.k1(x, y) .+ k.k2(x, y)
 (k::SumKernel)(x) = k(x, x)
-show(io::IO, k::SumKernel) = print(io, "($(k.k1) + $(k.k2))")
+Base.show(io::IO, k::SumKernel) = print(io, "($(k.k1) + $(k.k2))")
 isMulti(k::SumKernel) = isMulti(k.k1) || isMulti(k.k2)
 
 """
@@ -314,14 +311,14 @@ mutable struct ProductKernel <: Kernel
     k1::Kernel
     k2::Kernel
 end
-(*)(k1::Kernel, k2::Kernel) = ProductKernel(k1, k2)
-function (*)(k1::Kernel, k2::ScaledKernel)
+Base.:*(k1::Kernel, k2::Kernel) = ProductKernel(k1, k2)
+function Base.:*(k1::Kernel, k2::ScaledKernel)
     return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? Kernel(0) : ProductKernel(k1, k2)
 end
-function (*)(k1::ScaledKernel, k2::Kernel)
+function Base.:*(k1::ScaledKernel, k2::Kernel)
     return unwrap(k1.scale) ≈ zero(unwrap(k1.scale)) ? Kernel(0) : ProductKernel(k1, k2)
 end
-function (*)(k1::ScaledKernel, k2::ScaledKernel)
+function Base.:*(k1::ScaledKernel, k2::ScaledKernel)
     if unwrap(k1.scale) ≈ zero(unwrap(k1.scale))
         return Kernel(0)
     elseif unwrap(k2.scale) ≈ zero(unwrap(k2.scale))
@@ -332,7 +329,7 @@ function (*)(k1::ScaledKernel, k2::ScaledKernel)
 end
 (k::ProductKernel)(x, y) = k.k1(x, y) .* k.k2(x, y)
 (k::ProductKernel)(x) = k(x, x)
-show(io::IO, k::ProductKernel) = print(io, "($(k.k1) * $(k.k2))")
+Base.show(io::IO, k::ProductKernel) = print(io, "($(k.k1) * $(k.k2))")
 isMulti(k::ProductKernel) = isMulti(k.k1) || isMulti(k.k2)
 
 """
@@ -350,7 +347,7 @@ function (k::PeriodicKernel)(x, y)
     return k.k(px, py)
 end
 (k::PeriodicKernel)(x) = k(x, x)
-show(io::IO, k::PeriodicKernel) = print(io, "($(k.k) ∿ $(k.T))")
+Base.show(io::IO, k::PeriodicKernel) = print(io, "($(k.k) ∿ $(k.T))")
 isMulti(k::PeriodicKernel) = isMulti(k.k)
 
 """
@@ -371,11 +368,11 @@ mutable struct SpecifiedQuantityKernel <: Kernel
     k::Kernel
 end
 (←)(k::Kernel, s::Symbol) = SpecifiedQuantityKernel(Fixed(s), k)
-function (k::SpecifiedQuantityKernel)(x::DataFrame, y::DataFrame)
+function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::AbstractDataFrame)
     return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
 end
-(k::SpecifiedQuantityKernel)(x::DataFrame) = k(x, x)
-show(io::IO, k::SpecifiedQuantityKernel) = print(io, "($(k.k) ← $(k.col))")
+(k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
+Base.show(io::IO, k::SpecifiedQuantityKernel) = print(io, "($(k.k) ← $(k.col))")
 isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 
 """
@@ -386,14 +383,14 @@ Kernel that returns 1.0 for every pair of points.
 struct ConstantKernel <: Kernel end
 (k::ConstantKernel)(x, y) = ones(Float64, size(x, 1), size(y, 1))
 (k::ConstantKernel)(x) = k(x, x)
-function (+)(k::Kernel, x)
+function Base.:+(k::Kernel, x)
     return isconstrained(x) ?
         SumKernel(k, x * ConstantKernel()) :
         (unwrap(x) ≈ zero(unwrap(x)) ? k : SumKernel(k, x * ConstantKernel()))
 end
-(+)(x, k::Kernel) = (+)(k::Kernel, x)
-convert(::Type{Kernel}, x::Real) = x ≈ 0.0 ? ZeroKernel() : Fixed(x) * ConstantKernel()
-show(io::IO, k::ConstantKernel) = print(io, "𝟏")
+Base.:+(x, k::Kernel) = (+)(k::Kernel, x)
+Base.convert(::Type{Kernel}, x::Real) = x ≈ 0.0 ? ZeroKernel() : Fixed(x) * ConstantKernel()
+Base.show(io::IO, k::ConstantKernel) = print(io, "𝟏")
 
 """
     ZeroKernel <: Kernel
@@ -403,19 +400,19 @@ Zero kernel. Returns zero.
 struct ZeroKernel <: Kernel; end
 (::ZeroKernel)(x, y) = zeros(size(x, 1), size(y, 1))
 (k::ZeroKernel)(x) = k(x, x)
-(+)(k::Kernel, z::ZeroKernel) = k
-(+)(z::ZeroKernel, k::Kernel) = k + z
-(+)(z::ZeroKernel, k::ZeroKernel) = z
-(+)(z::ZeroKernel, k::ScaledKernel) = k
-(+)(k::ScaledKernel, z::ZeroKernel) = z + k
-(*)(k::Kernel, z::ZeroKernel) = z
-(*)(z::ZeroKernel, k::Kernel) = k * z
-(*)(z::ZeroKernel, k::ZeroKernel) = z
-(*)(z::ZeroKernel, k::ScaledKernel) = z
-(*)(k::ScaledKernel, z::ZeroKernel) = z * k
-(*)(x, z::ZeroKernel) = z
-(*)(z::ZeroKernel, x) = x * z
-show(io::IO, z::ZeroKernel) = print(io, "𝟎")
+Base.:+(k::Kernel, z::ZeroKernel) = k
+Base.:+(z::ZeroKernel, k::Kernel) = k + z
+Base.:+(z::ZeroKernel, k::ZeroKernel) = z
+Base.:+(z::ZeroKernel, k::ScaledKernel) = k
+Base.:+(k::ScaledKernel, z::ZeroKernel) = z + k
+Base.:*(k::Kernel, z::ZeroKernel) = z
+Base.:*(z::ZeroKernel, k::Kernel) = k * z
+Base.:*(z::ZeroKernel, k::ZeroKernel) = z
+Base.:*(z::ZeroKernel, k::ScaledKernel) = z
+Base.:*(k::ScaledKernel, z::ZeroKernel) = z * k
+Base.:*(x, z::ZeroKernel) = z
+Base.:*(z::ZeroKernel, x) = x * z
+Base.show(io::IO, z::ZeroKernel) = print(io, "𝟎")
 
 """
     DiagonalKernel <: Kernel
@@ -432,7 +429,7 @@ end
 (k::DiagonalKernel)(x, y::Number) = k(x, [y])
 (k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
 (k::DiagonalKernel)(x) = k(x, x)
-show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
+Base.show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
 
 """
     DotKernel <: Kernel
@@ -447,7 +444,7 @@ end
 (k::DotKernel)(x, y::Number) = k(x, [y])
 (k::DotKernel)(x::Number, y::Number) = k([x], [y])
 (k::DotKernel)(x) = k(x, x)
-show(io::IO, k::DotKernel) = print(io, "<., .>")
+Base.show(io::IO, k::DotKernel) = print(io, "<., .>")
 
 """
     HazardKernel <: Kernel
@@ -497,7 +494,7 @@ end
 (k::HazardKernel)(x::Number, y) = k([x], y)
 (k::HazardKernel)(x, y::Number) = k(x, [y])
 (k::HazardKernel)(x::Number, y::Number) = k([x], [y])
-show(io::IO, k::HazardKernel) = print(io, "Hazard()")
+Base.show(io::IO, k::HazardKernel) = print(io, "Hazard()")
 
-zero(::Kernel) = ZeroKernel()
-zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
+Base.zero(::Kernel) = ZeroKernel()
+Base.zero(::Type{GPForecasting.Kernel}) = ZeroKernel()

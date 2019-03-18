@@ -2,7 +2,7 @@ using Documenter, GPForecasting
 
 makedocs(;
     modules=[GPForecasting],
-    format=:html,
+    format=Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
     pages=[
         "Home" => "index.md",
         "Kernels" => "Kernels.md",
@@ -15,4 +15,5 @@ makedocs(;
     sitename="GPForecasting.jl",
     authors="Invenia Technical Computing",
     assets=["assets/invenia.css"],
+    checkdocs=:exports,
 )

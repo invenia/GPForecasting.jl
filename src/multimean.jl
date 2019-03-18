@@ -1,5 +1,3 @@
-export MultiMean, LMMPosMean, MultiOutputMean, OLMMPosMean
-
 abstract type MultiOutputMean <: Mean end
 
 """
@@ -13,7 +11,7 @@ struct MultiMean <: MultiOutputMean
 end
 (mm::MultiMean)(x) = hcat([m(x) for m in mm.m]...)
 (am::Array{T, 1} where T<:Mean)(x) = hcat([m(x) for m in am]...)
-show(io::IO, k::MultiMean) = print(io, "$(k.m)")
+Base.show(io::IO, k::MultiMean) = print(io, "$(k.m)")
 
 """
     LMMPosMean <: MultiOutputMean
@@ -27,7 +25,7 @@ struct LMMPosMean <: MultiOutputMean
     y
     LMMPosMean(k, x, Z, y) = new(k, Fixed(x), Fixed(Z), Fixed(y))
 end
-show(io::IO, k::LMMPosMean) = print(io, "Posterior($(k.k))")
+Base.show(io::IO, k::LMMPosMean) = print(io, "Posterior($(k.k))")
 function (μ::LMMPosMean)(x)
     # NOTE: Our LMM notes have all been derived assuming a different convention for inputs
     # and outputs. Thus, inside this function we will convert them to old conventions and
@@ -104,7 +102,7 @@ function unstack(m::Vector{Float64}, p::Int)
 end
 
 # Matrix-Mean multiplications
-(*)(m::Matrix, μ::Array{T} where T<:Mean) = MultiMean(m * convert(Array{Any, 1}, μ))
-(*)(μ::Array{T} where T<:Mean, m::Matrix) = m * μ
-(*)(m::Array, μ::Mean) = MultiMean(broadcast(*, m, μ))
-(*)(μ::Mean, m::Array) = m * μ
+Base.:*(m::Matrix, μ::Array{T} where T<:Mean) = MultiMean(m * convert(Array{Any, 1}, μ))
+Base.:*(μ::Array{T} where T<:Mean, m::Matrix) = m * μ
+Base.:*(m::Array, μ::Mean) = MultiMean(broadcast(*, m, μ))
+Base.:*(μ::Mean, m::Array) = m * μ
