@@ -109,7 +109,7 @@ abstract type Process end
 # must be included after defining `Process` and before subtyping `AbstractNode`
 include("core/node.jl")
 include("core/optimisedalgebra.jl")
-using GPForecasting.OptimisedAlgebra
+using .OptimisedAlgebra
 
 
 """
