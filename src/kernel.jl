@@ -115,9 +115,11 @@ function (k::SimilarHourKernel)(x, y)
     cs = unwrap(k.coeffs)
     hd = unwrap(k.hdeltas)
     K = cs[1] * δ.(d)
-    return length(cs) > 1 ?
-        K .+ sum([(cs[i + 1] * (δ.(d .- (24 - i)) + δ.(d .- i))) for i in 1:(hd - 1)]) :
-        K
+    if length(cs) > 1
+        return K .+ sum(cs[i + 1] * (δ.(d .- (24 - i)) + δ.(d .- i)) for i in 1:(hd - 1))
+    else
+        return K
+    end
 end
 (k::SimilarHourKernel)(x) = k(x, x)
 function Base.show(io::IO, k::SimilarHourKernel)
@@ -180,8 +182,8 @@ mutable struct BinaryKernel <: Kernel
     Θ₃
 end
 function (k::BinaryKernel)(x, y)
-    return unwrap(k.Θ₁) .* (x .≈ y' .≈ 1) +
-        unwrap(k.Θ₂) .* (x .≈ y' .≈ 0) +
+    return unwrap(k.Θ₁) .* (x .≈ y' .≈ 1) .+
+        unwrap(k.Θ₂) .* (x .≈ y' .≈ 0) .+
         unwrap(k.Θ₃) .* (x .!= y')
 end
 (k::BinaryKernel)(x) = k(x, x)
@@ -279,10 +281,11 @@ function (k::StretchedKernel)(x, y)
     # This condition should only be met in case the input space got extended by `periodicise`
     # If the user forces this to trigger by feeding a length scale with the wrong length,
     # that is his fault.
-    length(lscale) > 1 && length(lscale) == size(x, 2) / 2 &&
-    return k.k(x ./ hcat(lscale, lscale), y ./ hcat(lscale, lscale))
-
-    return k.k(x ./ lscale, y ./ lscale)
+    if length(lscale) > 1 && length(lscale) == size(x, 2) / 2
+        return k.k(x ./ hcat(lscale, lscale), y ./ hcat(lscale, lscale))
+    else
+        return k.k(x ./ lscale, y ./ lscale)
+    end
 end
 (k::StretchedKernel)(x) = k(x, x)
 Base.show(io::IO, k::StretchedKernel) = print(io, "($(k.k) ▷ $(k.stretch))")
