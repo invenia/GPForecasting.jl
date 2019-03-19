@@ -182,16 +182,22 @@ function condition(
 end
 
 """
+    condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
+
+Condition GP on observed data. This should satisfy both "Variational Learning of Inducing
+Variables in Sparse Gaussian Processes" and "Bayesian Gaussian Process Models:
+PAC-Bayesian Generalisation Error Bounds and Sparse Approximations.". For other approaches,
+some form of dispatching would be needed.
 """
-function sparse_condition(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
+function condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
     xm = unwrap(Xm)
     # Compute the relevant Choleskys
     Kmm = gp.k(xm, xm)
-    Umm = Nabla.chol(Kmm + _EPSILON_^2 * I)
+    Umm = cholesky(Kmm + _EPSILON_^2 * I).U
     Knm = gp.k(x, xm)
     T = Umm' \ Knm'
     P = I + (1/unwrap(σ²)) .* (T * T')
-    Up = Nabla.chol(P + _EPSILON_^2 * I)
+    Up = cholesky(P + _EPSILON_^2 * I).U
     Uz = Up * Umm
     # The implementation above should be mathematically equivalent to the one below, but
     # numerically more stable.
