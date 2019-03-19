@@ -3,7 +3,7 @@ module GPForecasting
 export BlockDiagonal, blocks, sample
 
 # gp.jl
-export Process, GP, condition, credible_interval
+export Process, GP, condition, condition_sparse, credible_interval
 
 # gaussian.jl
 export Gaussian
@@ -22,7 +22,7 @@ export ConstantMean,
 export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
 
 # pdf.jl
-export logpdf, objective
+export logpdf, objective, titsiasobj
 
 # kernel.jl
 export ▷,
@@ -73,7 +73,7 @@ export Input, Observed, Latent
 export cov_EB, cov_LW
 
 # core/optimise
-export minimise, learn, learn_summary, minimise_summary
+export minimise, learn, learn_summary, learn_sparse, minimise_summary
 
 # core/parameter
 export Bounded, DynamicBound, Fixed, Named, Parameter, Positive, isconstrained
