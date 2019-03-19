@@ -598,4 +598,4 @@ end
 # SparseKernel(k::Kernel, )
 (k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
 (k::SparseKernel)() = k.k(unwrap(k.Xm))
-show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")
+Base.show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")
