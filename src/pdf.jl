@@ -260,7 +260,7 @@ Learning of Inducing Variables in Sparse Gaussian Processes". Note that this sho
 a regular GP, which will be made sparse.
 """
 @unionise function titsiasobj(gp::GP, x, y::AbstractArray{<:Real}, Xm, σ²)
-    sk = SparseKernel(gp.k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
+    sk = SparseKernel(gp.k, Xm, σ²)
     return function f(params)
         return -titsiasELBO(GP(gp.m, sk), x, y, params)
     end

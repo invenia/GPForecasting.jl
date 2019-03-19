@@ -595,7 +595,7 @@ mutable struct SparseKernel <: Kernel
     n
     σ²
 end
-# SparseKernel(k::Kernel, )
+SparseKernel(k::Kernel, Xm, σ²) = SparseKernel(k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
 (k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
 (k::SparseKernel)() = k.k(unwrap(k.Xm))
 Base.show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")
