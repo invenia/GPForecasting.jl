@@ -91,10 +91,10 @@ mutable struct RQ <: Kernel
     α
     RQ(α) = isconstrained(α) ? new(α) : new(Positive(α))
 end
-function (k::RQ)(x::Array_or_Real, y::Array_or_Real)
+function (k::RQ)(x::ArrayOrReal, y::ArrayOrReal)
     return (1.0 .+ (sq_pairwise_dist(x, y) ./ (2.0 * unwrap(k.α)))) .^ (-unwrap(k.α))
 end
-(k::RQ)(x::Array_or_Real) = k(x, x)
+(k::RQ)(x::ArrayOrReal) = k(x, x)
 Base.show(io::IO, k::RQ) = print(io, "RQ($(k.α))")
 
 mutable struct SimilarHourKernel <: Kernel
@@ -113,7 +113,7 @@ mutable struct SimilarHourKernel <: Kernel
         return new(hd, cs)
     end
 end
-function (k::SimilarHourKernel)(x::Array_or_Real, y::Array_or_Real)
+function (k::SimilarHourKernel)(x::ArrayOrReal, y::ArrayOrReal)
     δ(x) = isapprox(x, 0.0, atol=1e-15) ? 1 : 0
     d = pairwise_dist(x, y) .% 24
     cs = unwrap(k.coeffs)
@@ -125,7 +125,7 @@ function (k::SimilarHourKernel)(x::Array_or_Real, y::Array_or_Real)
         return K
     end
 end
-(k::SimilarHourKernel)(x::Array_or_Real) = k(x, x)
+(k::SimilarHourKernel)(x::ArrayOrReal) = k(x, x)
 function Base.show(io::IO, k::SimilarHourKernel)
     cs = unwrap(k.coeffs)
     ds = "$(cs[1])*δ(0)"
@@ -145,7 +145,7 @@ struct MA <: Kernel
     ν::Fixed
 end
 MA(n::Real) = MA(Fixed(n))
-function (k::MA)(x::Array_or_Real, y::Array_or_Real)
+function (k::MA)(x::ArrayOrReal, y::ArrayOrReal)
     d = pairwise_dist(x, y)
     if unwrap(k.ν) ≈ 1/2
         return exp.(-d)
@@ -157,7 +157,7 @@ function (k::MA)(x::Array_or_Real, y::Array_or_Real)
         throw(ArgumentError("$(unwrap(k.ν)) is not a supported value for Matérn kernels."))
     end
 end
-(k::MA)(x::Array_or_Real) = k(x, x)
+(k::MA)(x::ArrayOrReal) = k(x, x)
 Base.show(io::IO, k::MA) = print(io, "MA($(k.ν))")
 
 """
@@ -166,12 +166,12 @@ Base.show(io::IO, k::MA) = print(io, "MA($(k.ν))")
 Kernel that computes (1/|x - y|) * log(1 + |x - y|).
 """
 struct RootLog <: Kernel end
-function (k::RootLog)(x::Array_or_Real, y::Array_or_Real)
+function (k::RootLog)(x::ArrayOrReal, y::ArrayOrReal)
     d = pairwise_dist(x, y)
     # The 1e-16 here is just to make sure that we get the correct limit when d → 0
     return (log.(d .+ 1) .+ 1e-16) ./ (d .+ 1e-16)
 end
-(k::RootLog)(x::Array_or_Real) = k(x, x)
+(k::RootLog)(x::ArrayOrReal) = k(x, x)
 Base.show(io::IO, k::RootLog) = print(io, "RootLog()")
 
 """
