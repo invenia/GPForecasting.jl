@@ -222,6 +222,10 @@ a `gp` evaluated at points `x`. Returns a function of the `GP` parameters.
 end
 
 """
+    titsiasELBO(gp::GP, x, y::AbstractArray{<:Real})
+
+Compute the lower bound for the posterior logpdf under Titsias' approach. See:
+"Variational Learning of Inducing Variables in Sparse Gaussian Processes"
 """
 @unionise function titsiasELBO(gp::GP, x, y::AbstractArray{<:Real})
     Xm = unwrap(gp.k.Xm)
@@ -232,7 +236,7 @@ end
     # Compute Qnn
     Kmm = k(Xm, Xm)
     Kmn = k(Xm, x)
-    Umm = Nabla.chol(Kmm + _EPSILON_^2 * Eye(num_m))
+    Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
     Q_sqrt = Umm' \ Kmn
     Qnn = Q_sqrt' * Q_sqrt
     # Compute first term
@@ -248,6 +252,12 @@ end
 end
 
 """
+    titsiasobj(gp::GP, x, y::AbstractArray{<:Real}, Xm, σ²)
+
+Return objective function for learning a sparse GP under Titsias' approximations. Passing
+this to `learn_sparse` automatically adopts the approach as specified in "Variational
+Learning of Inducing Variables in Sparse Gaussian Processes". Note that this should receive
+a regular GP, which will be made sparse.
 """
 @unionise function titsiasobj(gp::GP, x, y::AbstractArray{<:Real}, Xm, σ²)
     sk = SparseKernel(gp.k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
