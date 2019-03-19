@@ -80,7 +80,7 @@ mutable struct EQ <: Kernel end
 (k::EQ)(x) = k(x, x)
 Base.show(io::IO, k::EQ) = print(io, "EQ()")
 
-Array_or_Real = Union{Wrapped{T}, Wrapped{G}} where {T <: AbstractArray{<:Real}, G <: Real}
+const ArrayOrReal = Union{Wrapped{<:AbstractArray{<:Real}}, Wrapped{<:Real}}
 
 """
     RQ <: Kernel
