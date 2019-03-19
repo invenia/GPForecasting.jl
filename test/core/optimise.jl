@@ -41,4 +41,15 @@
     out = learn_summary(gp, x, y, objective, its=3, trace=false)
     @test size(out, 1) == 2
     @test isa(out[2], GP) == true
+
+    x = collect(0:0.01:2)
+    y = sin.(4π * x) .+ 1e-1 .* randn(length(x))
+    gp = GP(periodicise(EQ(), 1.0))
+    Xm_i = [0.0, 1.0, 2.0]
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Fixed(Xm_i), Positive(0.01), its=20, trace=false)
+    @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Positive(0.01), its = 20, trace=false)
+    @test !isapprox(GPForecasting.unwrap(Xm), Xm_i, atol=_ATOL_)
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Fixed(0.01), its = 20, trace=false)
+    @test GPForecasting.unwrap(σ²) == 0.01
 end

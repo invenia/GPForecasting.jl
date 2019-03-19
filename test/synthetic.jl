@@ -320,4 +320,40 @@
         @test m_solmm ≈ m_olmm  rtol = _RTOL_
         @test k_solmm ≈ k_olmm  rtol = _RTOL_
     end
+
+    @testset "Sparse GPs" begin
+        f = open("sgp_train_inputs")
+        s = read(f, String);
+        x_train = parse.(Float64, split(s, "\n")[1:end-1]);
+        close(f)
+
+        f = open("sgp_train_outputs")
+        s = read(f, String);
+        y_train = parse.(Float64, split(s, "\n")[1:end-1]);
+        close(f)
+
+        gp = GP(1.0 * (EQ() ▷ 0.5) + 1e-2 * DiagonalKernel())
+        ngp = learn(gp, x_train, y_train, objective, its = 500, trace = false)
+        pos = condition(ngp, x_train, y_train)
+
+        x_test = collect(-3:0.01:9);
+        means, lb, ub = credible_interval(pos, x_test)
+
+        sgp, Xm, σ² = GPForecasting.learn_sparse(
+            GP(1.0 * (EQ() ▷ 0.5)),
+            x_train,
+            y_train,
+            rand(x_train, 15),
+            Positive(0.1),
+            its = 500,
+            trace = false
+        )
+        spos = GPForecasting.condition_sparse(sgp, x_train, Xm, y_train, σ²)
+
+        smeans, slb, sub = credible_interval(spos, x_test);
+
+        @test mean(abs.(means .- smeans)) / mean(abs.(means)) < 0.01
+        @test mean(abs.(lb .- slb)) / mean(abs.(lb)) < 0.01
+        @test mean(abs.(ub .- sub)) / mean(abs.(ub)) < 0.01
+    end
 end
