@@ -13,7 +13,7 @@ struct BlockDiagonal{T} <: AbstractMatrix{T}
 end
 
 blocks(b::BlockDiagonal) = b.blocks
-LinearAlgebra.diag(b::BlockDiagonal) = vcat(diag.(blocks(b))...)
+LinearAlgebra.diag(b::BlockDiagonal) = mapreduce(diag, vcat, blocks(b))
 
 function Base.size(b::BlockDiagonal)
     sizes = size.(blocks(b))
@@ -59,7 +59,7 @@ end
 
 LinearAlgebra.det(b::BlockDiagonal) = prod(det.(blocks(b)))
 function LinearAlgebra.eigvals(b::BlockDiagonal)
-    eigs = vcat(eigvals.(blocks(b))...)
+    eigs = mapreduce(eigvals, vcat, blocks(b))
     !isa(eigs, Vector{<:Complex}) && return sort(eigs)
     return eigs
 end
@@ -93,7 +93,7 @@ function Base.:*(b::BlockDiagonal, m::AbstractMatrix)
         push!(d, block * m[st:ed, :])
         st = ed + 1
     end
-    return vcat(d...)
+    return reduce(vcat, d)
 end
 function Base.:*(m::AbstractMatrix, b::BlockDiagonal)
     size(b, 1) != size(m, 2) && throw(
@@ -107,7 +107,7 @@ function Base.:*(m::AbstractMatrix, b::BlockDiagonal)
         push!(d, m[:, st:ed] * block)
         st = ed + 1
     end
-    return hcat(d...)
+    return reduce(hcat, d)
 end
 function Base.:*(b::BlockDiagonal, m::BlockDiagonal)
     if size(b) == size(m) && size.(blocks(b)) == size.(blocks(m))
@@ -184,7 +184,7 @@ function kron_lid_lmul_lt_s(A::AbstractMatrix, B::AbstractMatrix)
     for i in 1:eye_n
         blocks[i] = create_block(A, B, k, l, m, n, i)
     end
-    return vcat(blocks...)
+    return reduce(vcat, blocks)
 end
 
 function create_block(A, B, k, l, m, n, i)
@@ -214,9 +214,11 @@ execution time.
 """
 function kron_rid_lmul_s(A::AbstractMatrix, B::AbstractMatrix)
     (k, l), (m, n), eye_n = check_sizes(A, B)
-    return hcat(
-        [reshape(reshape(B[:, i], div(m * 1, l), l) * A', eye_n * k, 1) for i = 1:n]...
-    )
+    cols = map(1:n) do i
+        C = reshape(B[:, i], (:, l)) * A'
+        reshape(C, (:, 1))
+    end
+    return reduce(hcat, cols)
 end
 
 """
