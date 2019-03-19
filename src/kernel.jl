@@ -80,6 +80,8 @@ mutable struct EQ <: Kernel end
 (k::EQ)(x) = k(x, x)
 Base.show(io::IO, k::EQ) = print(io, "EQ()")
 
+Array_or_Real = Union{Wrapped{T}, Wrapped{G}} where {T <: AbstractArray{<:Real}, G <: Real}
+
 """
     RQ <: Kernel
 
@@ -89,8 +91,10 @@ mutable struct RQ <: Kernel
     α
     RQ(α) = isconstrained(α) ? new(α) : new(Positive(α))
 end
-(k::RQ)(x, y) = (1.0 .+ (sq_pairwise_dist(x, y) ./ (2.0 * unwrap(k.α)))) .^ (-unwrap(k.α))
-(k::RQ)(x) = k(x, x)
+function (k::RQ)(x::Array_or_Real, y::Array_or_Real)
+    return (1.0 .+ (sq_pairwise_dist(x, y) ./ (2.0 * unwrap(k.α)))) .^ (-unwrap(k.α))
+end
+(k::RQ)(x::Array_or_Real) = k(x, x)
 Base.show(io::IO, k::RQ) = print(io, "RQ($(k.α))")
 
 mutable struct SimilarHourKernel <: Kernel
@@ -109,7 +113,7 @@ mutable struct SimilarHourKernel <: Kernel
         return new(hd, cs)
     end
 end
-function (k::SimilarHourKernel)(x, y)
+function (k::SimilarHourKernel)(x::Array_or_Real, y::Array_or_Real)
     δ(x) = isapprox(x, 0.0, atol=1e-15) ? 1 : 0
     d = pairwise_dist(x, y) .% 24
     cs = unwrap(k.coeffs)
@@ -121,7 +125,7 @@ function (k::SimilarHourKernel)(x, y)
         return K
     end
 end
-(k::SimilarHourKernel)(x) = k(x, x)
+(k::SimilarHourKernel)(x::Array_or_Real) = k(x, x)
 function Base.show(io::IO, k::SimilarHourKernel)
     cs = unwrap(k.coeffs)
     ds = "$(cs[1])*δ(0)"
@@ -141,7 +145,7 @@ struct MA <: Kernel
     ν::Fixed
 end
 MA(n::Real) = MA(Fixed(n))
-function (k::MA)(x, y)
+function (k::MA)(x::Array_or_Real, y::Array_or_Real)
     d = pairwise_dist(x, y)
     if unwrap(k.ν) ≈ 1/2
         return exp.(-d)
@@ -153,7 +157,7 @@ function (k::MA)(x, y)
         throw(ArgumentError("$(unwrap(k.ν)) is not a supported value for Matérn kernels."))
     end
 end
-(k::MA)(x) = k(x, x)
+(k::MA)(x::Array_or_Real) = k(x, x)
 Base.show(io::IO, k::MA) = print(io, "MA($(k.ν))")
 
 """
@@ -162,12 +166,12 @@ Base.show(io::IO, k::MA) = print(io, "MA($(k.ν))")
 Kernel that computes (1/|x - y|) * log(1 + |x - y|).
 """
 struct RootLog <: Kernel end
-function (k::RootLog)(x, y)
+function (k::RootLog)(x::Array_or_Real, y::Array_or_Real)
     d = pairwise_dist(x, y)
     # The 1e-16 here is just to make sure that we get the correct limit when d → 0
     return (log.(d .+ 1) .+ 1e-16) ./ (d .+ 1e-16)
 end
-(k::RootLog)(x) = k(x, x)
+(k::RootLog)(x::Array_or_Real) = k(x, x)
 Base.show(io::IO, k::RootLog) = print(io, "RootLog()")
 
 """
@@ -181,12 +185,12 @@ mutable struct BinaryKernel <: Kernel
     Θ₂
     Θ₃
 end
-function (k::BinaryKernel)(x, y)
+@unionise function (k::BinaryKernel)(x::AbstractArray{<:Integer}, y::AbstractArray{<:Integer})
     return unwrap(k.Θ₁) .* (x .≈ y' .≈ 1) .+
         unwrap(k.Θ₂) .* (x .≈ y' .≈ 0) .+
         unwrap(k.Θ₃) .* (x .!= y')
 end
-(k::BinaryKernel)(x) = k(x, x)
+@unionise (k::BinaryKernel)(x::AbstractArray{<:Integer}) = k(x, x)
 function BinaryKernel(a::Real, b::Real, c::Real)
     pa = Positive(a)
     pb = Positive(b)
@@ -440,13 +444,13 @@ Base.show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
 Dot product kernel. Non-stationary.
 """
 struct DotKernel <: Kernel end
-function (::DotKernel)(x, y)
+@unionise function (::DotKernel)(x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
     return x * y'
 end
 (k::DotKernel)(x::Number, y) = k([x], y)
 (k::DotKernel)(x, y::Number) = k(x, [y])
 (k::DotKernel)(x::Number, y::Number) = k([x], [y])
-(k::DotKernel)(x) = k(x, x)
+@unionise (k::DotKernel)(x::AbstractArray{<:Real}) = k(x, x)
 Base.show(io::IO, k::DotKernel) = print(io, "<., .>")
 
 """
@@ -479,7 +483,7 @@ mutable struct HazardKernel <: Kernel
 end
 HazardKernel() = HazardKernel(Fixed(0.0), Fixed(-1))
 HazardKernel(bias) = HazardKernel(bias, Fixed(-1))
-function (k::HazardKernel)(x, y)
+@unionise function (k::HazardKernel)(x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
     # First, augment the input space
     xl = [x[i, :] for i in 1:size(x, 1)]
     yl = [y[i, :] for i in 1:size(y, 1)]
@@ -493,7 +497,7 @@ function (k::HazardKernel)(x, y)
 
     return DotKernel()(x_aug, y_aug)
 end
-(k::HazardKernel)(x) = k(x, x)
+@unionise (k::HazardKernel)(x::AbstractArray{<:Real}) = k(x, x)
 (k::HazardKernel)(x::Number, y) = k([x], y)
 (k::HazardKernel)(x, y::Number) = k(x, [y])
 (k::HazardKernel)(x::Number, y::Number) = k([x], [y])
