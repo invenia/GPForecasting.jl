@@ -154,7 +154,7 @@ julia> mean(gaus)
 
 ## Input types
 
-One might notice that quite frequently most types are annotated, except for the type of the inputs (usually called `x` around the code). While the outputs (usually called `y`) are
+One might notice that most types are annotated, except for the type of the inputs (usually called `x` around the code). While the outputs (usually called `y`) are
 expected to be given either as a `Vector` (in the single-output case) or as a `Matrix` with
 timestamps as rows and output number as columns (in accordance to our [Data conventions](#data-conventions)), inputs can take several different types. The main reason
 for this is due to our [kernel implementations](#kernels). There are mainly three types of
@@ -218,7 +218,7 @@ A few things to keep in mind here are:
 
 - Kernels that can wrap other kernels (and are not included in the point above), are agnostic towards the input type they receive.
 
-- Base kernels (that cannot wrap any other kernel), require inputs to be `<:AbstractArray`.
+- Base kernels (that cannot wrap any other kernel), require inputs to be `Union{<:AbstractArray, <:Real}`.
 
 - Most base kernels call `sq_pairwise_dist` during their evaluations, so that function must be Nabla-compatible. Any other type of kernel must also be Nabla compatible (only reason why we were not able to implement the Neural Kernel Networks yet).
 

@@ -4,6 +4,9 @@
 [![Build Status](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/master/build.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
 [![Coverage](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/master/coverage.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
 
+## Notes for development
+Some notes that may be helpful for those looking to develop this package can be found [here](docs/GPFnotes.md).
+
 ## Data format
 
 ### Input
