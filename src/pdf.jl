@@ -229,7 +229,6 @@ end
 
     Σn = Diagonal(σ²) .+ H * Diagonal(D) * H'
     gn = Gaussian(Zeros(p), Σn)
-    lpdf = 0.0
 
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
