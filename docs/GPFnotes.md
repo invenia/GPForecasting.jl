@@ -38,10 +38,10 @@ julia> mean = ConstantMean()
 𝟏
 
 julia> gp = GP(mean, kernel) # specify both kernel and mean
-GPForecasting.GP{GPForecasting.EQ,GPForecasting.ConstantMean}(𝟏, EQ())
+GP{EQ,ConstantMean}(𝟏, EQ())
 
 julia> gp = GP(kernel) # specify just kernel, zero mean is assumed
-GPForecasting.GP{GPForecasting.EQ,GPForecasting.ZeroMean}(𝟎, EQ())
+GP{EQ,ZeroMean}(𝟎, EQ())
 ```
 
 In case the kernels or the means have tunable parameters, one might want to use `learn` in
@@ -53,21 +53,21 @@ julia> x_train = collect(0:0.02:4);
 julia> y_train = sin.(3.5 .* x_train) .+ 1e-1 .* randn(length(x_train));
 
 julia> gp = GP(periodicise(EQ() ▷ 1.8, 1.0))
-GPForecasting.GP{GPForecasting.PeriodicKernel,GPForecasting.ZeroMean}(𝟎, ((EQ() ▷ 1.8) ∿ 1.0))
+GP{PeriodicKernel,ZeroMean}(𝟎, ((EQ() ▷ 1.8) ∿ 1.0))
 
 julia> gp = learn(gp, x_train, y_train, objective, its=10)
 Iter     Function value   Gradient norm
-     0     4.895386e+07     1.947273e+07
-     1     3.295930e+07     8.331219e+07
-     2     1.057053e+06     3.152748e+05
-     3     1.055342e+06     3.073005e+05
-     4     1.011236e+06     6.575358e+04
-     5     1.007523e+06     3.360722e+04
-     6     1.005326e+06     2.328142e+04
-     7     1.003188e+06     2.097326e+04
-     8     9.826001e+05     9.569204e+04
-     9     9.724007e+05     5.689460e+04
-GPForecasting.GP{GPForecasting.PeriodicKernel,GPForecasting.ZeroMean}(𝟎, ((EQ() ▷ 0.77312) ∿ 4.79132))
+     0     4.976555e+07     2.360687e+07
+     1     3.346575e+07     8.375066e+07
+     2     9.783333e+05     2.685124e+05
+     3     9.771742e+05     2.581686e+05
+     4     9.576247e+05     1.298693e+05
+     5     9.467074e+05     8.127889e+04
+     6     9.391042e+05     1.526445e+04
+     7     9.387666e+05     1.370731e+04
+     8     9.357079e+05     2.079444e+04
+     9     9.328080e+05     3.236284e+04
+GP{PeriodicKernel,ZeroMean}(𝟎, ((EQ() ▷ 1.10674) ∿ 5.17768))
 ```
 
 In the case above, notice that `objective` is one of the arguments passed to `learn`. It is
@@ -81,7 +81,7 @@ information about the data and that can be used for predictions). e.g.:
 
 ```julia
 julia> posterior = condition(gp, x_train, y_train)
-GPForecasting.GP{GPForecasting.PosteriorKernel,GPForecasting.PosteriorMean}(Posterior(((EQ() ▷ 0.77312) ∿ 4.79132), 𝟎), Posterior(((EQ() ▷ 0.77312) ∿ 4.79132)))
+GP{PosteriorKernel,PosteriorMean}(Posterior(((EQ() ▷ 1.10674) ∿ 5.17768), 𝟎), Posterior(((EQ() ▷ 1.10674) ∿ 5.17768)))
 ```
 
 Notice that the output of `condition` is simply another `GP` object.
@@ -91,11 +91,13 @@ a `Distributions` object. In our case, it is a `Gaussian`, which represents a ma
 normal distribution. e.g.:
 
 ```julia
+julia> x_predict = collect(0:0.01:6);
+
 julia> gaussian = posterior(x_predict)
-GPForecasting.Gaussian{Array{Float64,1},Array{Float64,2}}(
-μ: [1.23087, 1.29599, 1.35946, 1.4201, 1.47668, 1.52789, 1.57243, 1.60907, 1.63663, 1.65407  …  -0.883977, -0.90217, -0.917027, -0.92861, -0.936927, -0.941923, -0.943485, -0.94145, -0.935613, -0.925746]
-Σ: [8.66782e-7 1.1441e-6 … 2.31477e-8 2.26676e-8; 1.1441e-6 1.5451e-6 … 3.60139e-8 3.66234e-8; … ; 2.31477e-8 3.60139e-8 … 8.78069e-8 8.68266e-8; 2.26676e-8 3.66234e-8 … 8.68266e-8 8.80745e-8]
-U: Array{Any}(0,0)
+Gaussian{Array{Float64,1}, Array{Float64,2}}(
+    μ: [0.0758577, 0.108436, 0.141124, 0.173862, 0.20659, 0.239251, 0.271786, 0.304139, 0.336257, 0.368085  …  0.578741, 0.5512, 0.523017, 0.494216, 0.464823, 0.434865, 0.404368, 0.37336, 0.341869, 0.309924]
+    Σ: [3.9433e-7 3.47756e-7 … -1.54726e-8 -1.50043e-8; 3.47756e-7 3.09681e-7 … -1.17151e-8 -1.15199e-8; … ; -1.54726e-8 -1.17151e-8 … 6.63179e-8 6.61046e-8; -1.50043e-8 -1.15199e-8 … 6.61046e-8 6.61387e-8]
+    chol: <not yet computed>
 )
 ```
 
@@ -111,10 +113,10 @@ and to have block-diagonal covariances. e.g.:
 
 ```julia
 julia> mean(gaus)
-3×4 Array{Int64,2}:
- 1  2   4  3
- 2  4   8  3
- 4  8  16  3
+3×4 Array{Float64,2}:
+ 0.0675907  0.578672  0.171955  0.785059
+ 0.575175   0.120597  0.497807  0.505286
+ 0.128333   0.467817  0.765087  0.313468
  ```
 
  Above it is easy to identify that we have 4 outputs and three timestamps (see [data conventions](#data-conventions)). If we had used
@@ -127,19 +129,19 @@ julia> mean(gaus)
 
  ```julia
  julia> cov(gaus)
-12×12 GPForecasting.OptimisedAlgebra.BlockDiagonal{Float64}:
- 3.02469  2.41975   4.83951  0.0      0.0      0.0       0.0      0.0      0.0      0.0       0.0      0.0
- 2.41975  6.65432   9.67901  0.0      0.0      0.0       0.0      0.0      0.0      0.0       0.0      0.0
- 4.83951  9.67901  21.1728   0.0      0.0      0.0       0.0      0.0      0.0      0.0       0.0      0.0
- 0.0      0.0       0.0      1.81481  0.0      0.0       0.0      0.0      0.0      0.0       0.0      0.0
- 0.0      0.0       0.0      0.0      3.02469  2.41975   4.83951  0.0      0.0      0.0       0.0      0.0
- 0.0      0.0       0.0      0.0      2.41975  6.65432   9.67901  0.0      0.0      0.0       0.0      0.0
- 0.0      0.0       0.0      0.0      4.83951  9.67901  21.1728   0.0      0.0      0.0       0.0      0.0
- 0.0      0.0       0.0      0.0      0.0      0.0       0.0      1.81481  0.0      0.0       0.0      0.0
- 0.0      0.0       0.0      0.0      0.0      0.0       0.0      0.0      3.02469  2.41975   4.83951  0.0
- 0.0      0.0       0.0      0.0      0.0      0.0       0.0      0.0      2.41975  6.65432   9.67901  0.0
- 0.0      0.0       0.0      0.0      0.0      0.0       0.0      0.0      4.83951  9.67901  21.1728   0.0
- 0.0      0.0       0.0      0.0      0.0      0.0       0.0      0.0      0.0      0.0       0.0      1.81481
+ 12×12 BlockDiagonal{Float64}:
+  0.900439  0.287433  0.13773   0.609312  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
+  0.287433  0.743767  0.866447  0.514384  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
+  0.13773   0.866447  0.348216  0.636676  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
+  0.609312  0.514384  0.636676  0.780919  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
+  0.0       0.0       0.0       0.0       0.790037  0.635031  0.485622  0.415936  0.0        0.0       0.0       0.0
+  0.0       0.0       0.0       0.0       0.635031  0.278585  0.289237  0.45353   0.0        0.0       0.0       0.0
+  0.0       0.0       0.0       0.0       0.485622  0.289237  0.994616  0.478179  0.0        0.0       0.0       0.0
+  0.0       0.0       0.0       0.0       0.415936  0.45353   0.478179  0.666537  0.0        0.0       0.0       0.0
+  0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0748129  0.479144  0.264661  0.728568
+  0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.479144   0.391352  0.820499  0.509728
+  0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.264661   0.820499  0.278033  0.934949
+  0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.728568   0.509728  0.934949  0.272985
  ```
 
  The `BlockDiagonal` type, defined in the module `OptimisedAlgebra`, is powerful in that it
