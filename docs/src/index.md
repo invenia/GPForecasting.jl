@@ -4,6 +4,9 @@
 [![Build Status](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/develop/build.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
 [![Coverage](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/develop/coverage.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
 
+See also [GPFExperiments.jl](https://gitlab.invenia.ca/research/GPFExperiments.jl)
+and [GPFForecaster.jl](https://gitlab.invenia.ca/research/GPForecaster.jl).
+
 ## Data format
 
 ### Input
@@ -25,7 +28,6 @@ as `np` x `np` matrices, with which block representing all outputs at a given ti
 - Learn the MLE kernel parameters via LBFGS (not implemented for means yet).
 - Condition model on observed data.
 - Add noise only for observed measurements (see documentation on the Extended Input Space).
-- Run on AWS (see documentation on Experiments).
 - Execute the optimised version of the basic Linear Mixing Model (with zero mean and same noise for all latent processes).
 - Obtain covariance matrices as hourly blocks.
 
