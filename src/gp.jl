@@ -203,6 +203,7 @@ function condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
     # numerically more stable.
     # Z = Kmm + (1/unwrap(σ²)) .* Knm' * Knm # Z = inv(Σ)
     # Uz = Nabla.chol(Z + _EPSILON_^2 * I)
+
     # Build posterior TitsiasPosteriorKernel and TitsiasPosteriorMean
     pos_m = TitsiasPosteriorMean(gp.k, gp.m, x, xm, Uz, σ², y)
     pos_k = TitsiasPosteriorKernel(gp.k, xm, Uz, Umm, σ²)

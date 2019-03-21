@@ -177,10 +177,14 @@ function (m::PosteriorMean)(x)
 end
 
 """
+    TitsiasPosteriorMean <: Mean
+
+Posterior mean for a sparse GP under Titsias' approximation. See "Variational
+Learning of Inducing Variables in Sparse Gaussian Processes".
 """
 mutable struct TitsiasPosteriorMean <: Mean
     k::Kernel
-    m::Mean # Check if things work for non-zero prior mean
+    m::Mean
     x
     Xm
     Uz
@@ -206,7 +210,7 @@ function (m::TitsiasPosteriorMean)(x)
     σ² = unwrap(m.σ²)
     yd = unwrap(m.y)
 
-    ymm = yd .- m.m(xn) # Assuming it works for non-zero mean, CHECK IT!!!
+    ymm = yd .- m.m(xn)
     ydv = stack([ymm[:, i] for i in 1:size(ymm, 2)])
     Kxm = m.k(x, Xm)
     Kmn = m.k(Xm, xn)
