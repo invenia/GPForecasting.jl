@@ -71,6 +71,10 @@ function (k::PosteriorKernel)(x, y)
 end
 
 """
+    TitsiasPosteriorKernel <: Kernel
+
+Posterior kernel for a sparse GP under Titsias' approximation. See "Variational
+Learning of Inducing Variables in Sparse Gaussian Processes".
 """
 mutable struct TitsiasPosteriorKernel <: Kernel
     k::Kernel
@@ -405,19 +409,24 @@ mutable struct SpecifiedQuantityKernel <: Kernel
     k::Kernel
 end
 (←)(k::Kernel, s::Symbol) = SpecifiedQuantityKernel(Fixed(s), k)
-function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::AbstractDataFrame)
-    return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
-end
-(k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
-function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
+@unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
     return k(DataFrame(x), DataFrame(y))
 end
-function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::DataFrameRow)
+@unionise function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::DataFrameRow)
     return k(x, DataFrame(y))
 end
-function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::AbstractDataFrame)
+@unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::AbstractDataFrame)
     return k(DataFrame(x), y)
 end
+@unionise function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::AbstractDataFrame)
+    # The tests still pass with this commented out, but I have the impression that it might
+    # fail when we deal with real-world data, so I am leaving this here. The issue with
+    # using it is that `disallowmissing` does not play nice with Nabla. So if we need to
+    # come back to this, we'll need to implement it.
+    # return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
+    return k.k(x[unwrap(k.col)], y[unwrap(k.col)])
+end
+@unionise (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
 Base.show(io::IO, k::SpecifiedQuantityKernel) = print(io, "($(k.k) ← $(k.col))")
 isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 

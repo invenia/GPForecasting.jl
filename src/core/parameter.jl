@@ -11,7 +11,7 @@ Pack number inside a vector.
 """
 pack(x::Number) = [x]
 
-pack(x::DataFrame) = x
+# pack(x::DataFrame) = x
 
 """
     unpack(x::Number, y::Vector) -> Number
@@ -23,6 +23,55 @@ pack(x::AbstractArray) = x[:]
 @unionise unpack(x::AbstractArray, y::Vector) = reshape(y, size(x)...)
 set(x::Number, y::Number) = y
 set(x::AbstractArray, y::AbstractArray) = y
+
+"""
+    pack(df::DataFrame) -> Vector
+
+Pack DataFrame in a vector that can be optimised. This becomes necessary when we want to
+optimise the inducing points for sparse GPs with multi-variate inputs.
+"""
+pack(df::DataFrame) = vec(Matrix(df))
+
+# Here's a bunch of things that may or not not be useful for Nabla. On one hand, they act
+# on common types, but on the other hand, this is a very specific use-case and maybe not the
+# the most general implementation. We do need this here for the rest to work, so, if we want,
+# this has to be moved to Nabla before we can remove it.
+@explicit_intercepts DataFrame Tuple{AbstractVector, AbstractVector} [true, false]
+function Nabla.∇(
+    ::typeof(DataFrame),
+    ::Type{Nabla.Arg{1}},
+    _,
+    y::DataFrame,
+    ȳ::DataFrame,
+    x,
+    _,
+)
+    return break_cols(Matrix(ȳ))
+end
+
+# Just defining as a function so that we can make it play nice with Nabla
+@unionise function break_cols(x::AbstractMatrix)
+    return [x[:, i] for i in 1:size(x, 2)]
+end
+
+@explicit_intercepts break_cols Tuple{AbstractMatrix} [true]
+function Nabla.∇(
+    ::typeof(break_cols),
+    ::Type{Nabla.Arg{1}},
+    _,
+    y::Vector,
+    ȳ::Vector,
+    x,
+)
+    return hcat(ȳ...)
+end
+
+@unionise function unpack(df::DataFrame, y::Vector)
+    v = reshape(y, size(df))
+    col_names = names(df)
+    cols = break_cols(v)
+    return DataFrame(cols, col_names)
+end
 
 """
     Parameter
