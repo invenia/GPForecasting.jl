@@ -9,7 +9,6 @@ using LineSearches
 using LinearAlgebra
 using Memento
 using Nabla
-using Nullables
 using Random: seed!
 using Test
 
