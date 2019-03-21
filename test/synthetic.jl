@@ -339,21 +339,29 @@
         x_test = collect(-3:0.01:9);
         means, lb, ub = credible_interval(pos, x_test)
 
+        # Let's force this to be a DataFrame just make the test more thorough
+        xtrain = DataFrame([x_train, rand(size(x_train, 1))], [:data, :bs])
+        Xm_i = xtrain[rand(1:size(xtrain, 1), 15), :]
+
         sgp, Xm, σ² = GPForecasting.learn_sparse(
-            GP(1.0 * (EQ() ▷ 0.5)),
-            x_train,
+            GP((1.0 * (EQ() ▷ 0.5)) ← :data),
+            xtrain,
             y_train,
-            rand(x_train, 15),
+            Xm_i,
             Positive(0.1),
             its = 500,
             trace = false
         )
-        spos = GPForecasting.condition_sparse(sgp, x_train, Xm, y_train, σ²)
+        spos = GPForecasting.condition_sparse(sgp, xtrain, Xm, y_train, σ²)
 
-        smeans, slb, sub = credible_interval(spos, x_test);
+        xtest = DataFrame([x_test, rand(size(x_test, 1))], [:data, :bs])
+        smeans, slb, sub = credible_interval(spos, xtest);
 
         @test mean(abs.(means .- smeans)) / mean(abs.(means)) < 0.01
         @test mean(abs.(lb .- slb)) / mean(abs.(lb)) < 0.01
         @test mean(abs.(ub .- sub)) / mean(abs.(ub)) < 0.01
+        @test isa(Xm, DataFrame)
+        @test Xm_i[:bs] ≈ Xm[:bs]
+        @test !(Xm[:data] ≈ Xm_i[:data])
     end
 end
