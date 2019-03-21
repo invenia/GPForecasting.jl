@@ -3,7 +3,7 @@ isconstrained(x) = false
 
 # Base cases of parameter recursions:
 unwrap(x) = x
-name(x) = Nullable{String}()
+name(x) = nothing
 
 """
     pack(k::Number) -> Vector
