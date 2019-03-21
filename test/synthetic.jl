@@ -48,7 +48,7 @@
                 0.006339625546752299, 0.5728913634245152] atol = _TOL_
             k = NoiseKernel(2.0 * (MA(5/2) ▷ 10.0), 0.001 * DiagonalKernel())
             @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.11075488248840884, 625.1263034476407,
+                [0.11075488248840884, -625.1263034476407,
                 0.005838031744600918, 0.8934805590277801] atol = _TOL_
             k = NoiseKernel(2.0 * (EQ() ▷ 10.0 + periodicise(EQ() ▷ 10.0, 2π) * RQ(2.0) ▷ 10.0)
                 + MA(5/2) ▷ 10.0, 0.001 * DiagonalKernel())
