@@ -105,11 +105,11 @@
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
             [0.5375517536959576, -35.84754149283952,
             0.0981019604979731, -0.22531751470866418] atol = _TOL_
-        k = NoiseKernel(2.0 * periodicise(EQ() ▷ [2.5 for i=1:d],
+        k = NoiseKernel(2.0 * periodicise(EQ() ▷ [2.0 for i=1:d],
                 [2π for i=1:d]), 0.001 * DiagonalKernel())
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
-            [0.2615748718960823, -42.38878652665365,
-            0.13076717959919315, -0.5944302592213119] atol = _TOL_
+            [0.34025623421380025, -21.45435835111746,
+            0.12295412444716407, -0.3583312941298985] atol = _TOL_
         k = NoiseKernel(2.0 * (RQ(Fixed(2.0)) ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
         @test gpforecasting(m, k, x_train, y_train, x_test, y_test) ≈
             [0.45069841363296925, -8.10416742783544,
