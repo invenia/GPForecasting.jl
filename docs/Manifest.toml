@@ -230,7 +230,7 @@ deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GPForecasting]]
-deps = ["DataFrames", "Distances", "Distributions", "DualNumbers", "FillArrays", "IterTools", "LineSearches", "LinearAlgebra", "Memento", "ModelAnalysis", "Nabla", "Optim", "Random", "SparseArrays", "Statistics", "StatsBase"]
+deps = ["DataFrames", "Distributions", "DualNumbers", "FillArrays", "IterTools", "LineSearches", "LinearAlgebra", "Memento", "ModelAnalysis", "Nabla", "Optim", "Random", "SparseArrays", "Statistics", "StatsBase"]
 path = ".."
 uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
 version = "1.0.2+"
