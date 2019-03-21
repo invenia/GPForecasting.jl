@@ -2,7 +2,6 @@ name = "GPForecasting"
 uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
 
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
@@ -36,9 +35,10 @@ Optim = ">= 0.14.1"
 julia = "0.7, 1.0"
 
 [extras]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 FDM = "e25cca7e-83ef-51fa-be6c-dfe2a3123128"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Dates", "FDM", "Test"]
+test = ["CSV", "Dates", "FDM", "Test"]
