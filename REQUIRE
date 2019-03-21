@@ -3,7 +3,6 @@ DataFrames 0.16.0
 Distributions 0.15.0
 DualNumbers 0.4.0
 FillArrays
-IterTools 0.2.1
 LineSearches 3.2.5
 Memento 0.5.0
 ModelAnalysis 0.2
