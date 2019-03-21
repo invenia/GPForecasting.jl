@@ -1,7 +1,6 @@
 julia 0.7
 DataFrames 0.16.0
 Distributions 0.15.0
-DualNumbers 0.4.0
 FillArrays
 LineSearches 3.2.5
 Memento 0.5.0
