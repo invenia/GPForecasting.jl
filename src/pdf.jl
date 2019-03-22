@@ -238,11 +238,62 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     Kmn = k(Xm, x)
     Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
     Q_sqrt = Umm' \ Kmn
-    Qnn = Q_sqrt' * Q_sqrt
+    Qnn = Q_sqrt' * Q_sqrt; @show size(Qnn); @show(num_m); @show size(x)
     # Compute first term
     log_N = logpdf(Gaussian(m(x), Qnn + σ² * Eye(size(Qnn, 1))), y)
     # Compute K̅
     return log_N - (2 * σ²)^(-1) * tr(k(x) - Qnn)
+end
+
+@unionise function titsiasELBO(
+    gp::GP{SparseKernel{<:OLMMKernel}, <:Mean},
+    x,
+    y::AbstractMatrix{<:Real}
+)
+    n = size(x, 1)
+    p = unwrap(gp.k.k.p)
+    m = unwrap(gp.k.k.m)
+    σ² = ones(p) .* unwrap(gp.k.k.σ²)
+    H = float.(unwrap(gp.k.k.H)) # Prevents Nabla from breaking in case H has Ints.
+    D = unwrap(gp.k.k.D)
+    S_sqrt = unwrap(gp.k.k.S_sqrt)
+
+    # For now we won't have a single kernel optimisation for this case. Shouldn't be an
+    # issue, as we saw single kernel models don't give good results even for the full model
+    # isa(gp.k.k.ks, Kernel) && !isa(D, Vector) && S_sqrt ≈ ones(m) && return optlogpdf(gp, x, y)
+
+    D = isa(D, Vector) ? D : ones(m) .* D
+    P = unwrap(gp.k.k.P)
+
+    Σn = Diagonal(σ²) .+ H * Diagonal(D) * H'
+    gn = Gaussian(zeros(p), Σn)
+    lpdf = 0.0
+
+    # Noise contributions
+    # These decouple timestamps, so we can compute one at a time.
+    lpdf += logpdf(gn, y)
+
+    # Latent process contributions
+    # These decouple amongst different latent processes, so we can compute one at time.
+    yl = y * P'
+    # By having the Xm defined like this, we make it such that the same inducing points are
+    # used for all latent processes.
+    Xm = unwrap(gp.k.Xm)
+    sσ² = unwrap(gp.k.σ²) * Ones(m)
+    num_m = unwrap(gp.k.n)
+    for i in 1:m
+        proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i]) * Eye(n)
+        # Here we compute the sparse GP contributions
+        Kmm = gp.k.k.ks[i](Xm, Xm)
+        Kmn = gp.k.k.ks[i](Xm, x)
+        Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
+        Q_sqrt = Umm' \ Kmn
+        Qnn = Q_sqrt' * Q_sqrt
+        log_N = logpdf(Gaussian(Zeros(n), Qnn + (sσ² + proj_noise) * Eye(n)), yl[:, i])
+        gln = Gaussian(zeros(n), proj_noise)
+        lpdf += log_N - (2 * sσ²)^(-1) * tr(gp.k.k.ks[i](x) - Qnn) - logpdf(gln, yl[:, i])
+    end
+    return lpdf
 end
 
 @unionise function titsiasELBO(gp::GP, x, y::AbstractArray{<:Real}, params::Vector{<:Real})
