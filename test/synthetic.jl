@@ -336,7 +336,7 @@
         ngp = learn(gp, x_train, y_train, objective, its = 500, trace = false)
         pos = condition(ngp, x_train, y_train)
 
-        x_test = collect(-3:0.01:9);
+        x_test = collect(0:0.01:6);
         means, lb, ub = credible_interval(pos, x_test)
 
         # Let's force this to be a DataFrame just make the test more thorough
@@ -363,5 +363,51 @@
         @test isa(Xm, DataFrame)
         @test Xm_i[:bs] ≈ Xm[:bs]
         @test !(Xm[:data] ≈ Xm_i[:data])
+
+        # OLMM
+        ytrain = [y_train y_train]
+        H = [1.0 0.0; 0.0 1.0]
+
+        k = 1.0 * (EQ() ▷ 0.5) + 1e-2 * DiagonalKernel()
+        gp = GP(OLMMKernel(
+            Fixed(2),
+            Fixed(2),
+            Fixed(1e-2),
+            Fixed(1e-2),
+            Fixed(H),
+            Fixed(H),
+            Fixed(H),
+            Fixed([1.0, 1.0]),
+            [k for i in 1:2])
+        )
+        ngp = learn(gp, x_train, ytrain, objective, its = 500, trace = false)
+        pos = condition(ngp, x_train, ytrain)
+        means, lb, ub = credible_interval(pos, x_test)
+
+        k = (1.0 * (EQ() ▷ 0.5)) ← :data
+        sgp, Xm, σ² = GPForecasting.learn_sparse(
+            GP(OLMMKernel(
+                Fixed(2),
+                Fixed(2),
+                Fixed(1e-2),
+                Fixed(1e-2),
+                Fixed(H),
+                Fixed(H),
+                Fixed(H),
+                Fixed([1.0, 1.0]),
+                [k for i in 1:2])
+            ),
+            xtrain,
+            ytrain,
+            Xm_i,
+            Positive(0.01),
+            its = 500,
+            trace = false
+        )
+        spos = GPForecasting.condition_sparse(sgp, xtrain, Xm, ytrain, σ²)
+        smeans, slb, sub = credible_interval(spos, xtest)
+
+        # TODO: COME UP WITH SOME TESTS
+        # TODO: FIND OUT WHY IT IS LEARNING SUCH DIFFERENT VALUES
     end
 end
