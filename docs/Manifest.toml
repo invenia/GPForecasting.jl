@@ -14,9 +14,9 @@ version = "0.5.0"
 
 [[AWSTools]]
 deps = ["AWSCore", "AWSS3", "Base64", "Dates", "EzXML", "FilePathsBase", "MbedTLS", "Memento", "Mocking", "OrderedCollections", "Random", "Retry", "Test", "UUIDs", "XMLDict"]
-git-tree-sha1 = "e4dd40ce72d6371f93077e3086a54b103aec2e9e"
+git-tree-sha1 = "06a3fb52ea28801c11cc35602d0e431fe7117ebb"
 uuid = "83bcdc74-1232-581c-948a-f29122bf8259"
-version = "1.1.1"
+version = "1.1.2"
 
 [[AbstractTrees]]
 deps = ["Markdown", "Test"]
@@ -230,7 +230,7 @@ deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GPForecasting]]
-deps = ["CSV", "DataFrames", "Distances", "Distributions", "DualNumbers", "FDM", "FillArrays", "IterTools", "LineSearches", "LinearAlgebra", "Memento", "ModelAnalysis", "Nabla", "Optim", "Random", "SparseArrays", "Statistics", "StatsBase"]
+deps = ["DataFrames", "Distributions", "FillArrays", "LineSearches", "LinearAlgebra", "Memento", "ModelAnalysis", "Nabla", "Optim", "Random", "SparseArrays", "Statistics", "StatsBase"]
 path = ".."
 uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
 version = "1.0.2+"
@@ -277,9 +277,9 @@ version = "0.20.0"
 
 [[Juno]]
 deps = ["Base64", "Logging", "Media", "Profile", "Test"]
-git-tree-sha1 = "35797da365e85f3edc86a2be8c930f042368d253"
+git-tree-sha1 = "4e4a8d43aa7ecec66cadaf311fbd1e5c9d7b9175"
 uuid = "e5e0dc1b-0480-54bc-9374-aad01c23163d"
-version = "0.6.0"
+version = "0.7.0"
 
 [[LazyJSON]]
 deps = ["DataStructures", "JSON", "Mmap", "Test"]
