@@ -593,13 +593,13 @@ Base.zero(::Kernel) = ZeroKernel()
 Base.zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
 
 """
-    SparseKernel <: Kernel
+    SparseKernel{K <: Kernel} <: Kernel
 
 Not supposed to be used directly by the user. This is automatically called under the hood,
 whenever necessary.
 """
-mutable struct SparseKernel <: Kernel
-    k::Kernel
+mutable struct SparseKernel{K <: Kernel} <: Kernel
+    k::K
     Xm
     n
     σ²
