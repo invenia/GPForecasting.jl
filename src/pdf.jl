@@ -246,7 +246,7 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
 end
 
 @unionise function titsiasELBO(
-    gp::GP{SparseKernel{<:OLMMKernel}, <:Mean},
+    gp::GP{SparseKernel{OLMMKernel}, <:Mean},
     x,
     y::AbstractMatrix{<:Real}
 )
@@ -279,7 +279,7 @@ end
     # By having the Xm defined like this, we make it such that the same inducing points are
     # used for all latent processes.
     Xm = unwrap(gp.k.Xm)
-    sσ² = unwrap(gp.k.σ²) * Ones(m)
+    sσ² = unwrap(gp.k.σ²)
     num_m = unwrap(gp.k.n)
     for i in 1:m
         proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i]) * Eye(n)
@@ -289,7 +289,7 @@ end
         Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
         Q_sqrt = Umm' \ Kmn
         Qnn = Q_sqrt' * Q_sqrt
-        log_N = logpdf(Gaussian(Zeros(n), Qnn + (sσ² + proj_noise) * Eye(n)), yl[:, i])
+        log_N = logpdf(Gaussian(Zeros(n), Qnn + sσ² * Eye(n) + proj_noise), yl[:, i])
         gln = Gaussian(zeros(n), proj_noise)
         lpdf += log_N - (2 * sσ²)^(-1) * tr(gp.k.k.ks[i](x) - Qnn) - logpdf(gln, yl[:, i])
     end
