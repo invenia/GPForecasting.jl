@@ -190,11 +190,16 @@ PAC-Bayesian Generalisation Error Bounds and Sparse Approximations.". For other 
 some form of dispatching would be needed.
 """
 function condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
+    pos_m, pos_k = _condition_sparse(gp.k, gp.m, x, Xm, y, σ²)
+    return GP(pos_m, pos_k)
+end
+
+function _condition_sparse(k::Kernel, m::Mean, x, Xm, y::AbstractArray{<:Real}, σ²; )
     xm = unwrap(Xm)
     # Compute the relevant Choleskys
-    Kmm = gp.k(xm, xm)
+    Kmm = k(xm, xm)
     Umm = cholesky(Kmm + _EPSILON_^2 * I).U
-    Knm = gp.k(x, xm)
+    Knm = k(x, xm)
     T = Umm' \ Knm'
     P = I + (1/unwrap(σ²)) .* (T * T')
     Up = cholesky(P + _EPSILON_^2 * I).U
@@ -205,13 +210,46 @@ function condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
     # Uz = Nabla.chol(Z + _EPSILON_^2 * I)
 
     # Build posterior TitsiasPosteriorKernel and TitsiasPosteriorMean
-    pos_m = TitsiasPosteriorMean(gp.k, gp.m, x, xm, Uz, σ², y)
-    pos_k = TitsiasPosteriorKernel(gp.k, xm, Uz, Umm, σ²)
-    return GP(pos_m, pos_k)
+    pos_m = TitsiasPosteriorMean(k, m, x, xm, Uz, σ², y)
+    pos_k = TitsiasPosteriorKernel(k, xm, Uz, Umm, σ²)
+    return pos_m, pos_k
 end
 
-function sparse_condition(gp::GP{<:OLMMKernel, <:Mean})
-
+function condition_sparse(gp::GP{<:OLMMKernel, <:Mean}, x, Xm, y::AbstractArray{<:Real}, sσ²)
+    # project y
+    P = unwrap(gp.k.P)
+    m = unwrap(gp.k.m)
+    σ² = unwrap(gp.k.σ²)
+    D = unwrap(gp.k.D)
+    S_sqrt = unwrap(gp.k.S_sqrt)
+    D = isa(D, Float64) ? fill(D, m) : D
+    yp = y * P'
+    # sparse condition gp.k.ks on y
+    ks = Vector{Kernel}(undef, m)
+    for (k, s, d, i) in zip(gp.k.ks, S_sqrt, D, collect(1:m))
+        ks[i] = k + (σ²/s^2 + d) * DiagonalKernel()
+    end
+    pos_ks = Vector{TitsiasPosteriorKernel}(undef, m)
+    pos_ms = Vector{TitsiasPosteriorMean}(undef, m)
+    for i in 1:m
+        pm, pk = _condition_sparse(ks[i], ZeroMean(), x, Xm, yp[:, i], sσ²)
+        pos_ks[i] = pk
+        pos_ms[i] = pm
+    end
+    pos_m = OLMMPosMean(gp.k, pos_ms, x, yp)
+    # create another OLMMKernel
+    pos_k = _unsafe_OLMMKernel(
+        gp.k.m,
+        gp.k.p,
+        gp.k.σ²,
+        gp.k.D,
+        gp.k.H,
+        gp.k.P,
+        gp.k.U,
+        gp.k.S_sqrt,
+        pos_ks
+    )
+    return GP(pos_m, pos_k)
 end
 
 (p::GP)(x; hourly=false) = Gaussian(p.m(x), hourly ? hourly_cov(p.k, x) : p.k(x))
