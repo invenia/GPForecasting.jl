@@ -197,7 +197,7 @@ end
         Σlk = gp.k.ks[i](x)
         glk = Gaussian(Zeros(n), proj_noise + Σlk)
         gln = Gaussian(Zeros(n), proj_noise)
-        yls = @view yl[:, i]
+        yls = yl[:, i]
         lpdf += logpdf(glk, yls) - logpdf(gln, yls)
     end
     return lpdf
