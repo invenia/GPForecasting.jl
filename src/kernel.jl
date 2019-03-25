@@ -442,6 +442,15 @@ function (::DiagonalKernel)(x, y)
     return float.(isapprox.(float.(xl), float.(yl')))
 end
 (k::GPForecasting.DiagonalKernel)(x::DataFrame, y::DataFrame) = k(Matrix(x), Matrix(y))
+function (k::DiagonalKernel)(x::DataFrameRow, y::DataFrameRow)
+    return k(DataFrame(x), DataFrame(y))
+end
+function (k::DiagonalKernel)(x::AbstractDataFrame, y::DataFrameRow)
+    return k(x, DataFrame(y))
+end
+function (k::DiagonalKernel)(x::DataFrameRow, y::AbstractDataFrame)
+    return k(DataFrame(x), y)
+end
 (k::DiagonalKernel)(x::Number, y) = k([x], y)
 (k::DiagonalKernel)(x, y::Number) = k(x, [y])
 (k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])[1, 1]

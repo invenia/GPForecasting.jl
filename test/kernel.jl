@@ -250,7 +250,7 @@
         @test !isapprox(hourly_cov(nk, x)[5:8, 1:4], nk(x)[5:8, 1:4], atol = _ATOL_)
         @test diag(hourly_cov(nk, mx)) ≈ diag(nk(mx)) atol = _ATOL_
 
-        k = NoiseKernel(EQ() ← :input1, 5.0)
+        k = NoiseKernel(EQ() ← :input1, 5.0 * DiagonalKernel())
         df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input1, :input2])
         @test isa(var(k, Latent(df)), AbstractArray)
         @test isa(var(k, Observed(df)), AbstractArray)
