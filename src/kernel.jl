@@ -379,6 +379,15 @@ function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::AbstractDataFrame
     return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
 end
 (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
+function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
+    return k(DataFrame(x), DataFrame(y))
+end
+function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::DataFrameRow)
+    return k(x, DataFrame(y))
+end
+function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::AbstractDataFrame)
+    return k(DataFrame(x), y)
+end
 Base.show(io::IO, k::SpecifiedQuantityKernel) = print(io, "($(k.k) ← $(k.col))")
 isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 
@@ -432,6 +441,7 @@ function (::DiagonalKernel)(x, y)
     yl = [y[i, :]' for i in 1:size(y, 1)]
     return float.(isapprox.(float.(xl), float.(yl')))
 end
+(k::GPForecasting.DiagonalKernel)(x::DataFrame, y::DataFrame) = k(Matrix(x), Matrix(y))
 (k::DiagonalKernel)(x::Number, y) = k([x], y)
 (k::DiagonalKernel)(x, y::Number) = k(x, [y])
 (k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])[1, 1]

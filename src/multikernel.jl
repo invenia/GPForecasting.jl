@@ -46,7 +46,13 @@ isMulti(k::NoiseKernel) = isMulti(k.k_true)
 function (k::NoiseKernel)(x::Observed, y::Observed)
     return (k.k_true + k.k_noise)(x.val, y.val)
 end
-Statistics.var(k::NoiseKernel, x::Input) = hcat([diag(k(typeof(x)(xx))) for xx in x.val]...)'
+function Statistics.var(k::NoiseKernel, x::Input)
+    if isa(x.val, DataFrame)
+        return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in eachrow(x.val)])'
+    else
+        return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in x.val])'
+    end
+end
 function hourly_cov(k::NoiseKernel, x::Input)
     isMulti(k) || return k(x)
     ks = [k(typeof(x)(xx)) for xx in x.val]
