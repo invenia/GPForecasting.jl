@@ -64,6 +64,10 @@ function (k::NoiseKernel)(x, y)
     return MultiKernel(K)(x, y)
 end
 Statistics.var(k::NoiseKernel, x) = stack([var(k.k_true + k.k_noise, x), var(k.k_true, x)])
+# This one is only necessary to break method ambiguity.
+function Statistics.var(k::NoiseKernel, x::DataFrame)
+    return stack([var(k.k_true + k.k_noise, x), var(k.k_true, x)])
+end 
 function hourly_cov(k::NoiseKernel, x)
     ks = [k(xx) for xx in x]
     return BlockDiagonal(ks)
