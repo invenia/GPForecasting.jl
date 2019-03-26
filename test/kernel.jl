@@ -252,8 +252,9 @@
 
         k = NoiseKernel(EQ() ← :input1, 5.0 * DiagonalKernel())
         df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input1, :input2])
-        @test isa(var(k, Latent(df)), AbstractArray)
-        @test isa(var(k, Observed(df)), AbstractArray)
+        @test var(k, Latent(df)) == [1.0 1.0 1.0]'
+        @test var(k, Observed(df)) == [6.0 6.0 6.0]'
+        @test var(k, df) == [6.0, 1.0, 6.0, 1.0, 6.0, 1.0]
     end
 
     @testset "Matrix algebra" begin
