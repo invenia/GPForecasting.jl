@@ -134,6 +134,7 @@
         @test !(sqk1(df) ≈ sqk2(df))
         @test sqk2(df) ≈ ones(3, 3) atol = _ATOL_
         @test isa(sprint(show, k), String)
+        @test isa(var(sqk1, df), Vector)
     end
 
     @testset "Sum and Products" begin
@@ -248,6 +249,12 @@
         @test hourly_cov(nk, x)[1:4, 1:4] ≈ nk(x)[1:4, 1:4] atol = _ATOL_
         @test !isapprox(hourly_cov(nk, x)[5:8, 1:4], nk(x)[5:8, 1:4], atol = _ATOL_)
         @test diag(hourly_cov(nk, mx)) ≈ diag(nk(mx)) atol = _ATOL_
+
+        k = NoiseKernel(EQ() ← :input1, 5.0 * DiagonalKernel())
+        df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input1, :input2])
+        @test var(k, Latent(df)) == [1.0 1.0 1.0]'
+        @test var(k, Observed(df)) == [6.0 6.0 6.0]'
+        @test var(k, df) == [6.0, 1.0, 6.0, 1.0, 6.0, 1.0]
     end
 
     @testset "Matrix algebra" begin
