@@ -46,7 +46,13 @@ isMulti(k::NoiseKernel) = isMulti(k.k_true)
 function (k::NoiseKernel)(x::Observed, y::Observed)
     return (k.k_true + k.k_noise)(x.val, y.val)
 end
-Statistics.var(k::NoiseKernel, x::Input) = hcat([diag(k(typeof(x)(xx))) for xx in x.val]...)'
+function Statistics.var(k::NoiseKernel, x::Input)
+    if isa(x.val, DataFrame)
+        return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in eachrow(x.val)])'
+    else
+        return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in x.val])'
+    end
+end
 function hourly_cov(k::NoiseKernel, x::Input)
     isMulti(k) || return k(x)
     ks = [k(typeof(x)(xx)) for xx in x.val]
@@ -58,6 +64,10 @@ function (k::NoiseKernel)(x, y)
     return MultiKernel(K)(x, y)
 end
 Statistics.var(k::NoiseKernel, x) = stack([var(k.k_true + k.k_noise, x), var(k.k_true, x)])
+# This one is only necessary to break method ambiguity.
+function Statistics.var(k::NoiseKernel, x::DataFrame)
+    return stack([var(k.k_true + k.k_noise, x), var(k.k_true, x)])
+end 
 function hourly_cov(k::NoiseKernel, x)
     ks = [k(xx) for xx in x]
     return BlockDiagonal(ks)
