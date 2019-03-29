@@ -91,7 +91,7 @@
             y_sample = vec(sample(p(Observed(x_train))))
             k = NoiseKernel(EQ() ▷ 2.0, 0.02 * DiagonalKernel())
             pgp = learn(GP(m, k), Observed(x_train), y_sample, objective, its=50, trace=false)
-            @test pgp.k[:] ≈ [-0.23928030674389214, -5.159780443054458] rtol = _RTOL_
+            @test exp.(pgp.k[:]) ≈ [0.7871941956023578, 0.0057429604540995775] rtol = _RTOL_*10
         end
     end
 
