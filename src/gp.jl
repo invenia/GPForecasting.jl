@@ -225,14 +225,15 @@ function condition_sparse(gp::GP{<:OLMMKernel, <:Mean}, x, Xm, y::AbstractArray{
     D = isa(D, Float64) ? fill(D, m) : D
     yp = y * P'
     # sparse condition gp.k.ks on y
-    ks = Vector{Kernel}(undef, m)
-    for (k, s, d, i) in zip(gp.k.ks, S_sqrt, D, collect(1:m))
-        ks[i] = k + (σ²/s^2 + d) * DiagonalKernel()
-    end
     pos_ks = Vector{TitsiasPosteriorKernel}(undef, m)
     pos_ms = Vector{TitsiasPosteriorMean}(undef, m)
-    for i in 1:m
-        pm, pk = _condition_sparse(ks[i], ZeroMean(), x, Xm, yp[:, i], sσ²)
+    for (k, s, d, i) in zip(gp.k.ks, S_sqrt, D, collect(1:m))
+        # This is a temporary kernel meant to reuse the condition_sparse code
+        tk = k + (σ²/s^2 + d) * DiagonalKernel()
+        pm, pk = _condition_sparse(tk, ZeroMean(), x, Xm, yp[:, i], sσ²)
+        # Now we move back to the proper kernels that should be stored.
+        pk.k = k
+        pm.k = k
         pos_ks[i] = pk
         pos_ms[i] = pm
     end
