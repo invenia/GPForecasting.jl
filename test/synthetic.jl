@@ -367,8 +367,7 @@
         # OLMM
         ytrain = [y_train y_train]
         H = [1.0 0.0; 0.0 1.0]
-
-        k = 1.0 * (EQ() ▷ 0.5) + 1e-2 * DiagonalKernel()
+        k = 1.0 * (EQ() ▷ 0.5) + Fixed(1e-2) * DiagonalKernel()
         gp = GP(OLMMKernel(
             Fixed(2),
             Fixed(2),
@@ -380,34 +379,25 @@
             Fixed([1.0, 1.0]),
             [k for i in 1:2])
         )
-        ngp = learn(gp, x_train, ytrain, objective, its = 500, trace = false)
-        pos = condition(ngp, x_train, ytrain)
+        pos = condition(gp, x_train, ytrain)
         means, lb, ub = credible_interval(pos, x_test)
 
         k = (1.0 * (EQ() ▷ 0.5)) ← :data
-        sgp, Xm, σ² = GPForecasting.learn_sparse(
-            GP(OLMMKernel(
-                Fixed(2),
-                Fixed(2),
-                Fixed(1e-2),
-                Fixed(1e-2),
-                Fixed(H),
-                Fixed(H),
-                Fixed(H),
-                Fixed([1.0, 1.0]),
-                [k for i in 1:2])
-            ),
-            xtrain,
-            ytrain,
-            Xm_i,
-            Positive(0.01),
-            its = 500,
-            trace = false
+        sgp = GP(OLMMKernel(
+            Fixed(2),
+            Fixed(2),
+            Fixed(1e-2),
+            Fixed(1e-2),
+            Fixed(H),
+            Fixed(H),
+            Fixed(H),
+            Fixed([1.0, 1.0]),
+            [k for i in 1:2])
         )
-        spos = GPForecasting.condition_sparse(sgp, xtrain, Xm, ytrain, σ²)
-        smeans, slb, sub = credible_interval(spos, xtest)
-
-        # TODO: COME UP WITH SOME TESTS
-        # TODO: FIND OUT WHY IT IS LEARNING SUCH DIFFERENT VALUES
+        spos = GPForecasting.condition_sparse(sgp, xtrain, xtrain, ytrain, 0.01)
+        smeans, s_lb, s_ub = credible_interval(spos, xtest)
+        @test mean(abs.(means .- smeans)) / mean(abs.(means)) < 0.01
+        @test mean(abs.(lb .- s_lb)) / mean(abs.(lb)) < 0.01
+        @test mean(abs.(ub .- s_ub)) / mean(abs.(ub)) < 0.01
     end
 end
