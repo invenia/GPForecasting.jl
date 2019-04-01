@@ -11,8 +11,6 @@ Pack number inside a vector.
 """
 pack(x::Number) = [x]
 
-# pack(x::DataFrame) = x
-
 """
     unpack(x::Number, y::Vector) -> Number
 
