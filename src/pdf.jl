@@ -238,7 +238,7 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     Kmn = k(Xm, x)
     Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
     Q_sqrt = Umm' \ Kmn
-    Qnn = Q_sqrt' * Q_sqrt; @show size(Qnn); @show(num_m); @show size(x)
+    Qnn = Q_sqrt' * Q_sqrt
     # Compute first term
     log_N = logpdf(Gaussian(m(x), Qnn + σ² * Eye(size(Qnn, 1))), y)
     # Compute K̅
