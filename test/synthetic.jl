@@ -57,11 +57,11 @@
             @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
                 [0.11075488248840884, -625.1263034476407,
                 0.005838031744600918, 0.8934805590277801] rtol = _RTOL_
-            k = NoiseKernel(2.0 * (EQ() ▷ 10.0 + periodicise(EQ() ▷ 10.0, 2π) * RQ(2.0) ▷ 10.0)
-                + MA(5/2) ▷ 10.0, 0.001 * DiagonalKernel())
+            k = NoiseKernel(2.0 * ((EQ() ▷ 10.0) + periodicise(EQ() ▷ 10.0, 2π) * (RQ(2.0) ▷ 10.0))
+                + (MA(5/2) ▷ 10.0), 0.001 * DiagonalKernel())
             @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.11769231376325562, -745.8368568684314,
-                0.005939526953412218, 0.8604613338907132] rtol = _RTOL_
+                [0.10434757275194265, -514.815138737102,
+                0.005479951882127995, 0.3219275089452709] rtol = _RTOL_
         end
 
         @testset "Parameters" begin
