@@ -1,8 +1,30 @@
 # The reason why we are defining our own (very simple) NN architecture is that we want
 # something that is Nabla-compatible (as we are going to do joint learning). Since we are not
 # going to do anything remotely complex, this should be easy.
+mutable struct NNLayer <: AbstractNode
+    W # weights
+    B # biases
+    σ::Fixed{<:Function} # activation function
+end
+(layer::NNLayer)(x) = unwrap(layer.σ).(unwrap(layer.W) * x + unwrap(layer.B))
+
+mutable struct BatchNormLayer <: AbstractNode
+    γ # if you want to use different values for each dimension, use a RowVector
+    β # if you want to use different values for each dimension, use a RowVector
+end
+function (layer::BatchNormLayer)(x)
+    # We are going to do this in an ugly way to get around Nabla not having `mean` and `std`
+    # for now. It should be changed after that is solved.
+    # means = mean(x, dims=1)
+    # stds = std(x, dims=1)
+    means = sum(x, dims=1) ./ size(x, 1)
+    stds = sqrt.(sum((x .- means).^2, dims=1) ./ (size(x, 1) - 1))
+    x_norm = (x .- means) ./ (stds .+ 1e-10) # Adding 1e-10 for numerical stability
+    return unwrap(layer.γ) .* x_norm .+ unwrap(layer.β)
+end
+
 struct GPFNN <: AbstractNode
-    layers::Vector{NNLayer}
+    layers::Vector{Union{NNLayer, BatchNormLayer}}
 end
 function (nn::GPFNN)(x)
     layers = nn.layers
@@ -11,24 +33,6 @@ function (nn::GPFNN)(x)
         out = layer(out)
     end
     return out
-end
-
-mutable struct NNLayer <: AbstractNode
-    W # weights
-    B # biases
-    σ::Fixed{Function} # activation function
-end
-(layer::NNLayer)(x) = layer.σ.(layer.W * x + layer.B)
-
-mutable struct BatchNormLayer <: AbstractNode
-    γ # if you want to use different values for each dimension, use a RowVector
-    β # if you want to use different values for each dimension, use a RowVector
-end
-function (layer::BatchNormLayer)(x)
-    means = mean(x, dims=1)
-    stds = std(x, dims=1)
-    x_norm = (x .- means) ./ (stds .+ 1e-10) # Adding 1e-10 for numerical stability
-    return unwrap(layer.γ) .* x_norm .+ unwrap(layer.β)
 end
 
 # Just a few activation functions that may be handy
