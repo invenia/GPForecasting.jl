@@ -7,6 +7,15 @@
         linesearch=LineSearches.HagerZhang(),
     )) < 1e-5
 
+    @test minimise(
+        x -> (1.0 - x[1])^2 + 100.0 * (x[2] - x[1]^2)^2,
+        [10., -10.],
+        trace=true,
+        algorithm=Optim.ConjugateGradient,
+        alphaguess=LineSearches.InitialQuadratic(),
+        linesearch=LineSearches.HagerZhang(),
+       ) ≈ [1.0, 1.0] atol = _ATOL_
+
     gp = GP(0, EQ() ▷ 10)
     x = collect(1.0:10.0);
     y = 2 .* x .+ 1e-1 * randn()

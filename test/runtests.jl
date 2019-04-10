@@ -8,6 +8,7 @@ using GPForecasting
 using LineSearches
 using LinearAlgebra
 using Memento
+using Optim
 using Nabla
 using Random: MersenneTwister, seed!
 using Test

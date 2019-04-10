@@ -3,21 +3,24 @@
         x_init::Vector;
         its=200,
         trace=true,
+        algorithm=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
     ) -> Vector
 
 Minimise objective funcion `f`, starting with initial configuration `x_init`, for a miaximum
-`its` iterations. If `trace`, runs verbose version. `alphaguess` and `linesearch` are the
-initial and optimisation linesearches. Returns the optimised parameters. `f`
-must be a function of `x` only. If `summary` is set to true, then the entire output of the
-optimizer is returned (for debugging/experimental purposes). Else, simply the minimizer is returned.
+`its` iterations. If `trace`, runs verbose version. `algorithm` is a first order optimization 
+method while `alphaguess` and `linesearch` are the initial and optimisation linesearches. 
+Returns the optimised parameters. `f` must be a function of `x` only. If `summary` is set to 
+true, then the entire output of the optimizer is returned (for debugging/experimental purposes). 
+Else, simply the minimizer is returned.
 """
 function minimise(
     f::Function,
     x_init::Vector;
     its=200,
     trace=true,
+    algorithm=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
 )
@@ -30,7 +33,7 @@ function minimise(
         f,
         grad!,
         x_init,
-        LBFGS(alphaguess = alphaguess, linesearch = linesearch),
+        algorithm(alphaguess = alphaguess, linesearch = linesearch),
         Optim.Options(
             x_tol = 1.0e-8,
             f_tol = 1.0e-8,
@@ -50,6 +53,7 @@ end
         x_init::Vector;
         its=200,
         trace=true,
+        algorithm=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
     ) -> Optim.jl Optimization Object
@@ -61,6 +65,7 @@ function minimise_summary(
     x_init::Vector;
     its=200,
     trace=true,
+    algorithm=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
 )
@@ -73,7 +78,7 @@ function minimise_summary(
         f,
         grad!,
         x_init,
-        LBFGS(alphaguess = alphaguess, linesearch = linesearch),
+        algorithm(alphaguess = alphaguess, linesearch = linesearch),
         Optim.Options(
             x_tol = 1.0e-8,
             f_tol = 1.0e-8,
@@ -96,6 +101,7 @@ end
         Θ_init::Array=[],
         its=200,
         trace=true,
+        algorithm=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
     ) -> GP
@@ -103,10 +109,11 @@ end
 Obtain the parameters that minimise the `obj` of a `gp` over points `x` with observation
 values `y`. `obj` can be any function of `gp`, `x`, `y` and `Θ_init` (only). `Θ_init`
 determines the starting point. `its` is the miaximum number of iterations. If `trace`,
-runs verbose version. `alphaguess` and `linesearch` are the
-initial and optimisation linesearches. Returns a `GP` with the optimised parameters.
-If `summary` is set to true, then the entire output of the optimizer is returned
-(for debugging/experimental purposes). Else, simply the minimizer is returned.
+runs verbose version. `algorithm` is a first order optimization method, while `alphaguess` 
+and `linesearch` are the initial and optimisation linesearches. 
+Returns a `GP` with the optimised parameters. If `summary` is set to true, then the entire 
+output of the optimizer is returned (for debugging/experimental purposes). 
+Else, simply the minimizer is returned.
 """
 function learn(
     gp::GP,
@@ -116,6 +123,7 @@ function learn(
     Θ_init::Array=[],
     its=200,
     trace=true,
+    algorithm=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
 )
@@ -125,6 +133,7 @@ function learn(
         Θ_init,
         its=its,
         trace=trace,
+        algorithm=algorithm,
         alphaguess=alphaguess,
         linesearch=linesearch,
     )
@@ -142,6 +151,7 @@ end
         Θ_init::Array=[],
         its=200,
         trace=true,
+        algorithm=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
     ) -> Optim.jl Optimization Object, GP
@@ -156,6 +166,7 @@ function learn_summary(
     Θ_init::Array=[],
     its=200,
     trace=true,
+    algorithm=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
 )
@@ -165,6 +176,7 @@ function learn_summary(
         Θ_init,
         its=its,
         trace=trace,
+        algorithm=algorithm,
         alphaguess=alphaguess,
         linesearch=linesearch,
     )
@@ -184,6 +196,7 @@ function learn(
     Θ_init::Array=[],
     its=200,
     trace=true,
+    algorithm=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
 )
@@ -200,6 +213,7 @@ function learn(
             Θ_init,
             its=its,
             trace=trace,
+            algorithm=algorithm,
             alphaguess=alphaguess,
             linesearch=linesearch,
         )
@@ -212,6 +226,7 @@ function learn(
             Θ_init,
             its=its,
             trace=trace,
+            algorithm=algorithm,
             alphaguess=alphaguess,
             linesearch=linesearch,
         )
