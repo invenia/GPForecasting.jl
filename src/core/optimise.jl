@@ -3,7 +3,7 @@
         x_init::Vector;
         its=200,
         trace=true,
-        algorithm::Optim.FirstOrderOptimizer=LBFGS,
+        algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
         kwargs...
@@ -20,7 +20,7 @@ function minimise(
     x_init::Vector;
     its=200,
     trace=true,
-    algorithm::Optim.FirstOrderOptimizer=LBFGS,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
     kwargs...
@@ -54,7 +54,7 @@ end
         x_init::Vector;
         its=200,
         trace=true,
-        algorithm::Optim.FirstOrderOptimizer=LBFGS,
+        algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
         kwargs...
@@ -67,7 +67,7 @@ function minimise_summary(
     x_init::Vector;
     its=200,
     trace=true,
-    algorithm::Optim.FirstOrderOptimizer=LBFGS,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
     kwargs...
@@ -104,7 +104,7 @@ end
         Θ_init::Array=[],
         its=200,
         trace=true,
-        algorithm::Optim.FirstOrderOptimizer=LBFGS,
+        algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
         kwargs...
@@ -126,7 +126,7 @@ function learn(
     Θ_init::Array=[],
     its=200,
     trace=true,
-    algorithm::Optim.FirstOrderOptimizer=LBFGS,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
     kwargs...
@@ -156,7 +156,7 @@ end
         Θ_init::Array=[],
         its=200,
         trace=true,
-        algorithm::Optim.FirstOrderOptimizer=LBFGS,
+        algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
         kwargs...
@@ -172,7 +172,7 @@ function learn_summary(
     Θ_init::Array=[],
     its=200,
     trace=true,
-    algorithm::Optim.FirstOrderOptimizer=LBFGS,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
     kwargs...
@@ -204,7 +204,7 @@ function learn(
     Θ_init::Array=[],
     its=200,
     trace=true,
-    algorithm::Optim.FirstOrderOptimizer=LBFGS,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
     kwargs...
