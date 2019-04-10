@@ -3,26 +3,27 @@
         x_init::Vector;
         its=200,
         trace=true,
-        algorithm=LBFGS,
+        algorithm::Optim.FirstOrderOptimizer=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
+        kwargs...
     ) -> Vector
 
 Minimise objective funcion `f`, starting with initial configuration `x_init`, for a miaximum
 `its` iterations. If `trace`, runs verbose version. `algorithm` is a first order optimization 
 method while `alphaguess` and `linesearch` are the initial and optimisation linesearches. 
-Returns the optimised parameters. `f` must be a function of `x` only. If `summary` is set to 
-true, then the entire output of the optimizer is returned (for debugging/experimental purposes). 
-Else, simply the minimizer is returned.
+Returns the optimised parameters. `f` must be a function of `x` only. `kwargs...` are additional
+keyword arguments for `algorithm`.
 """
 function minimise(
     f::Function,
     x_init::Vector;
     its=200,
     trace=true,
-    algorithm=LBFGS,
+    algorithm::Optim.FirstOrderOptimizer=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
+    kwargs...
 )
 
     ∇grad   = ∇(f)
@@ -33,7 +34,7 @@ function minimise(
         f,
         grad!,
         x_init,
-        algorithm(alphaguess = alphaguess, linesearch = linesearch),
+        algorithm(alphaguess = alphaguess, linesearch = linesearch, kwargs...),
         Optim.Options(
             x_tol = 1.0e-8,
             f_tol = 1.0e-8,
@@ -53,9 +54,10 @@ end
         x_init::Vector;
         its=200,
         trace=true,
-        algorithm=LBFGS,
+        algorithm::Optim.FirstOrderOptimizer=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
+        kwargs...
     ) -> Optim.jl Optimization Object
 
 Like `minmise()`, but returns a summary of the optimization results.
@@ -65,9 +67,10 @@ function minimise_summary(
     x_init::Vector;
     its=200,
     trace=true,
-    algorithm=LBFGS,
+    algorithm::Optim.FirstOrderOptimizer=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
+    kwargs...
 )
 
     ∇grad   = ∇(f)
@@ -78,7 +81,7 @@ function minimise_summary(
         f,
         grad!,
         x_init,
-        algorithm(alphaguess = alphaguess, linesearch = linesearch),
+        algorithm(alphaguess = alphaguess, linesearch = linesearch, kwargs...),
         Optim.Options(
             x_tol = 1.0e-8,
             f_tol = 1.0e-8,
@@ -101,9 +104,10 @@ end
         Θ_init::Array=[],
         its=200,
         trace=true,
-        algorithm=LBFGS,
+        algorithm::Optim.FirstOrderOptimizer=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
+        kwargs...
     ) -> GP
 
 Obtain the parameters that minimise the `obj` of a `gp` over points `x` with observation
@@ -111,9 +115,8 @@ values `y`. `obj` can be any function of `gp`, `x`, `y` and `Θ_init` (only). `�
 determines the starting point. `its` is the miaximum number of iterations. If `trace`,
 runs verbose version. `algorithm` is a first order optimization method, while `alphaguess` 
 and `linesearch` are the initial and optimisation linesearches. 
-Returns a `GP` with the optimised parameters. If `summary` is set to true, then the entire 
-output of the optimizer is returned (for debugging/experimental purposes). 
-Else, simply the minimizer is returned.
+Returns a `GP` with the optimised parameters. `kwargs...` are additional keyword arguments 
+for `algorithm`. 
 """
 function learn(
     gp::GP,
@@ -123,9 +126,10 @@ function learn(
     Θ_init::Array=[],
     its=200,
     trace=true,
-    algorithm=LBFGS,
+    algorithm::Optim.FirstOrderOptimizer=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
+    kwargs...
 )
     Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
     Θ_opt = minimise(
@@ -136,6 +140,7 @@ function learn(
         algorithm=algorithm,
         alphaguess=alphaguess,
         linesearch=linesearch,
+        kwargs...
     )
 
     # Again, assuming we are only optimising kernels
@@ -151,9 +156,10 @@ end
         Θ_init::Array=[],
         its=200,
         trace=true,
-        algorithm=LBFGS,
+        algorithm::Optim.FirstOrderOptimizer=LBFGS,
         alphaguess=LineSearches.InitialStatic(scaled=true),
         linesearch=LineSearches.BackTracking(),
+        kwargs...
     ) -> Optim.jl Optimization Object, GP
 
 Like `learn()`, but returns a tuple with the summary of the optimization procedure and the learned GP.
@@ -166,9 +172,10 @@ function learn_summary(
     Θ_init::Array=[],
     its=200,
     trace=true,
-    algorithm=LBFGS,
+    algorithm::Optim.FirstOrderOptimizer=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
+    kwargs...
 )
     Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
     Θ_opt = minimise_summary(
@@ -179,6 +186,7 @@ function learn_summary(
         algorithm=algorithm,
         alphaguess=alphaguess,
         linesearch=linesearch,
+        kwargs...
     )
 
     # Again, assuming we are only optimising kernels
@@ -196,9 +204,10 @@ function learn(
     Θ_init::Array=[],
     its=200,
     trace=true,
-    algorithm=LBFGS,
+    algorithm::Optim.FirstOrderOptimizer=LBFGS,
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
+    kwargs...
 )
     ngp = deepcopy(gp)
     if opt_U
@@ -216,6 +225,7 @@ function learn(
             algorithm=algorithm,
             alphaguess=alphaguess,
             linesearch=linesearch,
+            kwargs...
         )
         return GP(ngp.m, set(ngp.k, Θ_opt)) # Again, assuming we are only optimising kernels
     # Got to overload if we want parameters in the means as well
@@ -229,6 +239,7 @@ function learn(
             algorithm=algorithm,
             alphaguess=alphaguess,
             linesearch=linesearch,
+            kwargs...
         )
         ngp.k = set(ngp.k, Θ_opt)
         U = greedy_U(ngp.k, x, y)
