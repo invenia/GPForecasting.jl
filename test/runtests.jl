@@ -34,4 +34,5 @@ _ATOL_ = 1e-5
     include("pdf.jl")
     include("core/nabla.jl")
     include("synthetic.jl")
+    include("NN.jl")
 end
