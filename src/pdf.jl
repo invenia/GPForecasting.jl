@@ -65,7 +65,7 @@ function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
         z = L \ (x .- dist.μ')'
         return (-size(x, 1) * (log_det + size(x, 2) * log(2π)) - sum(abs2, z)) / 2
     else
-        z = U' \ (x .- dist.μ)
+        z = L \ (x .- dist.μ)
     end
     return -(log_det + length(x) * log(2π) + sum(abs2, z)) / 2
 end
@@ -148,7 +148,7 @@ end
 
     Σn = Diagonal(σ²) .+ H * Diagonal(D) * H'
     gn = Gaussian(Zeros(p), Σn)
-    
+
 
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
@@ -190,7 +190,7 @@ end
     # Noise contributions
     # These decouple timestamps, so we can compute one at a time.
     lpdf = logpdf(gn, y)
-    
+
     # Latent process contributions
     # These decouple amongst different latent processes, so we can compute one at time.
     yl = y * P'
