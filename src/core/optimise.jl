@@ -268,7 +268,7 @@ end
 Learn a GP using some sparse approximation. By default, Titsias' is used. Note that this
 function expects a regular `GP` as input. The sparsification is performed under the hood.
 `x` represents the training input locations, `y` the training outputs, `Xm` the inducing
-point locations, `σ²` the noise and `obj` controls which type of approximation to use. 
+point locations, `σ²` the noise and `obj` controls which type of approximation to use.
 The outputs are the optimised `GP` (of the same type as the input one), the optimised
 inducing point locations `Xm` and the optimised noise `σ²` (also with the same type as
 the inputs).
@@ -287,9 +287,7 @@ function learn_sparse(
     linesearch=LineSearches.BackTracking(),
 )
 
-    Θ_init = isempty(Θ_init) ?
-        vcat(pack(Xm), pack(σ²), gp.k[:]) :
-        Θ_init
+    Θ_init = isempty(Θ_init) ? vcat(pack(Xm), pack(σ²), gp.k[:]) : Θ_init
     Θ_opt = minimise(
         obj(gp, x, y, Xm, σ²),
         Θ_init,
