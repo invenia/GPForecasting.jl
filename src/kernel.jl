@@ -100,7 +100,15 @@ function (k::TitsiasPosteriorKernel)(x)
 end
 
 function (k::TitsiasPosteriorKernel)(x, y)
+    Xm = unwrap(k.Xm)
+    Uz = unwrap(k.Uz)
+    Umm = unwrap(k.Umm)
 
+    Kxy = k.k(x, y)
+    Kxm = k.k(x, Xm)
+    Kmy = k.k(Xm, y)
+    noise = unwrap(k.σ²) * DiagonalKernel()(x, y)
+    return Kxy .- (Kxm / Umm) * (Umm' \ Kmy) .+ (Kxm / Uz) * (Uz' \ Kmy) + noise
 end
 
 

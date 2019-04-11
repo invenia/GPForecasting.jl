@@ -363,6 +363,7 @@
         @test isa(Xm, DataFrame)
         @test Xm_i[:bs] ≈ Xm[:bs]
         @test !(Xm[:data] ≈ Xm_i[:data])
+        @test size(spos.k(xtest[1:5, :], xtest[1:8, :])) == (5, 8)
 
         # OLMM
         ytrain = [y_train y_train]
