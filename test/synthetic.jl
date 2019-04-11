@@ -333,7 +333,7 @@
         close(f)
 
         gp = GP(1.0 * (EQ() ▷ 0.5) + 1e-2 * DiagonalKernel())
-        ngp = learn(gp, x_train, y_train, objective, its = 500, trace = false)
+        ngp = learn(gp, x_train, y_train, objective, its = 50, trace = false)
         pos = condition(ngp, x_train, y_train)
 
         x_test = collect(0:0.01:6);
@@ -349,7 +349,7 @@
             y_train,
             Xm_i,
             Positive(0.1),
-            its = 500,
+            its = 50,
             trace = false
         )
         spos = GPForecasting.condition_sparse(sgp, xtrain, Xm, y_train, σ²)
