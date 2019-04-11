@@ -539,7 +539,16 @@ function (k::ManifoldKernel)(x, y)
         vcat((k.NN(y[i, :])' for i in 1:size(y, 1))...)
     )
 end
+function (k::ManifoldKernel)(x::T, y::P) where {T <: Input, P <: Input}
+    return k.k(
+        T(vcat((k.NN(x.val[i, :])' for i in 1:size(x.val, 1))...)),
+        P(vcat((k.NN(y.val[i, :])' for i in 1:size(y.val, 1))...))
+    )
+end
 (k::ManifoldKernel)(x) = k.k(vcat((k.NN(x[i, :])' for i in 1:size(x, 1))...))
+function (k::ManifoldKernel)(x::T) where T <: Input
+    return k.k(T(vcat((k.NN(x.val[i, :])' for i in 1:size(x.val, 1))...)))
+end
 
 Base.zero(::Kernel) = ZeroKernel()
 Base.zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
