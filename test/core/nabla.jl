@@ -52,4 +52,14 @@ using FDM
     @test isa(obj3(gp.k[:]), Float64)
     @test isa(∇(obj3)(gp.k[:])[1][1], Float64)
     @test !(∇(obj3)(gp.k[:])[1] ≈ ∇(obj3)(3 .* gp.k[:])[1])
+
+    # Manifold GPs
+    k = EQ()
+    activation = sigmoid
+    l1 = NNLayer(randn(6, 1), 1e-2 .* randn(6), Fixed(activation))
+    l2 = NNLayer(randn(2, 6), 1e-2 .* randn(2), Fixed(activation))
+    nn = GPFNN([l1, l2])
+    mk = ManifoldKernel(k, nn)
+    obj = objective(GP(mk), rand(5), rand(5))
+    @test isa(∇(obj)(mk[:])[1], Vector)
 end
