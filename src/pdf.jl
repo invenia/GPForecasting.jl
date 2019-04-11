@@ -243,6 +243,8 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     log_N = logpdf(Gaussian(m(x), Qnn + σ² * Eye(size(Qnn, 1))), y)
     # Compute K̅
     return log_N - (2 * σ²)^(-1) * tr(k(x) - Qnn)
+    # The implementation below is better, but leads to Nabla issues. TODO: make it work,
+    # return log_N - (2 * σ²)^(-1) * sum(var(k, x) .- diag(Qnn))
 end
 
 @unionise function titsiasELBO(
@@ -291,6 +293,9 @@ end
         Qnn = Q_sqrt' * Q_sqrt
         log_N = logpdf(Gaussian(Zeros(n), Qnn + sσ² * Eye(n) + proj_noise), yl[:, i])
         gln = Gaussian(zeros(n), proj_noise)
+        # The implementation below is better, but leads to Nabla issues. TODO: make it work,
+        # slpdf = log_N - (2 * sσ²)^(-1) * sum(var(gp.k.k.ks[i], x) .- diag(Qnn))
+        # lpdf += slpdf - logpdf(gln, yl[:, i])
         lpdf += log_N - (2 * sσ²)^(-1) * tr(gp.k.k.ks[i](x) - Qnn) - logpdf(gln, yl[:, i])
     end
     return lpdf
