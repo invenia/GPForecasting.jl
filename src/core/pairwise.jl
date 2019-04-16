@@ -8,7 +8,7 @@ end
 @unionise pairwise_dist(x::Number, y::Number) = pairwise_dist([x], [y])
 
 @unionise function sq_pairwise_dist(x::AbstractArray, y::AbstractArray)
-    return sum(x.^2, dims=2) .+ sum(y.^2, dims=2)' .- 2x * y'
+    return sum(abs2, x, dims=2) .+ sum(abs2, y, dims=2)' .- 2x * y'
 end
 
 @unionise sq_pairwise_dist(x::Number, y::AbstractArray) = sq_pairwise_dist([x], y)
