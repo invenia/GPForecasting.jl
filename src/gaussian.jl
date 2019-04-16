@@ -164,18 +164,18 @@ Distributions.MvNormal(d::Gaussian{T, <:Eye}) where {T} = MvNormal(collect(vec(d
 
 function ModelAnalysis.mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
     if length(blocks(d.Σ)) != size(y, 1) # Not sure why one would ever do this, but anyway
-        return -logpdf(d, y) / prod(size(y))
+        return -logpdf(d, y) / length(y)
     elseif d.chol !== nothing && isa(d.chol.U, BlockDiagonal)
         return sum([-logpdf(Gaussian(
             reshape(d.μ[i, :], 1, size(d.μ, 2)),
             blocks(d.Σ)[i],
             Cholesky(blocks(d.chol.U)[i], 'U', 0),
-        ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / prod(size(y))
+        ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / length(y)
     else
         return sum([-logpdf(Gaussian(
             reshape(d.μ[i, :], 1, size(d.μ, 2)),
             blocks(d.Σ)[i]
-        ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / prod(size(y))
+        ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / length(y)
     end
 end
 
