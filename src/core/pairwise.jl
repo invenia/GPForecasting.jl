@@ -30,7 +30,8 @@ function Nabla.∇(
     x::AbstractMatrix,
     y::AbstractMatrix,
 )
-    return 2 .* (x' * Diagonal(vec(sum(z̄, dims=2))) .- y' * z̄')'
+    D = Diagonal(vec(sum(z̄, dims=2)))
+    return 2*(D*x - z̄*y)
 end
 
 function Nabla.∇(
@@ -40,7 +41,8 @@ function Nabla.∇(
     x::AbstractMatrix,
     y::AbstractMatrix,
 )
-    return 2 .* (y' * Diagonal(vec(sum(z̄, dims=1))) .- x' * z̄)'
+    D = Diagonal(vec(sum(z̄, dims=1)))
+    return 2*(D*y - z̄'x)
 end
 
 function Nabla.∇(
