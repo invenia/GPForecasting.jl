@@ -78,6 +78,7 @@ export minimise, learn, learn_summary, minimise_summary
 export Bounded, DynamicBound, Fixed, Named, Parameter, Positive, isconstrained
 
 using DataFrames
+using Distances
 using Distributions
 using FillArrays
 using LineSearches
