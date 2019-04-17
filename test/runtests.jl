@@ -9,7 +9,7 @@ using LineSearches
 using LinearAlgebra
 using Memento
 using Nabla
-using Random: seed!
+using Random: MersenneTwister, seed!
 using Test
 
 _ATOL_ = 1e-5

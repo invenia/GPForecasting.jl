@@ -7,10 +7,48 @@ end
 @unionise pairwise_dist(x::AbstractArray, y::Number) = pairwise_dist(x, [y])
 @unionise pairwise_dist(x::Number, y::Number) = pairwise_dist([x], [y])
 
-@unionise function sq_pairwise_dist(x::AbstractArray, y::AbstractArray)
-    return sum(abs2, x, dims=2) .+ sum(abs2, y, dims=2)' .- 2x * y'
+function sq_pairwise_dist(x::AbstractMatrix, y::AbstractMatrix)
+    return pairwise(SqEuclidean(), x, y, dims=1)
 end
 
-@unionise sq_pairwise_dist(x::Number, y::AbstractArray) = sq_pairwise_dist([x], y)
-@unionise sq_pairwise_dist(x::AbstractArray, y::Number) = sq_pairwise_dist(x, [y])
-@unionise sq_pairwise_dist(x::Number, y::Number) = sq_pairwise_dist([x], [y])
+function sq_pairwise_dist(x::AbstractVector, y::AbstractVector)
+    yᵀ = y'
+    xyᵀ = x*yᵀ
+    return @. abs2(x) + abs2(yᵀ) - 2*xyᵀ
+end
+
+sq_pairwise_dist(x::Number, y::AbstractArray) = sq_pairwise_dist([x], y)
+sq_pairwise_dist(x::AbstractArray, y::Number) = sq_pairwise_dist(x, [y])
+sq_pairwise_dist(x::Number, y::Number) = sq_pairwise_dist([x], [y])
+
+@explicit_intercepts sq_pairwise_dist Tuple{Nabla.∇ArrayOrScalar, Nabla.∇ArrayOrScalar}
+
+function Nabla.∇(
+    ::typeof(sq_pairwise_dist),
+    ::Type{Arg{1}},
+    p, z, z̄,
+    x::AbstractMatrix,
+    y::AbstractMatrix,
+)
+    return 2 .* (x' * Diagonal(vec(sum(z̄, dims=2))) .- y' * z̄')'
+end
+
+function Nabla.∇(
+    ::typeof(sq_pairwise_dist),
+    ::Type{Arg{2}},
+    p, z, z̄,
+    x::AbstractMatrix,
+    y::AbstractMatrix,
+)
+    return 2 .* (y' * Diagonal(vec(sum(z̄, dims=1))) .- x' * z̄)'
+end
+
+function Nabla.∇(
+    ::typeof(sq_pairwise_dist),
+    ::Type{Arg{i}},
+    p, z, z̄,
+    x::AbstractVector,
+    y::AbstractVector,
+) where i
+    return ∇(sq_pairwise_dist, Arg{i}, p, z, z̄, reshape(x, :, 1), reshape(y, :, 1))
+end
