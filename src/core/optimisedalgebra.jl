@@ -266,7 +266,7 @@ end
 Efficiently compute `diag(outer(kron(A, B)))`.
 """
 function diag_outer_kron(A::AbstractMatrix, B::AbstractMatrix)
-    kron(sum(A .^ 2, dims=2), sum(B .^ 2, dims=2))
+    kron(sum(abs2, A, dims=2), sum(abs2, B, dims=2))
 end
 
 """
@@ -300,7 +300,7 @@ diag_outer(A::AbstractArray, B::AbstractArray) = sum(A .* B, dims=2)
 
 Efficiently compute `diag(outer(A))`.
 """
-diag_outer(A::AbstractArray) = sum(A .^ 2, dims=2)
+diag_outer(A::AbstractArray) = sum(abs2, A, dims=2)
 
 """
     Js(m::Int) -> Vector{Matrix}

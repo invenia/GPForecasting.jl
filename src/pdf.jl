@@ -36,18 +36,18 @@ the updated `GP`. Does NOT affect `gp`.
 @unionise function Distributions.logpdf(dist::Gaussian, x::AbstractArray)
     L = cholesky(dist).L
     log_det = 2sum(log, diag(L))
-    if size(x, 2) > 1 && size(L, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    if size(x, 2) > 1 && size(L, 2) == length(x) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
         z = L \ vec((x .- dist.μ)')
     elseif size(L, 2) == size(x, 2) # This means we have a covariance matrix that has entries
     # only for the different outputs, but for a single timestamp. This allows for the
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
         z = L \ (x .- dist.μ')'
-        return (-size(x, 1) * (log_det + size(x, 2) * log(2π)) - dot(z, z)) / 2
+        return (-size(x, 1) * (log_det + size(x, 2) * log(2π)) - sum(abs2, z)) / 2
     else
         z = L \ (x .- dist.μ)
     end
-    return -(log_det + prod(size(x)) * log(2π) + dot(z, z)) / 2
+    return -(log_det + length(x) * log(2π) + sum(abs2, z)) / 2
 end
 
 # This looks quite redundant, but is necessary to remove the ambiguity introduced above due
@@ -56,16 +56,16 @@ end
 function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
     L = cholesky(dist).L
     log_det = 2sum(log, diag(L))
-    if size(x, 2) > 1 && size(L, 2) == prod(size(x)) # This means that the covariance matrix has entries for
+    if size(x, 2) > 1 && size(L, 2) == length(x) # This means that the covariance matrix has entries for
     # all outputs and timestamps.
         z = L \ vec((x .- dist.μ)')
     elseif size(L, 2) == size(x, 2) # This means we have a covariance matrix that has entries
     # only for the different outputs, but for a single timestamp. This allows for the
     # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
         z = L \ (x .- dist.μ')'
-        return (-size(x, 1) * (log_det + size(x, 2) * log(2π)) - dot(z, z)) / 2
+        return (-size(x, 1) * (log_det + size(x, 2) * log(2π)) - sum(abs2, z)) / 2
     end
-    return -(log_det + prod(size(x)) * log(2π) + dot(z, z)) / 2
+    return -(log_det + length(x) * log(2π) + sum(abs2, z)) / 2
 end
 
 @unionise function Distributions.logpdf(
@@ -116,7 +116,7 @@ end
     ).L
     log_det = n_d * sum(log, σ²) + 2sum(log, diag(M))
     z = M \ (LQ * HiΛy)
-    return -(n_d * p * log(2π) + log_det + dot(yiσ², yt) - dot(z, z)) / 2
+    return -(n_d * p * log(2π) + log_det + dot(yiσ², yt) - sum(abs2, z)) / 2
 end
 
 @unionise function Distributions.logpdf(dist::Gaussian, xs::Vector{<:Vector})
@@ -125,7 +125,7 @@ end
     lpdf = zero(typeof(log_det))
     for x in xs
         z = L \ (x .- dist.μ)
-        lpdf += -(log_det + prod(size(x)) * log(2π) + dot(z, z)) / 2
+        lpdf += -(log_det + length(x) * log(2π) + sum(abs2, z)) / 2
     end
     return lpdf
 end
