@@ -75,7 +75,7 @@ end
 
 Squared exponential kernel. Computes exp((-1/2) * |x - x′|²).
 """
-mutable struct EQ <: Kernel end
+struct EQ <: Kernel end
 (::EQ)(x, y) = exp.((-0.5) .* sq_pairwise_dist(x, y))
 (k::EQ)(x) = k(x, x)
 Base.show(io::IO, k::EQ) = print(io, "EQ()")
