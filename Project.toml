@@ -3,6 +3,7 @@ uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 LineSearches = "d3d80556-e9d4-5f37-9878-2ab0fcc64255"
