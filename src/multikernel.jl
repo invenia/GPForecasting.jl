@@ -9,8 +9,6 @@ function Statistics.var(k::MultiOutputKernel, x::AbstractDataFrame)
     return reduce(hcat, [diag(k(DataFrame(r))) for r in eachrow(x)])'
 end
 
-LinearAlgebra.diag(x::Real) = x
-
 Base.size(k::MultiOutputKernel, i::Int) = size(k([1.0]), i)
 
 function hourly_cov(k::MultiOutputKernel, x)
