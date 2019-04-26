@@ -1,4 +1,3 @@
-Base.isapprox(x::String, y::String) = x == y
 isconstrained(x) = false
 
 # Base cases of parameter recursions:
@@ -59,12 +58,16 @@ Used for updating parameter values.
 @unionise unpack(x::Parameter, y::Vector) =
     reconstruct(x, unpack(parameter(x), y), others(x))
 set(x::Parameter, y) = reconstruct(x, set(parameter(x), y), others(x))
-function Base.isapprox(x::Parameter, y::Parameter)
-    return typeof(x) == typeof(y) &&
-        isapprox(parameter(x), parameter(y)) &&
-        length(others(x)) == length(others(y)) &&
-        all(isapprox.(others(x), others(y)))
+
+# Fallback when x and y have different types
+Base.isapprox(x::Parameter, y::Parameter) = false
+
+function Base.isapprox(x::T, y::T) where T<:Parameter
+    return all(i -> _isapprox(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
 end
+
+_isapprox(a, b) = isapprox(a, b)
+_isapprox(a::AbstractString, b::AbstractString) = a == b
 
 """
     isconstrained(x::Parameter)
