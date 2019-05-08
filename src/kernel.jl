@@ -5,10 +5,20 @@
 # k(x, y) == transpose(k(y, x))
 #########################################################
 
-Statistics.var(k::Kernel, x) = [k(x[i, :])[1] for i in 1:size(x, 1)]
+function Statistics.var(k::Kernel, x)
+    if elwise(k)
+        return elwise(k, x)
+    else
+        return [k(x[i, :])[1] for i in 1:size(x, 1)]
+    end
+end
 Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
 function Statistics.var(k::Kernel, x::AbstractDataFrame)
-    return [k(DataFrame(r))[1] for r in eachrow(x)]
+    if elwise(k)
+        return elwise(k, x)
+    else
+        return [k(DataFrame(r))[1] for r in eachrow(x)]
+    end 
 end
 
 Base.size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
