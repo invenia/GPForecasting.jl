@@ -32,6 +32,7 @@ export ▷,
     ConstantKernel,
     DiagonalKernel,
     DotKernel,
+    elwise,
     EQ,
     HazardKernel,
     Kernel,
@@ -64,7 +65,7 @@ export LMMKernel,
     verynaiveLMMKernel
 
 # core/pairwise
-export pairwise_dist, sq_pairwise_dist
+export elwise_dist, pairwise_dist, sq_elwise_dist, sq_pairwise_dist
 
 # core/input
 export Input, Observed, Latent
