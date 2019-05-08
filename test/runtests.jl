@@ -9,6 +9,7 @@ using LineSearches
 using LinearAlgebra
 using Memento
 using Nabla
+using Optim
 using Random: MersenneTwister, seed!
 using Test
 
