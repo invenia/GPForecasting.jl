@@ -243,8 +243,17 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     log_N = logpdf(Gaussian(m(x), Qnn + σ² * Eye(size(Qnn, 1))), y)
     # Compute K̅
     return log_N - (2 * σ²)^(-1) * tr(k(x) - Qnn)
+
     # The implementation below is better, but leads to Nabla issues. TODO: make it work,
     # return log_N - (2 * σ²)^(-1) * sum(var(k, x) .- diag(Qnn))
+
+    # This stuff below with diags and reshaping is due to Nabla. It turns a Branch of Arrays
+    # into and Array of Branches, such that things can be dispatched properly.
+    # Although the below works fine, it manages to be slower than the naive implementation,
+    # probably due to the reshaping...
+    # diags = diag(Qnn)
+    # diags = reshape([diags[i] for i = 1:length(diags)], size(diags)...)
+    # return log_N - (2 * σ²)^(-1) * sum(var(k, x) - diags)
 end
 
 @unionise function titsiasELBO(
