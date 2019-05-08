@@ -254,6 +254,12 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     # diags = diag(Qnn)
     # diags = reshape([diags[i] for i = 1:length(diags)], size(diags)...)
     # return log_N - (2 * σ²)^(-1) * sum(var(k, x) - diags)
+
+    # return log_N - (2 * σ²)^(-1) * sum(var(k, x)) - tr(Qnn)
+
+    # return log_N - (2 * σ²)^(-1) * sum((k(x[i, :])[1] for i in 1:size(x, 1))) - tr(Qnn)
+
+    # return log_N - (2 * σ²)^(-1) * sum((k(x[i, :]) for i in 1:size(x, 1)))[1] - tr(Qnn)
 end
 
 @unionise function titsiasELBO(
