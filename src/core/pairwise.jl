@@ -54,3 +54,19 @@ function Nabla.∇(
 ) where i
     return ∇(sq_pairwise_dist, Arg{i}, p, z, z̄, reshape(x, :, 1), reshape(y, :, 1))
 end
+
+@unionise function elwise_dist(x::AbstractArray, y::AbstractArray)
+    return colwise(Euclidean(), x', y')
+end
+
+@unionise function sq_elwise_dist(x::AbstractArray, y::AbstractArray)
+    return colwise(SqEuclidean(), x', y')
+end
+
+@unionise elwise_dist(x::Number, y::AbstractArray) = euclidean(x, y...)
+@unionise elwise_dist(x::AbstractArray, y::Number) = euclidean(x..., y)
+@unionise elwise_dist(x::Number, y::Number) = euclidean(x, y)
+
+@unionise sq_elwise_dist(x::Number, y::AbstractArray) = sqeuclidean(x, y...)
+@unionise sq_elwise_dist(x::AbstractArray, y::Number) = sqeuclidean(x..., y)
+@unionise sq_elwise_dist(x::Number, y::Number) = sqeuclidean(x, y)
