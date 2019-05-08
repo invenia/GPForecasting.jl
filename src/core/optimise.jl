@@ -10,8 +10,8 @@
     ) -> Vector
 
 Minimise objective funcion `f`, starting with initial configuration `x_init`, for a miaximum
-`its` iterations. If `trace`, runs verbose version. `algorithm` is a first order optimization 
-method while `alphaguess` and `linesearch` are the initial and optimisation linesearches. 
+`its` iterations. If `trace`, runs verbose version. `algorithm` is a first order optimization
+method while `alphaguess` and `linesearch` are the initial and optimisation linesearches.
 Returns the optimised parameters. `f` must be a function of `x` only. `kwargs...` are additional
 keyword arguments for `algorithm`.
 """
@@ -113,10 +113,10 @@ end
 Obtain the parameters that minimise the `obj` of a `gp` over points `x` with observation
 values `y`. `obj` can be any function of `gp`, `x`, `y` and `Θ_init` (only). `Θ_init`
 determines the starting point. `its` is the miaximum number of iterations. If `trace`,
-runs verbose version. `algorithm` is a first order optimization method, while `alphaguess` 
-and `linesearch` are the initial and optimisation linesearches. 
-Returns a `GP` with the optimised parameters. `kwargs...` are additional keyword arguments 
-for `algorithm`. 
+runs verbose version. `algorithm` is a first order optimization method, while `alphaguess`
+and `linesearch` are the initial and optimisation linesearches.
+Returns a `GP` with the optimised parameters. `kwargs...` are additional keyword arguments
+for `algorithm`.
 """
 function learn(
     gp::GP,
