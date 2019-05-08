@@ -36,6 +36,7 @@ export ▷,
     HazardKernel,
     Kernel,
     MA,
+    ManifoldKernel,
     PeriodicKernel,
     PosteriorKernel,
     RQ,
@@ -76,6 +77,9 @@ export minimise, learn, learn_summary, minimise_summary
 
 # core/parameter
 export Bounded, DynamicBound, Fixed, Named, Parameter, Positive, isconstrained
+
+#NN.jl
+export GPFNN, NNLayer, BatchNormLayer, relu, noisy_relu, leaky_relu, softplus, sigmoid
 
 using DataFrames
 using Distances
@@ -131,6 +135,7 @@ include("core/input.jl")
 include("core/parameter.jl")
 include("gaussian.jl")
 include("core/pairwise.jl")
+include("NN.jl")
 include("kernel.jl")
 include("multikernel.jl")
 include("mean.jl")
@@ -138,5 +143,6 @@ include("multimean.jl")
 include("gp.jl")
 include("pdf.jl")
 include("core/optimise.jl")
+
 
 end  # module

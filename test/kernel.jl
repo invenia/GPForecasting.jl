@@ -376,4 +376,28 @@
                 [EQ() for i in 1:3] # ks
         )
     end
+
+    @testset "ManifoldKernel" begin
+        k = EQ()
+
+        activation = sigmoid
+        l1 = NNLayer(randn(6, 1), 1e-2 .* randn(6), Fixed(activation))
+        l2 = NNLayer(randn(2, 6), 1e-2 .* randn(2), Fixed(activation))
+        nn = GPFNN([l1, l2])
+        mk = ManifoldKernel(k, nn)
+
+        x = rand(50)
+        @test isa(mk(x), AbstractMatrix)
+        @test mk(x) ≈ mk(x, x) atol = _ATOL_
+        @test diag(mk(x)) ≈ var(mk, x) atol = _ATOL_
+        @test hourly_cov(mk, x) ≈ Diagonal(var(mk, x)) atol = _ATOL_
+
+        k = NoiseKernel(1.0 * stretch(EQ(), Positive([1.0, 1.0])), Fixed(1e-2) * DiagonalKernel())
+        x = Observed(x)
+        mk = ManifoldKernel(k, nn)
+        @test isa(mk(x), AbstractMatrix)
+        @test mk(x) ≈ mk(x, x) atol = _ATOL_
+        @test diag(mk(x)) ≈ var(mk, x) atol = _ATOL_
+        @test hourly_cov(mk, x) ≈ Diagonal(var(mk, x)) atol = _ATOL_
+    end
 end

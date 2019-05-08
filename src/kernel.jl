@@ -522,5 +522,33 @@ end
 (k::HazardKernel)(x::Number, y::Number) = k([x], [y])
 Base.show(io::IO, k::HazardKernel) = print(io, "Hazard()")
 
+"""
+    ManifoldKernel <: Kernel
+
+Build a kernel under the Manifold GPs framework. `k` is a regular kernel, while `NN` is a
+neural network. The inputs to `k` are pre-transformed by `NN`. For more details, see:
+"Manifold Gaussian Processes for Regression".
+"""
+struct ManifoldKernel <: Kernel
+    k::Kernel
+    NN::GPFNN
+end
+function (k::ManifoldKernel)(x, y)
+    return k.k(
+        vcat((k.NN(x[i, :])' for i in 1:size(x, 1))...),
+        vcat((k.NN(y[i, :])' for i in 1:size(y, 1))...)
+    )
+end
+function (k::ManifoldKernel)(x::T, y::P) where {T <: Input, P <: Input}
+    return k.k(
+        T(vcat((k.NN(x.val[i, :])' for i in 1:size(x.val, 1))...)),
+        P(vcat((k.NN(y.val[i, :])' for i in 1:size(y.val, 1))...))
+    )
+end
+(k::ManifoldKernel)(x) = k.k(vcat((k.NN(x[i, :])' for i in 1:size(x, 1))...))
+function (k::ManifoldKernel)(x::T) where T <: Input
+    return k.k(T(vcat((k.NN(x.val[i, :])' for i in 1:size(x.val, 1))...)))
+end
+
 Base.zero(::Kernel) = ZeroKernel()
 Base.zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
