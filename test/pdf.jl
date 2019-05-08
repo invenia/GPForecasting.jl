@@ -45,9 +45,12 @@
         sgp = GP(sk)
         gp = GP(periodicise(EQ(), 1.0))
         v4 = GPForecasting.titsiasobj(gp, x, y, Xm, 0.01)(sgp.k[:])
-        @test v4 ≈ -v1 atol = 1e-8   
+        @test v4 ≈ -v1 atol = 1e-8
         # OLMM
+        x = collect(0:0.01:2)
+        y = sin.(4π * x) .+ 1e-1 .* randn(length(x))
         y = [y 2y]
+        Xm = x;
         H = [1.0 0.0; 0.0 1.0]
         k = periodicise(EQ(), 1.0)
         olmm_k = OLMMKernel(
