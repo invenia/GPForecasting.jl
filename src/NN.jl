@@ -13,12 +13,8 @@ mutable struct BatchNormLayer <: AbstractNode
     β # if you want to use different values for each dimension, use a RowVector
 end
 function (layer::BatchNormLayer)(x)
-    # We are going to do this in an ugly way to get around Nabla not having `mean` and `std`
-    # for now. It should be changed after that is solved.
-    # means = mean(x, dims=1)
-    # stds = std(x, dims=1)
-    means = sum(x, dims=1) ./ size(x, 1)
-    stds = sqrt.(sum((x .- means).^2, dims=1) ./ (size(x, 1) - 1))
+    means = mean(x, dims=1)
+    stds = std(x, dims=1)
     x_norm = (x .- means) ./ (stds .+ 1e-10) # Adding 1e-10 for numerical stability
     return unwrap(layer.γ) .* x_norm .+ unwrap(layer.β)
 end
