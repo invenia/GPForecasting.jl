@@ -3,10 +3,10 @@
 # going to do anything remotely complex, this should be easy.
 mutable struct NNLayer <: AbstractNode
     W # weights
-    B # biases
+    b # biases
     σ::Fixed{<:Function} # activation function
 end
-(layer::NNLayer)(x) = unwrap(layer.σ).(unwrap(layer.W) * x + unwrap(layer.B))
+(layer::NNLayer)(x) = unwrap(layer.σ).(unwrap(layer.W) * x + unwrap(layer.b))
 
 mutable struct BatchNormLayer <: AbstractNode
     γ # if you want to use different values for each dimension, use a RowVector
