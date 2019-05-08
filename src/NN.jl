@@ -36,4 +36,5 @@ relu(x) = max(0, x)
 noisy_relu(x; σ=0.01) = max(0, x + σ * randn())
 leaky_relu(x; α=0.01) = x > 0.0 ? x : α * x
 softplus(x) = log(1 + exp(x))
-sigmoid(x) = 1/(1 + exp(-x))
+# Sigmoid "trick" from https://timvieira.github.io/blog/post/2014/02/11/exp-normalize-trick/
+sigmoid(x) = x < 0 ? exp(x)/(1 + exp(x)) : 1/(1 + exp(-x))
