@@ -583,7 +583,7 @@ function (k::DiagonalKernel)(x::DataFrameRow, y::AbstractDataFrame)
 end
 (k::DiagonalKernel)(x::Number, y) = k([x], y)
 (k::DiagonalKernel)(x, y::Number) = k(x, [y])
-(k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
+(k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])
 (k::DiagonalKernel)(x) = k(x, x)
 
 function elwise(k::DiagonalKernel, x, y)
@@ -602,7 +602,7 @@ function elwise(k::DiagonalKernel, x::DataFrameRow, y::AbstractDataFrame)
 end
 elwise(k::DiagonalKernel, x::Number, y) = elwise(k, [x], y)
 elwise(k::DiagonalKernel, x, y::Number) = elwise(k, x, [y])
-elwise(k::DiagonalKernel, x::Number, y::Number) = elwise(k, [x], [y])[1, 1]
+elwise(k::DiagonalKernel, x::Number, y::Number) = elwise(k, [x], [y])
 elwise(k::DiagonalKernel, x) = ones(size(x, 1))
 Base.show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
 
@@ -621,7 +621,7 @@ end
 @unionise (k::DotKernel)(x::AbstractArray{<:Real}) = k(x, x)
 
 @unionise function elwise(k::DotKernel, x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
-    return reshape(sum(x .* y, dims=2), size(a, 1))
+    return reshape(sum(x .* y, dims=2), size(x, 1))
 end
 elwise(k::DotKernel, x::Number, y) = elwise(k, [x], y)
 elwise(k::DotKernel, x, y::Number) = elwise(k, x, [y])
