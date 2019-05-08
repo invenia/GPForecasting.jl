@@ -29,6 +29,23 @@
         gp = GP(periodicise(EQ(), 1.0))
         v4 = GPForecasting.titsiasobj(gp, x, y, Xm, 0.01)(sgp.k[:])
         @test v4 ≈ -v1 atol = 1e-8
+        # 2D Input
+        x = [x reverse(x)]
+        y = sin.(4π * sum(x, dims=2)) .+ 1e-1 .* randn(size(x, 1))
+        v1 = GPForecasting.logpdf(GP(periodicise(EQ(), 1.0) + 0.01 * DiagonalKernel()), x, y)
+        Xm = collect(0:0.1:2);
+        Xm = [Xm reverse(Xm)];
+        sk = GPForecasting.SparseKernel(periodicise(EQ(), 1.0), Xm, Fixed(size(Xm, 1)), 0.01)
+        v2 = GPForecasting.titsiasELBO(GP(sk), x, y)
+        @test v2 <= v1 # v2 is the ELBO
+        Xm = x
+        sk = GPForecasting.SparseKernel(periodicise(EQ(), 1.0), Xm, Fixed(size(Xm, 1)), 0.01)
+        v3 = GPForecasting.titsiasELBO(GP(sk), x, y)
+        @test v3 ≈ v1 atol = 1e-8 # if Xm == x we should have ELBO == logpdf
+        sgp = GP(sk)
+        gp = GP(periodicise(EQ(), 1.0))
+        v4 = GPForecasting.titsiasobj(gp, x, y, Xm, 0.01)(sgp.k[:])
+        @test v4 ≈ -v1 atol = 1e-8   
         # OLMM
         y = [y 2y]
         H = [1.0 0.0; 0.0 1.0]
