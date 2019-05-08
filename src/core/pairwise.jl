@@ -56,11 +56,11 @@ function Nabla.∇(
 end
 
 @unionise function elwise_dist(x::AbstractArray, y::AbstractArray)
-    return colwise(Euclidean(), x', y')
+    return Distances.colwise(Euclidean(), x', y')
 end
 
 @unionise function sq_elwise_dist(x::AbstractArray, y::AbstractArray)
-    return colwise(SqEuclidean(), x', y')
+    return Distances.colwise(SqEuclidean(), x', y')
 end
 
 @unionise elwise_dist(x::Number, y::AbstractArray) = euclidean(x, y...)
