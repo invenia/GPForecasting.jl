@@ -147,6 +147,7 @@ function (k::TitsiasPosteriorKernel)(x, y)
     noise = unwrap(k.σ²) * DiagonalKernel()(x, y)
     return Kxy .- (Kxm / Umm) * (Umm' \ Kmy) .+ (Kxm / Uz) * (Uz' \ Kmy) + noise
 end
+elwise(k::TitsiasPosteriorKernel) = false
 
 
 """
@@ -788,6 +789,7 @@ mutable struct SparseKernel{K <: Kernel} <: Kernel
     σ²
 end
 SparseKernel(k::Kernel, Xm, σ²) = SparseKernel(k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
+elwise(k::SparseKernel) = false
 (k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
 (k::SparseKernel)() = k.k(unwrap(k.Xm))
 Base.show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")
