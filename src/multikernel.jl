@@ -48,7 +48,9 @@ function Statistics.var(k::NoiseKernel, x::Input)
     if isa(x.val, DataFrame)
         return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in eachrow(x.val)])'
     else
-        return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in x.val])'
+        # Calling `Matrix` here to avoid the annoying Adjoint type that ruins dispatch.
+        eachrow_x = (Matrix(x.val[i, :]') for i in 1:size(x.val, 1))
+        return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in eachrow_x])'
     end
 end
 function hourly_cov(k::NoiseKernel, x::Input)
@@ -65,7 +67,7 @@ Statistics.var(k::NoiseKernel, x) = stack([var(k.k_true + k.k_noise, x), var(k.k
 # This one is only necessary to break method ambiguity.
 function Statistics.var(k::NoiseKernel, x::DataFrame)
     return stack([var(k.k_true + k.k_noise, x), var(k.k_true, x)])
-end 
+end
 function hourly_cov(k::NoiseKernel, x)
     ks = [k(xx) for xx in x]
     return BlockDiagonal(ks)
