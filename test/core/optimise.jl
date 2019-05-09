@@ -41,4 +41,38 @@
     out = learn_summary(gp, x, y, objective, its=3, trace=false)
     @test size(out, 1) == 2
     @test isa(out[2], GP) == true
+
+    # Unidimensional sGPs
+    x = collect(0:0.01:2)
+    y = sin.(4π * x) .+ 1e-1 .* randn(length(x))
+    gp = GP(periodicise(EQ(), 1.0))
+    Xm_i = [0.0, 1.0, 2.0]
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Fixed(Xm_i), Positive(0.01), its=20, trace=false)
+    @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Positive(0.01), its = 20, trace=false)
+    @test !isapprox(GPForecasting.unwrap(Xm), Xm_i, atol=_ATOL_)
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Fixed(0.01), its = 20, trace=false)
+    @test GPForecasting.unwrap(σ²) == 0.01
+    # Multidimensional sGPs
+    y = [y y]
+    gp = GP(OLMMKernel(2, 2, 0.01, 0.01, [1 0; 0 1], [periodicise(EQ(), 1.0), periodicise(EQ(), 1.0)]))
+    Xm_i = [0.0, 1.0, 2.0]
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Fixed(Xm_i), Positive(0.01), its=20, trace=false)
+    @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Positive(0.01), its = 20, trace=false)
+    @test !isapprox(GPForecasting.unwrap(Xm), Xm_i, atol=_ATOL_)
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Fixed(0.01), its = 20, trace=false)
+    @test GPForecasting.unwrap(σ²) == 0.01
+    # Multidmensional inputs
+    x = [x reverse(x)]
+    y = sin.(4π * sum(x, dims=2)) .+ 1e-1 .* randn(size(x, 1))
+    gp = GP(periodicise(EQ(), 1.0))
+    Xm_i = [0.0, 1.0, 2.0]
+    Xm_i = [Xm_i reverse(Xm_i)]
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Fixed(Xm_i), Positive(0.01), its=20, trace=false)
+    @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Positive(0.01), its = 20, trace=false)
+    @test !isapprox(GPForecasting.unwrap(Xm), Xm_i, atol=_ATOL_)
+    sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Fixed(0.01), its = 20, trace=false)
+    @test GPForecasting.unwrap(σ²) == 0.01
 end

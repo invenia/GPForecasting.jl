@@ -320,4 +320,85 @@
         @test m_solmm ≈ m_olmm  rtol = _RTOL_
         @test k_solmm ≈ k_olmm  rtol = _RTOL_
     end
+
+    @testset "Sparse GPs" begin
+        f = open("sgp_train_inputs")
+        s = read(f, String);
+        x_train = parse.(Float64, split(s, "\n")[1:end-1]);
+        close(f)
+
+        f = open("sgp_train_outputs")
+        s = read(f, String);
+        y_train = parse.(Float64, split(s, "\n")[1:end-1]);
+        close(f)
+
+        gp = GP(1.0 * (EQ() ▷ 0.5) + 1e-2 * DiagonalKernel())
+        ngp = learn(gp, x_train, y_train, objective, its = 50, trace = false)
+        pos = condition(ngp, x_train, y_train)
+
+        x_test = collect(0:0.01:6);
+        means, lb, ub = credible_interval(pos, x_test)
+
+        # Let's force this to be a DataFrame just make the test more thorough
+        xtrain = DataFrame([x_train, rand(size(x_train, 1))], [:data, :bs])
+        Xm_i = xtrain[rand(1:size(xtrain, 1), 15), :]
+
+        sgp, Xm, σ² = GPForecasting.learn_sparse(
+            GP((1.0 * (EQ() ▷ 0.5)) ← :data),
+            xtrain,
+            y_train,
+            Xm_i,
+            Positive(0.1),
+            its = 50,
+            trace = false
+        )
+        spos = GPForecasting.condition_sparse(sgp, xtrain, Xm, y_train, σ²)
+
+        xtest = DataFrame([x_test, rand(size(x_test, 1))], [:data, :bs])
+        smeans, slb, sub = credible_interval(spos, xtest);
+
+        @test mean(abs.(means .- smeans)) / mean(abs.(means)) < 0.01
+        @test mean(abs.(lb .- slb)) / mean(abs.(lb)) < 0.01
+        @test mean(abs.(ub .- sub)) / mean(abs.(ub)) < 0.01
+        @test isa(Xm, DataFrame)
+        @test Xm_i[:bs] ≈ Xm[:bs]
+        @test !(Xm[:data] ≈ Xm_i[:data])
+        @test size(spos.k(xtest[1:5, :], xtest[1:8, :])) == (5, 8)
+
+        # OLMM
+        ytrain = [y_train y_train]
+        H = [1.0 0.0; 0.0 1.0]
+        k = 1.0 * (EQ() ▷ 0.5) + Fixed(1e-2) * DiagonalKernel()
+        gp = GP(OLMMKernel(
+            Fixed(2),
+            Fixed(2),
+            Fixed(1e-2),
+            Fixed(1e-2),
+            Fixed(H),
+            Fixed(H),
+            Fixed(H),
+            Fixed([1.0, 1.0]),
+            [k for i in 1:2])
+        )
+        pos = condition(gp, x_train, ytrain)
+        means, lb, ub = credible_interval(pos, x_test)
+
+        k = (1.0 * (EQ() ▷ 0.5)) ← :data
+        sgp = GP(OLMMKernel(
+            Fixed(2),
+            Fixed(2),
+            Fixed(1e-2),
+            Fixed(1e-2),
+            Fixed(H),
+            Fixed(H),
+            Fixed(H),
+            Fixed([1.0, 1.0]),
+            [k for i in 1:2])
+        )
+        spos = GPForecasting.condition_sparse(sgp, xtrain, xtrain, ytrain, 0.01)
+        smeans, s_lb, s_ub = credible_interval(spos, xtest)
+        @test mean(abs.(means .- smeans)) / mean(abs.(means)) < 0.01
+        @test mean(abs.(lb .- s_lb)) / mean(abs.(lb)) < 0.01
+        @test mean(abs.(ub .- s_ub)) / mean(abs.(ub)) < 0.01
+    end
 end

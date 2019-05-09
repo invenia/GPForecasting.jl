@@ -71,6 +71,48 @@ function (k::PosteriorKernel)(x, y)
 end
 
 """
+    TitsiasPosteriorKernel <: Kernel
+
+Posterior kernel for a sparse GP under Titsias' approximation. See "Variational
+Learning of Inducing Variables in Sparse Gaussian Processes".
+"""
+mutable struct TitsiasPosteriorKernel <: Kernel
+    k::Kernel
+    Xm
+    Uz
+    Umm
+    σ²
+    function TitsiasPosteriorKernel(k, Xm, Uz, Umm, σ²)
+        return new(k, Fixed(Xm), Fixed(Uz), Fixed(Umm), Fixed(σ²))
+    end
+end
+
+function (k::TitsiasPosteriorKernel)(x)
+    Xm = unwrap(k.Xm)
+    Uz = unwrap(k.Uz)
+    Umm = unwrap(k.Umm)
+
+    Kx = k.k(x)
+    Kmx = k.k(Xm, x)
+    sqrt₁ = Umm' \ Kmx
+    sqrt₂ = Uz' \ Kmx
+    return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂) + unwrap(k.σ²) * I
+end
+
+function (k::TitsiasPosteriorKernel)(x, y)
+    Xm = unwrap(k.Xm)
+    Uz = unwrap(k.Uz)
+    Umm = unwrap(k.Umm)
+
+    Kxy = k.k(x, y)
+    Kxm = k.k(x, Xm)
+    Kmy = k.k(Xm, y)
+    noise = unwrap(k.σ²) * DiagonalKernel()(x, y)
+    return Kxy .- (Kxm / Umm) * (Umm' \ Kmy) .+ (Kxm / Uz) * (Uz' \ Kmy) + noise
+end
+
+
+"""
     EQ <: Kernel
 
 Squared exponential kernel. Computes exp((-1/2) * |x - x′|²).
@@ -375,19 +417,24 @@ mutable struct SpecifiedQuantityKernel <: Kernel
     k::Kernel
 end
 (←)(k::Kernel, s::Symbol) = SpecifiedQuantityKernel(Fixed(s), k)
-function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::AbstractDataFrame)
-    return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
-end
-(k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
-function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
+@unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
     return k(DataFrame(x), DataFrame(y))
 end
-function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::DataFrameRow)
+@unionise function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::DataFrameRow)
     return k(x, DataFrame(y))
 end
-function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::AbstractDataFrame)
+@unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::AbstractDataFrame)
     return k(DataFrame(x), y)
 end
+@unionise function (k::SpecifiedQuantityKernel)(x::AbstractDataFrame, y::AbstractDataFrame)
+    # The tests still pass with this commented out, but I have the impression that it might
+    # fail when we deal with real-world data, so I am leaving this here. The issue with
+    # using it is that `disallowmissing` does not play nice with Nabla. So if we need to
+    # come back to this, we'll need to implement it.
+    # return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
+    return k.k(x[unwrap(k.col)], y[unwrap(k.col)])
+end
+@unionise (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
 Base.show(io::IO, k::SpecifiedQuantityKernel) = print(io, "($(k.k) ← $(k.col))")
 isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 
@@ -439,7 +486,7 @@ struct DiagonalKernel <: Kernel end
 function (::DiagonalKernel)(x, y)
     xl = [x[i, :] for i in 1:size(x, 1)]
     yl = [y[i, :]' for i in 1:size(y, 1)]
-    return float.(isapprox.(float.(xl), float.(yl')))
+    return float.(isapprox.(xl, yl'))
 end
 (k::GPForecasting.DiagonalKernel)(x::DataFrame, y::DataFrame) = k(Matrix(x), Matrix(y))
 function (k::DiagonalKernel)(x::DataFrameRow, y::DataFrameRow)
@@ -552,3 +599,20 @@ end
 
 Base.zero(::Kernel) = ZeroKernel()
 Base.zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
+
+"""
+    SparseKernel{K <: Kernel} <: Kernel
+
+Not supposed to be used directly by the user. This is automatically called under the hood,
+whenever necessary.
+"""
+mutable struct SparseKernel{K <: Kernel} <: Kernel
+    k::K
+    Xm
+    n
+    σ²
+end
+SparseKernel(k::Kernel, Xm, σ²) = SparseKernel(k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
+(k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
+(k::SparseKernel)() = k.k(unwrap(k.Xm))
+Base.show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")

@@ -249,3 +249,57 @@ function learn(
     end
     return ngp
 end
+
+"""
+    learn_sparse(
+        gp::GP,
+        x,
+        y::AbstractArray{<:Real},
+        Xm,
+        σ²,
+        obj::Function=titsiasobj;
+        Θ_init::Array=[],
+        its=200,
+        trace=true,
+        alphaguess=LineSearches.InitialStatic(scaled=true),
+        linesearch=LineSearches.BackTracking(),
+    )
+
+Learn a GP using some sparse approximation. By default, Titsias' is used. Note that this
+function expects a regular `GP` as input. The sparsification is performed under the hood.
+`x` represents the training input locations, `y` the training outputs, `Xm` the inducing
+point locations, `σ²` the noise and `obj` controls which type of approximation to use.
+The outputs are the optimised `GP` (of the same type as the input one), the optimised
+inducing point locations `Xm` and the optimised noise `σ²` (also with the same type as
+the inputs).
+"""
+function learn_sparse(
+    gp::GP,
+    x,
+    y::AbstractArray{<:Real},
+    Xm,
+    σ²,
+    obj::Function=titsiasobj;
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+)
+
+    Θ_init = isempty(Θ_init) ? vcat(pack(Xm), pack(σ²), gp.k[:]) : Θ_init
+    Θ_opt = minimise(
+        obj(gp, x, y, Xm, σ²),
+        Θ_init,
+        its=its,
+        trace=trace,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+    )
+
+    # Again, assuming we are only optimising kernels
+    # Got to overload if we want parameters in the means as well
+    sk = SparseKernel(gp.k, Xm, Fixed(length(unwrap(Xm))), σ²)
+    sparse_gp = GP(gp.m, set(sk, Θ_opt))
+    return GP(sparse_gp.m, sparse_gp.k.k), sparse_gp.k.Xm, sparse_gp.k.σ²
+end

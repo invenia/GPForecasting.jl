@@ -64,7 +64,7 @@ Posterior mean for the Orthogonal Linear Mixing Model.
 """
 struct OLMMPosMean <: MultiOutputMean
     k::OLMMKernel
-    ms::Vector{PosteriorMean}
+    ms::Vector{<:Mean}
     x
     y
     OLMMPosMean(k, ms, x, y) = new(k, ms, Fixed(x), Fixed(y))

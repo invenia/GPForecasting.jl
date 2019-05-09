@@ -181,6 +181,78 @@ function condition(
     return GP(pos_m, pos_k)
 end
 
+"""
+    condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
+
+Condition GP on observed data. This should satisfy both "Variational Learning of Inducing
+Variables in Sparse Gaussian Processes" and "Bayesian Gaussian Process Models:
+PAC-Bayesian Generalisation Error Bounds and Sparse Approximations.". For other approaches,
+some form of dispatching would be needed.
+"""
+function condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
+    pos_m, pos_k = _condition_sparse(gp.k, gp.m, x, Xm, y, σ²)
+    return GP(pos_m, pos_k)
+end
+
+function _condition_sparse(k::Kernel, m::Mean, x, Xm, y::AbstractArray{<:Real}, σ²; )
+    xm = unwrap(Xm)
+    # Compute the relevant Choleskys
+    Kmm = k(xm, xm)
+    Umm = cholesky(Kmm + _EPSILON_^2 * I).U
+    Knm = k(x, xm)
+    T = Umm' \ Knm'
+    P = I + (1/unwrap(σ²)) .* (T * T')
+    Up = cholesky(P + _EPSILON_^2 * I).U
+    Uz = Up * Umm
+    # The implementation above should be mathematically equivalent to the one below, but
+    # numerically more stable.
+    # Z = Kmm + (1/unwrap(σ²)) .* Knm' * Knm # Z = inv(Σ)
+    # Uz = Nabla.chol(Z + _EPSILON_^2 * I)
+
+    # Build posterior TitsiasPosteriorKernel and TitsiasPosteriorMean
+    pos_m = TitsiasPosteriorMean(k, m, x, xm, Uz, σ², y)
+    pos_k = TitsiasPosteriorKernel(k, xm, Uz, Umm, σ²)
+    return pos_m, pos_k
+end
+
+function condition_sparse(gp::GP{<:OLMMKernel, <:Mean}, x, Xm, y::AbstractArray{<:Real}, sσ²)
+    # project y
+    P = unwrap(gp.k.P)
+    m = unwrap(gp.k.m)
+    σ² = unwrap(gp.k.σ²)
+    D = unwrap(gp.k.D)
+    S_sqrt = unwrap(gp.k.S_sqrt)
+    D = isa(D, Float64) ? fill(D, m) : D
+    yp = y * P'
+    # sparse condition gp.k.ks on y
+    pos_ks = Vector{TitsiasPosteriorKernel}(undef, m)
+    pos_ms = Vector{TitsiasPosteriorMean}(undef, m)
+    for (k, s, d, i) in zip(gp.k.ks, S_sqrt, D, collect(1:m))
+        # This is a temporary kernel meant to reuse the condition_sparse code
+        tk = k + (σ²/s^2 + d) * DiagonalKernel()
+        pm, pk = _condition_sparse(tk, ZeroMean(), x, Xm, yp[:, i], sσ²)
+        # Now we move back to the proper kernels that should be stored.
+        pk.k = k
+        pm.k = k
+        pos_ks[i] = pk
+        pos_ms[i] = pm
+    end
+    pos_m = OLMMPosMean(gp.k, pos_ms, x, yp)
+    # create another OLMMKernel
+    pos_k = _unsafe_OLMMKernel(
+        gp.k.m,
+        gp.k.p,
+        gp.k.σ²,
+        gp.k.D,
+        gp.k.H,
+        gp.k.P,
+        gp.k.U,
+        gp.k.S_sqrt,
+        pos_ks
+    )
+    return GP(pos_m, pos_k)
+end
+
 (p::GP)(x; hourly=false) = Gaussian(p.m(x), hourly ? hourly_cov(p.k, x) : p.k(x))
 function (p::GP{K, M})(x::Input; hourly=false) where {K <: NoiseKernel, M <: Mean}
     return Gaussian(p.m(x.val), hourly ? hourly_cov(p.k, x) : p.k(x))
