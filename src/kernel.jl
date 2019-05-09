@@ -5,6 +5,32 @@
 # k(x, y) == transpose(k(y, x))
 #########################################################
 
+"""
+    elwise(k::Kernel)
+
+True if the kernel has an implementation for elementwise covariances. False otherwise.
+
+    elwise(k::Kernel, x, y)
+
+Compute the value of the kernel elementwise for `x` and `y`. Naturally, they must have the
+same number of points.
+
+    elwise(k::Kernel, x)
+
+Compute the value of the kernel elementwise for `x`, i.e., the variance.
+"""
+elwise(k::Kernel) = true
+# Some fallbacks just to avoid issues with undefined methods.
+function elwise(k::Kernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    return diag(k(x, y))
+end
+# This one can lead to a stackoverflow in case `elwise(k::MyKernel) = true` but
+# `elwise(k::MyKernel, x)` is not implemented. That is alright, though, because that should
+# never happen.
+elwise(k::Kernel, x) = var(k, x)
+
+
 function Statistics.var(k::Kernel, x)
     if elwise(k)
         return elwise(k, x)
@@ -18,7 +44,7 @@ function Statistics.var(k::Kernel, x::AbstractDataFrame)
         return elwise(k, x)
     else
         return [k(DataFrame(r))[1] for r in eachrow(x)]
-    end 
+    end
 end
 
 Base.size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
@@ -42,13 +68,6 @@ True if `k` is a multi output kernel, false otherwise. This is useful because ch
 `SumKernel`s and/or `ScaledKernel`s may hide such information.
 """
 isMulti(k::Kernel) = false
-
-"""
-    elwise(k::Kernel)
-
-True if the kernel has an implementation for elementwise covariances. False otherwise.
-"""
-elwise(k::Kernel) = true
 
 """
     PosteriorKernel <: Kernel
