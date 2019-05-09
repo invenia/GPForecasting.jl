@@ -525,7 +525,7 @@ end
 end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
 function elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame, y::AbstractDataFrame)
-    return elwise(k.k, disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
+    return elwise(k.k, x[unwrap(k.col)], y[unwrap(k.col)])
 end
 elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame) = elwise(k, x, x)
 function elwise(k::SpecifiedQuantityKernel, x::DataFrameRow, y::DataFrameRow)
