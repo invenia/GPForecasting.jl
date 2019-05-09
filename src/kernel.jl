@@ -6,21 +6,22 @@
 #########################################################
 
 """
-    elwise(k::Kernel)
+    has_elwise(k::Kernel)
 
 True if the kernel has an implementation for elementwise covariances. False otherwise.
-
-    elwise(k::Kernel, x, y)
+"""
+has_elwise(k::Kernel) = true
+# Some fallbacks just to avoid issues with undefined methods.
+"""
+elwise(k::Kernel, x, y)
 
 Compute the value of the kernel elementwise for `x` and `y`. Naturally, they must have the
 same number of points.
 
-    elwise(k::Kernel, x)
+elwise(k::Kernel, x)
 
 Compute the value of the kernel elementwise for `x`, i.e., the variance.
 """
-elwise(k::Kernel) = true
-# Some fallbacks just to avoid issues with undefined methods.
 function elwise(k::Kernel, x, y)
     size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
     return diag(k(x, y))
@@ -32,7 +33,7 @@ elwise(k::Kernel, x) = var(k, x)
 
 
 function Statistics.var(k::Kernel, x)
-    if elwise(k)
+    if has_elwise(k)
         return elwise(k, x)
     else
         return [k(x[i, :])[1] for i in 1:size(x, 1)]
@@ -40,7 +41,7 @@ function Statistics.var(k::Kernel, x)
 end
 Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
 function Statistics.var(k::Kernel, x::AbstractDataFrame)
-    if elwise(k)
+    if has_elwise(k)
         return elwise(k, x)
     else
         return [k(DataFrame(r))[1] for r in eachrow(x)]
@@ -247,7 +248,7 @@ function (k::SimilarHourKernel)(x::ArrayOrReal, y::ArrayOrReal)
     end
 end
 (k::SimilarHourKernel)(x::ArrayOrReal) = k(x, x)
-elwise(k::SimilarHourKernel) = false
+has_elwise(k::SimilarHourKernel) = false
 function Base.show(io::IO, k::SimilarHourKernel)
     cs = unwrap(k.coeffs)
     ds = "$(cs[1])*δ(0)"
@@ -345,7 +346,7 @@ function BinaryKernel(a::Real, b::Real, c::Real)
         )
     )
 end
-elwise(k::BinaryKernel) = false
+has_elwise(k::BinaryKernel) = false
 BinaryKernel(a::Real, b::Real) = BinaryKernel(Positive(a), Positive(b), Fixed(0))
 
 """
@@ -824,7 +825,7 @@ mutable struct SparseKernel{K <: Kernel} <: Kernel
     σ²
 end
 SparseKernel(k::Kernel, Xm, σ²) = SparseKernel(k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
-elwise(k::SparseKernel) = false
+has_elwise(k::SparseKernel) = false
 (k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
 (k::SparseKernel)() = k.k(unwrap(k.Xm))
 Base.show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")
