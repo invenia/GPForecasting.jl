@@ -100,12 +100,23 @@ function (k::PosteriorKernel)(x)
     z = k.k(x, xd) / U
     return k.k(x) .- z * z'
 end
+function elwise(k::PosteriorKernel, x)
+    U = unwrap(k.U)
+    xd = unwrap(k.x)
+    z = k.k(x, xd) / U
+    return elwise(k.k, x) .- sum(z .* z, dims=2)
+end
 function (k::PosteriorKernel)(x, y)
     U = unwrap(k.U)
     xd = unwrap(k.x)
     return k.k(x, y) .- (k.k(x, xd) / U) * (U' \ k.k(xd, y))
 end
-elwise(k::PosteriorKernel) = false
+function elwise(k::PosteriorKernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    U = unwrap(k.U)
+    xd = unwrap(k.x)
+    return elwise(k.k, x, y) .- sum((k.k(x, xd) / U) .* (U' \ k.k(xd, y))', dims=2)
+end
 
 """
     TitsiasPosteriorKernel <: Kernel
@@ -135,6 +146,17 @@ function (k::TitsiasPosteriorKernel)(x)
     sqrt₂ = Uz' \ Kmx
     return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂) + unwrap(k.σ²) * I
 end
+function elwise(k::TitsiasPosteriorKernel, x)
+    Xm = unwrap(k.Xm)
+    Uz = unwrap(k.Uz)
+    Umm = unwrap(k.Umm)
+
+    kx = elwise(k.k, x)
+    Kxm = k.k(x, Xm)
+    sqrt₁ = Kxm / Umm
+    sqrt₂ = Kxm / Uz
+    return kx .- sum(sqrt₁ .* sqrt₁, dims=2) .+ sum(sqrt₂ .* sqrt₂, dims=2) .+ unwrap(k.σ²)
+end
 
 function (k::TitsiasPosteriorKernel)(x, y)
     Xm = unwrap(k.Xm)
@@ -147,7 +169,20 @@ function (k::TitsiasPosteriorKernel)(x, y)
     noise = unwrap(k.σ²) * DiagonalKernel()(x, y)
     return Kxy .- (Kxm / Umm) * (Umm' \ Kmy) .+ (Kxm / Uz) * (Uz' \ Kmy) + noise
 end
-elwise(k::TitsiasPosteriorKernel) = false
+
+function elwise(k::TitsiasPosteriorKernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    Xm = unwrap(k.Xm)
+    Uz = unwrap(k.Uz)
+    Umm = unwrap(k.Umm)
+
+    kxy = elwise(k.k, x, y)
+    Kxm = k.k(x, Xm)
+    Kmy = k.k(Xm, y)
+    t₁ = sum((Kxm / Umm) .* (Umm' \ Kmy), dims=2)
+    t₂ = sum((Kxm / Uz) .* (Uz' \ Kmy), dims=2)
+    return kxy .- t₁ .+ t₂ + unwrap(k.σ²)
+end
 
 
 """
