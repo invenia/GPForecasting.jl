@@ -5,6 +5,7 @@
         trace=true,
         alphaguess=LineSearches.InitialQuadratic(),
         linesearch=LineSearches.HagerZhang(),
+        trace = false,
     )) < 1e-5
 
     @test minimise(
@@ -14,12 +15,13 @@
         algorithm=Optim.ConjugateGradient,
         alphaguess=LineSearches.InitialQuadratic(),
         linesearch=LineSearches.HagerZhang(),
+        trace = false,
        ) ≈ [1.0, 1.0] atol = _ATOL_
 
     gp = GP(0, EQ() ▷ 10)
     x = collect(1.0:10.0);
     y = 2 .* x .+ 1e-1 * randn()
-    ngp = learn(gp, x, y, objective, trace=true)
+    ngp = learn(gp, x, y, objective, trace=false)
     @test 1.5 < ngp.k.stretch.p < 3.5
 
     # test the OLMM learn method
