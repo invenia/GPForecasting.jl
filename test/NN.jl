@@ -16,14 +16,14 @@
     l1 = NNLayer(W, B, Fixed(relu))
     @test l1(x) ≈ relu.(W * x + B)
     lb = BatchNormLayer(1, 0)
-    @test mean(lb(x), dims=1) ≈ [0.0] atol = _ATOL_
-    @test std(lb(x), dims=1) ≈ [1.0] atol = _ATOL_
+    @test mean(lb(x), dims=1) ≈ [0.0] atol = _ATOL_ rtol = _RTOL_
+    @test std(lb(x), dims=1) ≈ [1.0] atol = _ATOL_ rtol = _RTOL_
     lb = BatchNormLayer(2, 5)
-    @test mean(lb(x), dims=1) ≈ [5.0] atol = _ATOL_
-    @test std(lb(x), dims=1) ≈ [2.0] atol = _ATOL_
-    @test mean(lb(rand(3,3)), dims=1) ≈ fill(5.0, (1,3)) atol = _ATOL_
-    @test std(lb(rand(3,3)), dims=1) ≈ fill(2.0, (1,3)) atol = _ATOL_
+    @test mean(lb(x), dims=1) ≈ [5.0] atol = _ATOL_ rtol = _RTOL_
+    @test std(lb(x), dims=1) ≈ [2.0] atol = _ATOL_ rtol = _RTOL_
+    @test mean(lb(rand(3,3)), dims=1) ≈ fill(5.0, (1,3)) atol = _ATOL_ rtol = _RTOL_
+    @test std(lb(rand(3,3)), dims=1) ≈ fill(2.0, (1,3)) atol = _ATOL_ rtol = _RTOL_
     nn = GPFNN([l1, lb])
-    @test mean(lb(x)) ≈ 5.0 atol = _ATOL_
-    @test std(lb(x)) ≈ 2.0 atol = _ATOL_
+    @test mean(lb(x)) ≈ 5.0 atol = _ATOL_ rtol = _RTOL_
+    @test std(lb(x)) ≈ 2.0 atol = _ATOL_ rtol = _RTOL_
 end

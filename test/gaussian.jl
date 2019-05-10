@@ -25,20 +25,20 @@
 
     g = Gaussian(ones(3, 2), Eye(6))
     @test g.chol === nothing
-    @test cholesky(g).U ≈ UpperTriangular(Eye(6)) atol = _ATOL_
-    @test mean(g) ≈ ones(3, 2) atol = _ATOL_
-    @test cov(g) ≈ Eye(6) atol = _ATOL_
-    @test var(g) ≈ ones(3, 2) atol = _ATOL_
+    @test cholesky(g).U ≈ UpperTriangular(Eye(6)) atol = _ATOL_ rtol = _RTOL_
+    @test mean(g) ≈ ones(3, 2) atol = _ATOL_ rtol = _RTOL_
+    @test cov(g) ≈ Eye(6) atol = _ATOL_ rtol = _RTOL_
+    @test var(g) ≈ ones(3, 2) atol = _ATOL_ rtol = _RTOL_
 
     g = Gaussian(zeros(4, 5), BlockDiagonal(fill(diagm(0 => collect(1:5)), 4)))
-    @test var(g) ≈ [1 2 3 4 5; 1 2 3 4 5; 1 2 3 4 5; 1 2 3 4 5] atol = _ATOL_
+    @test var(g) ≈ [1 2 3 4 5; 1 2 3 4 5; 1 2 3 4 5; 1 2 3 4 5] atol = _ATOL_ rtol = _RTOL_
 
     g = Gaussian(ones(5, 2), BlockDiagonal(AbstractMatrix{Float64}[Eye(2) for i in 1:5]));
     @test g.chol === nothing
-    @test cholesky(g).U ≈ BlockDiagonal([cholesky(Eye(2)).U for i in 1:5]) atol = _ATOL_
-    @test mean(g) ≈ ones(5, 2) atol = _ATOL_
-    @test cov(g) ≈ BlockDiagonal([Eye(2) for i in 1:5]) atol = _ATOL_
-    @test var(g) ≈ ones(5, 2) atol = _ATOL_
+    @test cholesky(g).U ≈ BlockDiagonal([cholesky(Eye(2)).U for i in 1:5]) atol = _ATOL_ rtol = _RTOL_
+    @test mean(g) ≈ ones(5, 2) atol = _ATOL_ rtol = _RTOL_
+    @test cov(g) ≈ BlockDiagonal([Eye(2) for i in 1:5]) atol = _ATOL_ rtol = _RTOL_
+    @test var(g) ≈ ones(5, 2) atol = _ATOL_ rtol = _RTOL_
     @test size(rand(g, 5)) == (5, 2, 5)
 
     mu = zeros(3, 5)
@@ -66,12 +66,12 @@
             Metrics.marginal_gaussian_loglikelihood,
             Metrics.joint_gaussian_loglikelihood,
         )
-            @test f(diagonal_zeromean_gaussian1, xs) ≈ f(g, xs)
+            @test f(diagonal_zeromean_gaussian1, xs) ≈ f(g, xs) atol = _ATOL_ rtol = _RTOL_
         end
         # Values here should coincide because none of the Gaussians have non-zero entries
         # outside the diagonal of the covariance.
-        @test marginal_mean_logloss(diagonal_zeromean_gaussian1, x) ≈ marginal_mean_logloss(g, x)
-        @test joint_mean_logloss(g, x) ≈ marginal_mean_logloss(g, x)
+        @test marginal_mean_logloss(diagonal_zeromean_gaussian1, x) ≈ marginal_mean_logloss(g, x) atol = _ATOL_ rtol = _RTOL_
+        @test joint_mean_logloss(g, x) ≈ marginal_mean_logloss(g, x) atol = _ATOL_ rtol = _RTOL_
     end
     @test joint_gaussian_loglikelihood(nondiagonal_gaussian, xs) ==
         loglikelihood(nondiagonal_gaussian, xs) !=
@@ -84,7 +84,7 @@
         x = rand(3, 5)
         @test f(multivariate_gaussian, x) ≈ sum(
             broadcast(s -> logpdf(multivariate_gaussian, s), [x[:, i] for i in 1:5])
-        )
+        ) atol = _ATOL_ rtol = _RTOL_
     end
 
     # Test Adjoint constructors

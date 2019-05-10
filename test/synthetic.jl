@@ -367,7 +367,7 @@
         @test size(spos.k(Latent(xtest[1:5, :]), Observed(xtest[1:8, :]))) == (5, 8)
         @test size(spos.k(xtest[1:5, :], xtest[1:8, :])) == (10, 16)
         smeansl, slbl, subl = credible_interval(spos, Latent(xtest));
-        @test smeansl ≈ smeans atol = _ATOL_
+        @test smeansl ≈ smeans atol = _ATOL_ rtol = _RTOL_
         @test all(slbl .> slb)
         @test all(subl .< sub)
         @test size(spos.m(xtest[1:5, :])) == (5, 2)

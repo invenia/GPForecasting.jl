@@ -13,7 +13,7 @@
     @test abs(logpdf(n, μ ./ 2) + 0.5*(log(det(Σ)) + 3log(2π) + (μ./2)' * Σ * μ./2)) < 1e-3
 
     reg(gp, x, y) = sum(gp.k(x))
-    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_
+    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_ rtol = _RTOL_
 
     # OLMM
     A = rand(5, 3);
@@ -22,8 +22,8 @@
     gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, H, [EQ() ▷ Fixed(1.0), EQ() ▷ Fixed(2.0), EQ() ▷ Fixed(3.0)]));
     y = sample(gp(x));
     reg(gp, x, y) = sum(abs.(gp.k.H))
-    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_
-    @test mle_obj(gp, x, y)(gp.k[:]) + reg(gp, x, y) ≈ map_obj(reg, gp, x, y)(gp.k[:]) atol = _ATOL_
+    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_ rtol = _RTOL_
+    @test mle_obj(gp, x, y)(gp.k[:]) + reg(gp, x, y) ≈ map_obj(reg, gp, x, y)(gp.k[:]) atol = _ATOL_ rtol = _RTOL_
 
     @testset "Titsias" begin
         # 1D

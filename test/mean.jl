@@ -41,8 +41,8 @@
     @test μ8 + μ1 == μ1
     @test μ1 + μ8 == μ1
     @test 3μ8 == μ8
-    @test (3 + μ8)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_
-    @test (μ8 + 3)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_
+    @test (3 + μ8)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_ rtol = _RTOL_
+    @test (μ8 + 3)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_ rtol = _RTOL_
     @test isa(sprint(show, μ8), String)
 
     @test μ8(x) == [0.0, 0.0, 0.0, 0.0, 0.0]
@@ -83,24 +83,24 @@
         @test size(∇(objj)(rand(3))[1], 1) == 3 # Does not throw an error
         @test GPForecasting.get(test_grad) == [3.0]
         new_test_grad = GPForecasting.set(test_grad, [π])
-        @test new_test_grad[:] ≈ [π] atol = _ATOL_# Test set
-        @test new_test_grad(x) ≈ (π + 5.0)*ones(size(x, 1)) atol = _ATOL_
+        @test new_test_grad[:] ≈ [π] atol = _ATOL_ rtol = _RTOL_# Test set
+        @test new_test_grad(x) ≈ (π + 5.0)*ones(size(x, 1)) atol = _ATOL_ rtol = _RTOL_
 
         # Test multiplication with bounded on top
         test_grad = (yy + yyy) * zz
         objj(a) = dot(test_grad(x), a)# Should return a scalar
         @test size(∇(objj)(rand(3))[1], 1) == 3
-        @test GPForecasting.get(test_grad) ≈ [3.0, -14.346138220651198] atol = _ATOL_
+        @test GPForecasting.get(test_grad) ≈ [3.0, -14.346138220651198] atol = _ATOL_ rtol = _RTOL_
         new_test_grad = GPForecasting.set(test_grad, [π, 10.0])
-        @test new_test_grad[:] ≈ [π, 10.0] atol = _ATOL_
-        @test GPForecasting.get(new_test_grad) ≈ [π, 10.0] atol = _ATOL_
-        @test new_test_grad(x) ≈ ((π + 5.0) * 6.699925256613554)*ones(size(x, 1)) atol = 10 * _ATOL_
+        @test new_test_grad[:] ≈ [π, 10.0] atol = _ATOL_ rtol = _RTOL_
+        @test GPForecasting.get(new_test_grad) ≈ [π, 10.0] atol = _ATOL_ rtol = _RTOL_
+        @test new_test_grad(x) ≈ ((π + 5.0) * 6.699925256613554)*ones(size(x, 1)) atol = 10 * _ATOL_ rtol = _RTOL_
 
         # Test a posterior mean getting:
         p = GP(ConstantMean(Positive(3.0)), EQ())
         x = 0:0.1:1
         y = sin.(x)
         post = condition(p, x, y)
-        @test GPForecasting.get(post.m)[1] ≈ 1.0986119553347207 atol = _ATOL_
+        @test GPForecasting.get(post.m)[1] ≈ 1.0986119553347207 atol = _ATOL_ rtol = _RTOL_
     end
 end

@@ -4,10 +4,10 @@
     y = 2 .* x
 
     ngp = 2 * gp
-    @test ngp.m(x) ≈ 2 .* gp.m(x) atol = _ATOL_
-    @test ngp.k(x) ≈ 4 .* gp.k(x) atol = _ATOL_
-    @test (ngp + gp).m(x) ≈ ngp.m(x) + gp.m(x) atol = _ATOL_
-    @test (ngp + gp).k(x) ≈ ngp.k(x) + gp.k(x) atol = _ATOL_
+    @test ngp.m(x) ≈ 2 .* gp.m(x) atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(x) ≈ 4 .* gp.k(x) atol = _ATOL_ rtol = _RTOL_
+    @test (ngp + gp).m(x) ≈ ngp.m(x) + gp.m(x) atol = _ATOL_ rtol = _RTOL_
+    @test (ngp + gp).k(x) ≈ ngp.k(x) + gp.k(x) atol = _ATOL_ rtol = _RTOL_
 
     mvn = MvNormal(gp, x)
     @test isa(mvn, MvNormal)
@@ -21,7 +21,7 @@
     @test isa(posterior.k, Kernel)
 
     @test abs(posterior.m([5.])[1] - 10.0) < 0.1
-    @test sum(posterior.k([1.,2.,4.],[1.,2.,4.])) ≈ 2.9999903579658316e-6 atol = _ATOL_
+    @test sum(posterior.k([1.,2.,4.],[1.,2.,4.])) ≈ 2.9999903579658316e-6 atol = _ATOL_ rtol = _RTOL_
     @test 9 < sample(posterior([5.,6.]))[1] < 11
     @test isa(sample(posterior([5.,6.])), AbstractArray)
     @test all(
@@ -35,27 +35,27 @@
         p2 = GP(FunctionMean(sin) * ConstantMean(Positive(10.0)), stretch(EQ(), 6.0))
         p3 = p1 + p2
 
-        @test GPForecasting.get(p1) ≈ [1.0, log(2.0)] atol = _ATOL_
-        @test GPForecasting.get(p2) ≈ [log(10.0), log(6.0)] atol = _ATOL_
+        @test GPForecasting.get(p1) ≈ [1.0, log(2.0)] atol = _ATOL_ rtol = _RTOL_
+        @test GPForecasting.get(p2) ≈ [log(10.0), log(6.0)] atol = _ATOL_ rtol = _RTOL_
         @test GPForecasting.get(p3) ≈ [
                                         GPForecasting.get(p1.m);
                                         GPForecasting.get(p2.m);
                                         GPForecasting.get(p1.k);
                                         GPForecasting.get(p2.k);
-                                      ] atol = _ATOL_
+                                      ] atol = _ATOL_ rtol = _RTOL_
 
-        @test GPForecasting.get(GPForecasting.set(p1, [5.0, 5.0])) ≈ [5.0, 5.0] atol = _ATOL_
-        @test GPForecasting.get(GPForecasting.set(p2, [5.0, 5.0])) ≈ [5.0, 5.0] atol = _ATOL_
-        @test GPForecasting.get(GPForecasting.set(p3, [5.0, 5.0, 6.0, 7.0])) ≈ [5.0, 5.0, 6.0, 7.0] atol = _ATOL_
+        @test GPForecasting.get(GPForecasting.set(p1, [5.0, 5.0])) ≈ [5.0, 5.0] atol = _ATOL_ rtol = _RTOL_
+        @test GPForecasting.get(GPForecasting.set(p2, [5.0, 5.0])) ≈ [5.0, 5.0] atol = _ATOL_ rtol = _RTOL_
+        @test GPForecasting.get(GPForecasting.set(p3, [5.0, 5.0, 6.0, 7.0])) ≈ [5.0, 5.0, 6.0, 7.0] atol = _ATOL_ rtol = _RTOL_
         # Explicitly test setting
         p4 = GPForecasting.set(p3, [5.0, 5.0, 6.0, 7.0])
-        @test p4[:] ≈ [5.0, 5.0, 6.0, 7.0] atol = _ATOL_
+        @test p4[:] ≈ [5.0, 5.0, 6.0, 7.0] atol = _ATOL_ rtol = _RTOL_
 
         # The following tested against the results of GPFlow
-        @test p3.m([1.0, 2.0, 3.0]) ≈ [14.414709848078965, 15.092974268256818, 7.411200080598672] atol = _ATOL_
+        @test p3.m([1.0, 2.0, 3.0]) ≈ [14.414709848078965, 15.092974268256818, 7.411200080598672] atol = _ATOL_ rtol = _RTOL_
         @test p3.k([1.0, 2.0, 3.0]) ≈ [2.         1.86870402 1.55249013;
                                        1.86870402 2.         1.86870402;
-                                       1.55249013 1.86870402 2.        ] atol = _ATOL_
+                                       1.55249013 1.86870402 2.        ] atol = _ATOL_ rtol = _RTOL_
 
     end
 
@@ -81,14 +81,14 @@
         gp = GP(5 * ConstantMean(), NoiseKernel(EQ(), 11 * DiagonalKernel()))
         x = collect(1:3)
         @test gp(x).μ == fill(5.0, 6)
-        @test diag(gp(x).Σ) ≈ [12.0, 1.0, 12.0, 1.0, 12.0, 1.0] atol = _ATOL_
+        @test diag(gp(x).Σ) ≈ [12.0, 1.0, 12.0, 1.0, 12.0, 1.0] atol = _ATOL_ rtol = _RTOL_
         @test gp(Observed(x)).μ == fill(5.0, 3)
         @test diag(gp(Observed(x)).Σ) == [12.0, 12.0, 12.0]
         @test gp(Latent(x)).μ == fill(5.0, 3)
         @test diag(gp(Latent(x)).Σ) == [1.0, 1.0, 1.0]
         @test gp([Latent([1,2]), Observed([3]), Latent([4])]).μ == fill(5.0, 4)
         @test diag(gp([Latent([1,2]), Observed([3]), Latent([4])]).Σ) ≈
-            [1., 1., 12., 1.] atol = _ATOL_
+            [1., 1., 12., 1.] atol = _ATOL_ rtol = _RTOL_
         @test all(
             credible_interval(gp, x)[2] .<
             credible_interval(gp, x)[1] .<
@@ -147,14 +147,14 @@ end
     ngp = condition(gp, x, y)
     xx = collect(3.0:6.0)
     @test ngp.m(x) ≈ y atol=1e-2
-    @test ngp.m(xx) ≈ ngp.m(x)[3:end,:] atol = _ATOL_
-    @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_
-    @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_
-    @test diag(ngp.k(xx)) ≈ diag(ngp.k(xx, true))  atol = 30 * _ATOL_ # Increasing
+    @test ngp.m(xx) ≈ ngp.m(x)[3:end,:] atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_ rtol = _RTOL_
+    @test diag(ngp.k(xx)) ≈ diag(ngp.k(xx, true))  atol = 30 * _ATOL_ rtol = _RTOL_ # Increasing
     # tolerance here because `ngp.k(xx, true)` calls `var`, which has further approximations.
-    @test reshape(diag(ngp.k(xx)), 5, 4)' ≈ var(ngp.k, xx) atol = 30 * _ATOL_
-    @test ngp.k(xx)[1:5, 1:5] ≈ hourly_cov(ngp.k, xx)[1:5, 1:5] atol = _ATOL_
-    @test ngp.k(xx)[6:10, 6:10] ≈ hourly_cov(ngp.k, xx)[6:10, 6:10] atol = _ATOL_
+    @test reshape(diag(ngp.k(xx)), 5, 4)' ≈ var(ngp.k, xx) atol = 30 * _ATOL_ rtol = _RTOL_
+    @test ngp.k(xx)[1:5, 1:5] ≈ hourly_cov(ngp.k, xx)[1:5, 1:5] atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(xx)[6:10, 6:10] ≈ hourly_cov(ngp.k, xx)[6:10, 6:10] atol = _ATOL_ rtol = _RTOL_
     @test all(
         credible_interval(ngp, [1.,5.,50.])[2] .<
         credible_interval(ngp, [1.,5.,50.])[1] .<
@@ -163,19 +163,19 @@ end
     ngp2 = condition(gp, x[1:3], y[1:3, :])
     ngp2 = condition(ngp2, x[4:6], y[4:6, :])
     xxx = collect(5:9)
-    @test ngp.m(xxx) ≈ ngp2.m(xxx) atol = _ATOL_
-    @test ngp.k(xxx) ≈ ngp2.k(xxx) atol = _ATOL_
+    @test ngp.m(xxx) ≈ ngp2.m(xxx) atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(xxx) ≈ ngp2.k(xxx) atol = _ATOL_ rtol = _RTOL_
 
     gp = GP(LMMKernel(3, 5, fill(1e-2, 5), H, EQ()))
     x = collect(1.0:6.0)
     ngp = condition(gp, x, y)
     @test ngp.m(x) ≈ y atol=1e-2
-    @test ngp.m(xx) ≈ ngp.m(x)[3:end,:] atol = _ATOL_
-    @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_
-    @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_
+    @test ngp.m(xx) ≈ ngp.m(x)[3:end,:] atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_ rtol = _RTOL_
     @test diag(ngp.k(xx)) ≈ diag(ngp.k(xx, true))  atol = 30 * _ATOL_ # Increasing
     # tolerance here because `ngp.k(xx, true)` calls `var`, which has further approximations.
-    @test reshape(diag(ngp.k(xx)), 5, 4)' ≈ var(ngp.k, xx) atol = 30 * _ATOL_
+    @test reshape(diag(ngp.k(xx)), 5, 4)' ≈ var(ngp.k, xx) atol = 30 * _ATOL_ rtol = _RTOL_
 end
 
 @testset "Full OLMM" begin
@@ -191,30 +191,32 @@ end
     @test isa(sprint(show, gp), String)
     @test isa(sprint(show, sgp), String)
     x = collect(0:0.1:2)
-    @test mean(sgp(x)) ≈ mean(gp(x)) atol = _ATOL_
-    @test cov(sgp(x)) ≈ cov(gp(x)) atol = _ATOL_
-    @test var(gp(x)) ≈ var(sgp(x)) atol = _ATOL_
-    @test logpdf(gp, x, y) ≈ logpdf(sgp, x, y) atol = _ATOL_
+    @test mean(sgp(x)) ≈ mean(gp(x)) atol = _ATOL_ rtol = _RTOL_
+    @test cov(sgp(x)) ≈ cov(gp(x)) atol = _ATOL_ rtol = _RTOL_
+    @test var(gp(x)) ≈ var(sgp(x)) atol = _ATOL_ rtol = _RTOL_
+    @test logpdf(gp, x, y) ≈ logpdf(sgp, x, y) atol = _ATOL_ rtol = _RTOL_
     pgp = condition(gp, x, y)
     psgp = condition(sgp, x, y)
-    @test mean(psgp(x)) ≈ mean(pgp(x)) atol = _ATOL_
-    @test cov(psgp(x)) ≈ cov(pgp(x)) atol = _ATOL_
-    @test var(pgp(x)) ≈ var(psgp(x)) atol = _ATOL_
+    @test mean(psgp(x)) ≈ mean(pgp(x)) atol = _ATOL_ rtol = _RTOL_
+    @test cov(psgp(x)) ≈ cov(pgp(x)) atol = _ATOL_ rtol = _RTOL_
+    @test var(pgp(x)) ≈ var(psgp(x)) atol = _ATOL_ rtol = _RTOL_
 
     gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, H, [periodicise(EQ(), i) for i in 1:3]))
     x = collect(0:0.1:2)
     ngp = condition(gp, x, y)
     xx = collect(0:0.1:3)
     @test ngp.m(x) ≈ y atol=1e-1
-    @test ngp.m(xx)[1:21, :] ≈ ngp.m(x) atol = _ATOL_
+    @test ngp.m(xx)[1:21, :] ≈ ngp.m(x) atol = _ATOL_ rtol = _RTOL_
     P = GPForecasting.unwrap(gp.k.P)
     @test (P * ngp.m(x)')' ≈ xs atol = 1e-1
     # TODO: Implement k(x, y)
-    @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_
-    @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_
-    @test reshape(diag(ngp.k(xx)), 5, 31)' ≈ var(ngp.k, xx) atol = _ATOL_
-    @test ngp.k(xx)[1:5, 1:5] ≈ hourly_cov(ngp.k, xx)[1:5, 1:5] atol = _ATOL_
-    @test ngp.k(xx)[6:10, 6:10] ≈ hourly_cov(ngp.k, xx)[6:10, 6:10] atol = _ATOL_
+
+    @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_ rtol = _RTOL_
+    @test reshape(diag(ngp.k(xx)), 5, 31)' ≈ var(ngp.k, xx) atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(xx)[1:5, 1:5] ≈ hourly_cov(ngp.k, xx)[1:5, 1:5] atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(xx)[6:10, 6:10] ≈ hourly_cov(ngp.k, xx)[6:10, 6:10] atol = _ATOL_ rtol = _RTOL_
+
     @test all(
         credible_interval(ngp, [1.,5.,50.])[2] .<
         credible_interval(ngp, [1.,5.,50.])[1] .<
@@ -224,28 +226,28 @@ end
     # ngp2 = condition(gp, x[1:3], y[1:3, :])
     # ngp2 = condition(ngp2, x[4:6], y[4:6, :])
     # xxx = collect(5:9)
-    # @test ngp.m(xxx) ≈ ngp2.m(xxx) atol = _ATOL_
-    # @test ngp.k(xxx) ≈ ngp2.k(xxx) atol = _ATOL_
+    # @test ngp.m(xxx) ≈ ngp2.m(xxx) atol = _ATOL_ rtol = _RTOL_
+    # @test ngp.k(xxx) ≈ ngp2.k(xxx) atol = _ATOL_ rtol = _RTOL_
 
     gp2 = GP(
         OLMMKernel(3, 5, 1e-2, 1e-2, U[:, 1:3], S[1:3], [periodicise(EQ(), i) for i in 1:3])
     )
     ngp2 = condition(gp2, x, y)
-    @test gp.k(x) ≈ gp2.k(x) atol = _ATOL_
-    @test ngp.k(x) ≈ ngp2.k(x) atol = _ATOL_
-    @test gp.m(x) ≈ gp2.m(x) atol = _ATOL_
-    @test ngp.m(x) ≈ ngp2.m(x) atol = _ATOL_
+    @test gp.k(x) ≈ gp2.k(x) atol = _ATOL_ rtol = _RTOL_
+    @test ngp.k(x) ≈ ngp2.k(x) atol = _ATOL_ rtol = _RTOL_
+    @test gp.m(x) ≈ gp2.m(x) atol = _ATOL_ rtol = _RTOL_
+    @test ngp.m(x) ≈ ngp2.m(x) atol = _ATOL_ rtol = _RTOL_
 
     gp = GP(OLMMKernel(3, 5, 1e-2, fill(1e-2, 3), H, [periodicise(EQ(), i) for i in 1:3]))
     x = collect(0:0.1:2)
     ngp = condition(gp, x, y)
     @test ngp.m(x) ≈ y atol=1e-1
-    @test ngp.m(xx)[1:21, :] ≈ ngp.m(x) atol = _ATOL_
+    @test ngp.m(xx)[1:21, :] ≈ ngp.m(x) atol = _ATOL_ rtol = _RTOL_
     # TODO: Implement k(x, y)
-    # @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_
-    # @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_
-    # @test diag(ngp.k(xx)) ≈ diag(ngp.k(xx, true))  atol = _ATOL_
-    @test reshape(diag(ngp.k(xx)), 5, 31)' ≈ var(ngp.k, xx) atol = _ATOL_
+    # @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_ rtol = _RTOL_
+    # @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_ rtol = _RTOL_
+    # @test diag(ngp.k(xx)) ≈ diag(ngp.k(xx, true))  atol = _ATOL_ rtol = _RTOL_
+    @test reshape(diag(ngp.k(xx)), 5, 31)' ≈ var(ngp.k, xx) atol = _ATOL_ rtol = _RTOL_
     Ug = GPForecasting.greedy_U(gp.k, x, y)
-    @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_
+    @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_ rtol = _RTOL_
 end
