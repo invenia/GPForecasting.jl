@@ -122,7 +122,7 @@ function learn(
     gp::GP,
     x,
     y::AbstractArray{<:Real},
-    obj::Function;
+    obj::Function=objective;
     Θ_init::Array=[],
     its=200,
     trace=true,
@@ -168,7 +168,7 @@ function learn_summary(
     gp::GP,
     x,
     y::AbstractArray{<:Real},
-    obj::Function;
+    obj::Function=objective;
     Θ_init::Array=[],
     its=200,
     trace=true,
@@ -198,7 +198,7 @@ function learn(
     gp::GP{OLMMKernel, <:Mean},
     x,
     y::AbstractMatrix{<:Real},
-    obj::Function;
+    obj::Function=objective;
     opt_U=false,
     K_U_cycles::Int=0,
     Θ_init::Array=[],
