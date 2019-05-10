@@ -2,20 +2,18 @@
     @test sum(minimise(
         x -> x[1]^2+abs(x[2]),
         [100., 900.],
-        trace=true,
+        trace=false,
         alphaguess=LineSearches.InitialQuadratic(),
         linesearch=LineSearches.HagerZhang(),
-        trace = false,
     )) < 1e-5
 
     @test minimise(
         x -> (1.0 - x[1])^2 + 100.0 * (x[2] - x[1]^2)^2,
         [10., -10.],
-        trace=true,
+        trace=false,
         algorithm=Optim.ConjugateGradient,
         alphaguess=LineSearches.InitialQuadratic(),
         linesearch=LineSearches.HagerZhang(),
-        trace = false,
        ) ≈ [1.0, 1.0] atol = _ATOL_
 
     gp = GP(0, EQ() ▷ 10)
