@@ -242,7 +242,7 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     # Compute first term
     log_N = logpdf(Gaussian(m(x), Qnn + σ² * Eye(size(Qnn, 1))), y)
     # Compute K̅
-    return log_N - (2 * σ²)^(-1) * sum(var(k, x)) - tr(Qnn)
+    return log_N - (2 * σ²)^(-1) * (sum(var(k, x)) - tr(Qnn))
 end
 
 @unionise function titsiasELBO(
