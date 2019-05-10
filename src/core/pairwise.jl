@@ -58,7 +58,7 @@ end
 @unionise function elwise_dist(x::AbstractArray, y::AbstractArray)
     return Distances.colwise(Euclidean(), x', y')
 end
-# TODO: TEST THESE SENSITIVITIES!!!!!!
+
 @explicit_intercepts elwise_dist Tuple{Nabla.∇ArrayOrScalar, Nabla.∇ArrayOrScalar}
 
 function Nabla.∇(
