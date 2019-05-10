@@ -6,13 +6,6 @@
 #########################################################
 
 """
-    has_elwise(k::Kernel)
-
-True if the kernel has an implementation for elementwise covariances. False otherwise.
-"""
-has_elwise(k::Kernel) = true
-# Some fallbacks just to avoid issues with undefined methods.
-"""
 elwise(k::Kernel, x, y)
 
 Compute the value of the kernel elementwise for `x` and `y`. Naturally, they must have the
@@ -24,29 +17,22 @@ Compute the value of the kernel elementwise for `x`, i.e., the variance.
 """
 function elwise(k::Kernel, x, y)
     size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
-    return diag(k(x, y))
+    return [k(x[i, :], y[i, :])[1] for i in 1:size(x, 1)]
 end
-# This one can lead to a stackoverflow in case `elwise(k::MyKernel) = true` but
-# `elwise(k::MyKernel, x)` is not implemented. That is alright, though, because that should
-# never happen.
-elwise(k::Kernel, x) = var(k, x)
-
-
-function Statistics.var(k::Kernel, x)
-    if has_elwise(k)
-        return elwise(k, x)
-    else
+# I know the elegant solution below would be to use multiple dispatch, but that leads to
+# method ambiguities that can only be solved by implementing a bunch of extra methods.
+# So, this is a much more convenient solution.
+# This is one example of a place where having method precedence would be very handy.
+function elwise(k::Kernel, x)
+    if !isa(x, AbstractDataFrame)
         return [k(x[i, :])[1] for i in 1:size(x, 1)]
-    end
-end
-Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
-function Statistics.var(k::Kernel, x::AbstractDataFrame)
-    if has_elwise(k)
-        return elwise(k, x)
     else
         return [k(DataFrame(r))[1] for r in eachrow(x)]
     end
 end
+
+Statistics.var(k::Kernel, x) = elwise(k, x)
+Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
 
 Base.size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
 
@@ -248,7 +234,6 @@ function (k::SimilarHourKernel)(x::ArrayOrReal, y::ArrayOrReal)
     end
 end
 (k::SimilarHourKernel)(x::ArrayOrReal) = k(x, x)
-has_elwise(k::SimilarHourKernel) = false
 function Base.show(io::IO, k::SimilarHourKernel)
     cs = unwrap(k.coeffs)
     ds = "$(cs[1])*δ(0)"
@@ -346,7 +331,6 @@ function BinaryKernel(a::Real, b::Real, c::Real)
         )
     )
 end
-has_elwise(k::BinaryKernel) = false
 BinaryKernel(a::Real, b::Real) = BinaryKernel(Positive(a), Positive(b), Fixed(0))
 
 """
@@ -825,7 +809,6 @@ mutable struct SparseKernel{K <: Kernel} <: Kernel
     σ²
 end
 SparseKernel(k::Kernel, Xm, σ²) = SparseKernel(k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
-has_elwise(k::SparseKernel) = false
 (k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
 (k::SparseKernel)() = k.k(unwrap(k.Xm))
 Base.show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")
