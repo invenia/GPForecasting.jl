@@ -32,6 +32,7 @@
                 # Tolerance is high below because of the RootLog kernel. TODO: Implement a
                 # more stable version of it.
                 @test diag(k([1., 2., 3.])) ≈ elwise(k, [1., 2., 3.]) atol = 2e-4
+                @test diag(k([1., 2., 3.], [3., 2., 5.])) ≈ elwise(k, [1., 2., 3.], [3., 2., 5.]) atol = 2e-4
                 @test elwise(k, [1., 2., 3.]) ≈ elwise(k, [1., 2., 3.], [1., 2., 3.])
                 @test isa(elwise(k, [1., 2., 3.]), AbstractVector)
                 @test_throws Any elwise(k, [1., 2., 3.], [1., 2., 3., 4.])
