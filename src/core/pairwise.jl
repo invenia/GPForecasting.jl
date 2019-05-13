@@ -54,3 +54,67 @@ function Nabla.∇(
 ) where i
     return ∇(sq_pairwise_dist, Arg{i}, p, z, z̄, reshape(x, :, 1), reshape(y, :, 1))
 end
+
+@unionise function elwise_dist(x::AbstractArray, y::AbstractArray)
+    return Distances.colwise(Euclidean(), x', y')
+end
+
+@explicit_intercepts elwise_dist Tuple{Nabla.∇ArrayOrScalar, Nabla.∇ArrayOrScalar}
+
+function Nabla.∇(
+    ::typeof(elwise_dist),
+    ::Type{Arg{1}},
+    p, z, z̄,
+    x::AbstractArray,
+    y::AbstractArray,
+)
+    D = x .- y
+    return (D .* z̄) ./ z
+end
+
+function Nabla.∇(
+    ::typeof(elwise_dist),
+    ::Type{Arg{2}},
+    p, z, z̄,
+    x::AbstractArray,
+    y::AbstractArray,
+)
+    D = x .- y
+    return -(D .* z̄) ./ z
+end
+
+@unionise function sq_elwise_dist(x::AbstractArray, y::AbstractArray)
+    return Distances.colwise(SqEuclidean(), x', y')
+end
+
+@explicit_intercepts sq_elwise_dist Tuple{Nabla.∇ArrayOrScalar, Nabla.∇ArrayOrScalar}
+
+function Nabla.∇(
+    ::typeof(sq_elwise_dist),
+    ::Type{Arg{1}},
+    p, z, z̄,
+    x::AbstractArray,
+    y::AbstractArray,
+)
+    D = x .- y
+    return 2.0 * D .* z̄
+end
+
+function Nabla.∇(
+    ::typeof(sq_elwise_dist),
+    ::Type{Arg{2}},
+    p, z, z̄,
+    x::AbstractArray,
+    y::AbstractArray,
+)
+    D = x .- y
+    return -2.0 * D .* z̄
+end
+
+@unionise elwise_dist(x::Number, y::AbstractArray) = euclidean(x, y...)
+@unionise elwise_dist(x::AbstractArray, y::Number) = euclidean(x..., y)
+@unionise elwise_dist(x::Number, y::Number) = euclidean(x, y)
+
+@unionise sq_elwise_dist(x::Number, y::AbstractArray) = sqeuclidean(x, y...)
+@unionise sq_elwise_dist(x::AbstractArray, y::Number) = sqeuclidean(x..., y)
+@unionise sq_elwise_dist(x::Number, y::Number) = sqeuclidean(x, y)

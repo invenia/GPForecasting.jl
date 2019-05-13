@@ -5,11 +5,34 @@
 # k(x, y) == transpose(k(y, x))
 #########################################################
 
-Statistics.var(k::Kernel, x) = [k(x[i, :])[1] for i in 1:size(x, 1)]
-Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
-function Statistics.var(k::Kernel, x::AbstractDataFrame)
-    return [k(DataFrame(r))[1] for r in eachrow(x)]
+"""
+elwise(k::Kernel, x, y)
+
+Compute the value of the kernel elementwise for `x` and `y`. Naturally, they must have the
+same number of points.
+
+elwise(k::Kernel, x)
+
+Compute the value of the kernel elementwise for `x`, i.e., the variance.
+"""
+function elwise(k::Kernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    return [k(x[i, :], y[i, :])[1] for i in 1:size(x, 1)]
 end
+# I know the elegant solution below would be to use multiple dispatch, but that leads to
+# method ambiguities that can only be solved by implementing a bunch of extra methods.
+# So, this is a much more convenient solution.
+# This is one example of a place where having method precedence would be very handy.
+function elwise(k::Kernel, x)
+    if !isa(x, AbstractDataFrame)
+        return [k(x[i, :])[1] for i in 1:size(x, 1)]
+    else
+        return [k(DataFrame(r))[1] for r in eachrow(x)]
+    end
+end
+
+Statistics.var(k::Kernel, x) = elwise(k, x)
+Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
 
 Base.size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
 
@@ -64,10 +87,22 @@ function (k::PosteriorKernel)(x)
     z = k.k(x, xd) / U
     return k.k(x) .- z * z'
 end
+function elwise(k::PosteriorKernel, x)
+    U = unwrap(k.U)
+    xd = unwrap(k.x)
+    z = k.k(x, xd) / U
+    return elwise(k.k, x) .- sum(z .* z, dims=2)
+end
 function (k::PosteriorKernel)(x, y)
     U = unwrap(k.U)
     xd = unwrap(k.x)
     return k.k(x, y) .- (k.k(x, xd) / U) * (U' \ k.k(xd, y))
+end
+function elwise(k::PosteriorKernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    U = unwrap(k.U)
+    xd = unwrap(k.x)
+    return elwise(k.k, x, y) .- sum((k.k(x, xd) / U) .* (U' \ k.k(xd, y))', dims=2)
 end
 
 """
@@ -98,6 +133,17 @@ function (k::TitsiasPosteriorKernel)(x)
     sqrt₂ = Uz' \ Kmx
     return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂) + unwrap(k.σ²) * I
 end
+function elwise(k::TitsiasPosteriorKernel, x)
+    Xm = unwrap(k.Xm)
+    Uz = unwrap(k.Uz)
+    Umm = unwrap(k.Umm)
+
+    kx = elwise(k.k, x)
+    Kxm = k.k(x, Xm)
+    sqrt₁ = Kxm / Umm
+    sqrt₂ = Kxm / Uz
+    return kx .- sum(sqrt₁ .* sqrt₁, dims=2) .+ sum(sqrt₂ .* sqrt₂, dims=2) .+ unwrap(k.σ²)
+end
 
 function (k::TitsiasPosteriorKernel)(x, y)
     Xm = unwrap(k.Xm)
@@ -111,6 +157,20 @@ function (k::TitsiasPosteriorKernel)(x, y)
     return Kxy .- (Kxm / Umm) * (Umm' \ Kmy) .+ (Kxm / Uz) * (Uz' \ Kmy) + noise
 end
 
+function elwise(k::TitsiasPosteriorKernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    Xm = unwrap(k.Xm)
+    Uz = unwrap(k.Uz)
+    Umm = unwrap(k.Umm)
+
+    kxy = elwise(k.k, x, y)
+    Kxm = k.k(x, Xm)
+    Kmy = k.k(Xm, y)
+    t₁ = sum((Kxm / Umm) .* (Umm' \ Kmy), dims=2)
+    t₂ = sum((Kxm / Uz) .* (Uz' \ Kmy), dims=2)
+    return kxy .- t₁ .+ t₂ + unwrap(k.σ²)
+end
+
 
 """
     EQ <: Kernel
@@ -120,6 +180,8 @@ Squared exponential kernel. Computes exp((-1/2) * |x - x′|²).
 struct EQ <: Kernel end
 (::EQ)(x, y) = exp.((-0.5) .* sq_pairwise_dist(x, y))
 (k::EQ)(x) = k(x, x)
+elwise(k::EQ, x, y) = exp.((-0.5) .* sq_elwise_dist(x, y))
+elwise(k::EQ, x) = ones(size(x, 1))
 Base.show(io::IO, k::EQ) = print(io, "EQ()")
 
 const ArrayOrReal = Union{Wrapped{<:AbstractArray{<:Real}}, Wrapped{<:Real}}
@@ -137,6 +199,10 @@ function (k::RQ)(x::ArrayOrReal, y::ArrayOrReal)
     return (1.0 .+ (sq_pairwise_dist(x, y) ./ (2.0 * unwrap(k.α)))) .^ (-unwrap(k.α))
 end
 (k::RQ)(x::ArrayOrReal) = k(x, x)
+function elwise(k::RQ, x::ArrayOrReal, y::ArrayOrReal)
+    return (1.0 .+ (sq_elwise_dist(x, y) ./ (2.0 * unwrap(k.α)))) .^ (-unwrap(k.α))
+end
+elwise(k::RQ, x::ArrayOrReal) = ones(size(x, 1))
 Base.show(io::IO, k::RQ) = print(io, "RQ($(k.α))")
 
 mutable struct SimilarHourKernel <: Kernel
@@ -200,6 +266,19 @@ function (k::MA)(x::ArrayOrReal, y::ArrayOrReal)
     end
 end
 (k::MA)(x::ArrayOrReal) = k(x, x)
+function elwise(k::MA, x::ArrayOrReal, y::ArrayOrReal)
+    d = elwise_dist(x, y)
+    if unwrap(k.ν) ≈ 1/2
+        return exp.(-d)
+    elseif unwrap(k.ν) ≈ 3/2
+        return (1 .+ √3 .* d) .* exp.(-√3 .* d)
+    elseif unwrap(k.ν) ≈ 5/2
+        return (1 .+ √5 .* d + 5/3 .* d.^2) .* exp.(-√5 .* d)
+    else
+        throw(ArgumentError("$(unwrap(k.ν)) is not a supported value for Matérn kernels."))
+    end
+end
+elwise(k::MA, x::ArrayOrReal) = ones(size(x, 1))
 Base.show(io::IO, k::MA) = print(io, "MA($(k.ν))")
 
 """
@@ -214,6 +293,12 @@ function (k::RootLog)(x::ArrayOrReal, y::ArrayOrReal)
     return (log.(d .+ 1) .+ 1e-16) ./ (d .+ 1e-16)
 end
 (k::RootLog)(x::ArrayOrReal) = k(x, x)
+function elwise(k::RootLog, x::ArrayOrReal, y::ArrayOrReal)
+    d = elwise_dist(x, y)
+    # The 1e-16 here is just to make sure that we get the correct limit when d → 0
+    return (log.(d .+ 1) .+ 1e-16) ./ (d .+ 1e-16)
+end
+elwise(k::RootLog, x::ArrayOrReal) = ones(size(x, 1))
 Base.show(io::IO, k::RootLog) = print(io, "RootLog()")
 
 """
@@ -294,6 +379,8 @@ function Base.:+(k1::ScaledKernel, k2::ScaledKernel)
 end
 (k::ScaledKernel)(x, y) = unwrap(k.scale) .* k.k(x, y)
 (k::ScaledKernel)(x) = k(x, x)
+elwise(k::ScaledKernel, x, y) = unwrap(k.scale) .* elwise(k.k, x, y)
+elwise(k::ScaledKernel, x) = elwise(k, x, x)
 Base.show(io::IO, k::ScaledKernel) = print(io, "($(k.scale) * $(k.k))")
 
 """
@@ -334,6 +421,19 @@ function (k::StretchedKernel)(x, y)
     end
 end
 (k::StretchedKernel)(x) = k(x, x)
+function elwise(k::StretchedKernel, x, y)
+    lscale = unwrap(k.stretch)'
+
+    # This condition should only be met in case the input space got extended by `periodicise`
+    # If the user forces this to trigger by feeding a length scale with the wrong length,
+    # that is his fault.
+    if length(lscale) > 1 && length(lscale) == size(x, 2) / 2
+        return elwise(k.k, x ./ hcat(lscale, lscale), y ./ hcat(lscale, lscale))
+    else
+        return elwise(k.k, x ./ lscale, y ./ lscale)
+    end
+end
+elwise(k::StretchedKernel, x) = elwise(k, x, x)
 Base.show(io::IO, k::StretchedKernel) = print(io, "($(k.k) ▷ $(k.stretch))")
 
 """
@@ -348,6 +448,8 @@ end
 Base.:+(k1::Kernel, k2::Kernel) = SumKernel(k1, k2)
 (k::SumKernel)(x, y) = k.k1(x, y) .+ k.k2(x, y)
 (k::SumKernel)(x) = k(x, x)
+elwise(k::SumKernel, x, y) = elwise(k.k1, x, y) .+ elwise(k.k2, x, y)
+elwise(k::SumKernel, x) = elwise(k, x, x)
 Base.show(io::IO, k::SumKernel) = print(io, "($(k.k1) + $(k.k2))")
 isMulti(k::SumKernel) = isMulti(k.k1) || isMulti(k.k2)
 
@@ -378,6 +480,8 @@ function Base.:*(k1::ScaledKernel, k2::ScaledKernel)
 end
 (k::ProductKernel)(x, y) = k.k1(x, y) .* k.k2(x, y)
 (k::ProductKernel)(x) = k(x, x)
+elwise(k::ProductKernel, x, y) = elwise(k.k1, x, y) .* elwise(k.k2, x, y)
+elwise(k::ProductKernel, x) = elwise(k, x, x)
 Base.show(io::IO, k::ProductKernel) = print(io, "($(k.k1) * $(k.k2))")
 isMulti(k::ProductKernel) = isMulti(k.k1) || isMulti(k.k2)
 
@@ -396,6 +500,12 @@ function (k::PeriodicKernel)(x, y)
     return k.k(px, py)
 end
 (k::PeriodicKernel)(x) = k(x, x)
+function elwise(k::PeriodicKernel, x, y)
+    px = [cos.(2π .* x ./ unwrap(k.T)') sin.(2π .* x ./ unwrap(k.T)')]
+    py = [cos.(2π .* y ./ unwrap(k.T)') sin.(2π .* y ./ unwrap(k.T)')]
+    return elwise(k.k, px, py)
+end
+elwise(k::PeriodicKernel, x) = elwise(k, x, x)
 Base.show(io::IO, k::PeriodicKernel) = print(io, "($(k.k) ∿ $(k.T))")
 isMulti(k::PeriodicKernel) = isMulti(k.k)
 
@@ -435,6 +545,19 @@ end
     return k.k(x[unwrap(k.col)], y[unwrap(k.col)])
 end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
+function elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame, y::AbstractDataFrame)
+    return elwise(k.k, x[unwrap(k.col)], y[unwrap(k.col)])
+end
+elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame) = elwise(k, x, x)
+function elwise(k::SpecifiedQuantityKernel, x::DataFrameRow, y::DataFrameRow)
+    return elwise(k, DataFrame(x), DataFrame(y))
+end
+function elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame, y::DataFrameRow)
+    return elwise(k, x, DataFrame(y))
+end
+function elwise(k::SpecifiedQuantityKernel, x::DataFrameRow, y::AbstractDataFrame)
+    return elwise(k, DataFrame(x), y)
+end
 Base.show(io::IO, k::SpecifiedQuantityKernel) = print(io, "($(k.k) ← $(k.col))")
 isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 
@@ -446,6 +569,11 @@ Kernel that returns 1.0 for every pair of points.
 struct ConstantKernel <: Kernel end
 (k::ConstantKernel)(x, y) = ones(Float64, size(x, 1), size(y, 1))
 (k::ConstantKernel)(x) = k(x, x)
+function elwise(k::ConstantKernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    return ones(Float64, size(x, 1))
+end
+elwise(k::ConstantKernel, x) = ones(size(x, 1))
 function Base.:+(k::Kernel, x)
     return isconstrained(x) ?
         SumKernel(k, x * ConstantKernel()) :
@@ -463,6 +591,11 @@ Zero kernel. Returns zero.
 struct ZeroKernel <: Kernel; end
 (::ZeroKernel)(x, y) = zeros(size(x, 1), size(y, 1))
 (k::ZeroKernel)(x) = k(x, x)
+function elwise(::ZeroKernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    zeros(size(x, 1))
+end
+elwise(k::ZeroKernel, x) = zeros(size(x, 1))
 Base.:+(k::Kernel, z::ZeroKernel) = k
 Base.:+(z::ZeroKernel, k::Kernel) = k + z
 Base.:+(z::ZeroKernel, k::ZeroKernel) = z
@@ -500,8 +633,27 @@ function (k::DiagonalKernel)(x::DataFrameRow, y::AbstractDataFrame)
 end
 (k::DiagonalKernel)(x::Number, y) = k([x], y)
 (k::DiagonalKernel)(x, y::Number) = k(x, [y])
-(k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])[1, 1]
+(k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])
 (k::DiagonalKernel)(x) = k(x, x)
+
+function elwise(k::DiagonalKernel, x, y)
+    size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
+    return float.([float.(x[i, :]) ≈ float.(y[i, :]) for i in 1:size(x, 1)])
+end
+elwise(k::DiagonalKernel, x::DataFrame, y::DataFrame) = elwise(k, Matrix(x), Matrix(y))
+function elwise(k::DiagonalKernel, x::DataFrameRow, y::DataFrameRow)
+    return elwise(k, DataFrame(x), DataFrame(y))
+end
+function elwise(k::DiagonalKernel, x::AbstractDataFrame, y::DataFrameRow)
+    return elwise(k, x, DataFrame(y))
+end
+function elwise(k::DiagonalKernel, x::DataFrameRow, y::AbstractDataFrame)
+    return elwise(k, DataFrame(x), y)
+end
+elwise(k::DiagonalKernel, x::Number, y) = elwise(k, [x], y)
+elwise(k::DiagonalKernel, x, y::Number) = elwise(k, x, [y])
+elwise(k::DiagonalKernel, x::Number, y::Number) = elwise(k, [x], [y])
+elwise(k::DiagonalKernel, x) = ones(size(x, 1))
 Base.show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
 
 """
@@ -517,6 +669,14 @@ end
 (k::DotKernel)(x, y::Number) = k(x, [y])
 (k::DotKernel)(x::Number, y::Number) = k([x], [y])
 @unionise (k::DotKernel)(x::AbstractArray{<:Real}) = k(x, x)
+
+@unionise function elwise(k::DotKernel, x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
+    return reshape(sum(x .* y, dims=2), size(x, 1))
+end
+elwise(k::DotKernel, x::Number, y) = elwise(k, [x], y)
+elwise(k::DotKernel, x, y::Number) = elwise(k, x, [y])
+elwise(k::DotKernel, x::Number, y::Number) = elwise(k, [x], [y])
+@unionise elwise(k::DotKernel, x::AbstractArray{<:Real}) = elwise(k, x, x)
 Base.show(io::IO, k::DotKernel) = print(io, "<., .>")
 
 """
@@ -567,6 +727,24 @@ end
 (k::HazardKernel)(x::Number, y) = k([x], y)
 (k::HazardKernel)(x, y::Number) = k(x, [y])
 (k::HazardKernel)(x::Number, y::Number) = k([x], [y])
+@unionise function elwise(k::HazardKernel, x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
+    # First, augment the input space
+    xl = [x[i, :] for i in 1:size(x, 1)]
+    yl = [y[i, :] for i in 1:size(y, 1)]
+    mask_x = isapprox.(xl, fill(zero(xl[1]), size(xl, 1))) # find which points have no hazard
+    mask_y = isapprox.(yl, fill(zero(yl[1]), size(yl, 1)))
+    h_x = .!mask_x .* fill(unwrap(k.bias), size(mask_x, 1)) # bias vector
+    h_y = .!mask_y .* fill(unwrap(k.bias), size(mask_y, 1))
+    scale = unwrap(k.scale) == -1 ? ones(1, size(x, 2)) : unwrap(k.scale)
+    x_aug = hcat(x .* scale, (h_x + mask_x)) # scaling at the same time
+    y_aug = hcat(y .* scale, (h_y + mask_y))
+
+    return elwise(DotKernel(), x_aug, y_aug)
+end
+@unionise elwise(k::HazardKernel, x::AbstractArray{<:Real}) = elwise(k, x, x)
+elwise(k::HazardKernel, x::Number, y) = elwise(k, [x], y)
+elwise(k::HazardKernel, x, y::Number) = elwise(k, x, [y])
+elwise(k::HazardKernel, x::Number, y::Number) = elwise(k, [x], [y])
 Base.show(io::IO, k::HazardKernel) = print(io, "Hazard()")
 
 """
@@ -595,6 +773,24 @@ end
 (k::ManifoldKernel)(x) = k.k(vcat((k.NN(x[i, :])' for i in 1:size(x, 1))...))
 function (k::ManifoldKernel)(x::T) where T <: Input
     return k.k(T(vcat((k.NN(x.val[i, :])' for i in 1:size(x.val, 1))...)))
+end
+function elwise(k::ManifoldKernel, x, y)
+    return elwise(
+        k.k,
+        vcat((k.NN(x[i, :])' for i in 1:size(x, 1))...),
+        vcat((k.NN(y[i, :])' for i in 1:size(y, 1))...)
+    )
+end
+function elwise(k::ManifoldKernel, x::T, y::P) where {T <: Input, P <: Input}
+    return elwise(
+        k.k,
+        T(vcat((k.NN(x.val[i, :])' for i in 1:size(x.val, 1))...)),
+        P(vcat((k.NN(y.val[i, :])' for i in 1:size(y.val, 1))...))
+    )
+end
+elwise(k::ManifoldKernel, x) = elwise(k.k, vcat((k.NN(x[i, :])' for i in 1:size(x, 1))...))
+function elwise(k::ManifoldKernel, x::T) where T <: Input
+    return elwise(k.k, T(vcat((k.NN(x.val[i, :])' for i in 1:size(x.val, 1))...)))
 end
 
 Base.zero(::Kernel) = ZeroKernel()

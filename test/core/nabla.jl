@@ -15,6 +15,32 @@ using FDM
         @test grad_numerical_y ≈ grad_∇_y atol = _ATOL_
     end
 
+    # Check gradients of `elwise_dist`.
+    for (is_x, is_y) in (((4,), (4,)), ((4, 2), (4, 2)))
+        x, y = randn(is_x...), randn(is_y...)
+        v_x, v_y = randn(is_x...), randn(is_y...)
+        z̄ = randn(is_x[1])
+        grad_numerical_x = dot(z̄, FDM.central_fdm(3, 1)(ε -> elwise_dist(x .+ ε .* v_x, y)))
+        grad_numerical_y = dot(z̄, FDM.central_fdm(3, 1)(ε -> elwise_dist(x, y .+ ε .* v_y)))
+        grads = ∇((x, y) -> dot(elwise_dist(x, y), z̄))(x, y)
+        grad_∇_x, grad_∇_y = dot(v_x, grads[1]), dot(v_y, grads[2])
+        @test grad_numerical_x ≈ grad_∇_x atol = _ATOL_
+        @test grad_numerical_y ≈ grad_∇_y atol = _ATOL_
+    end
+
+    # Check gradients of `sq_elwise_dist`.
+    for (is_x, is_y) in (((4,), (4,)), ((4, 2), (4, 2)))
+        x, y = randn(is_x...), randn(is_y...)
+        v_x, v_y = randn(is_x...), randn(is_y...)
+        z̄ = randn(is_x[1])
+        grad_numerical_x = dot(z̄, FDM.central_fdm(3, 1)(ε -> sq_elwise_dist(x .+ ε .* v_x, y)))
+        grad_numerical_y = dot(z̄, FDM.central_fdm(3, 1)(ε -> sq_elwise_dist(x, y .+ ε .* v_y)))
+        grads = ∇((x, y) -> dot(sq_elwise_dist(x, y), z̄))(x, y)
+        grad_∇_x, grad_∇_y = dot(v_x, grads[1]), dot(v_y, grads[2])
+        @test grad_numerical_x ≈ grad_∇_x atol = _ATOL_
+        @test grad_numerical_y ≈ grad_∇_y atol = _ATOL_
+    end
+
     gp = GP(0, EQ() ▷ 10)
     x = collect(1.0:10.0)
     y = 2 .* x .+ 1e-1*randn()
