@@ -36,6 +36,20 @@ Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k,
 
 Base.size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
 
+# Hacky method to detect NoiseKernels
+"""
+    is_not_noisy(k::Kernel)
+
+Detect if there is a `NoiseKernel` at any part of a composite kernel, in which case it
+returns `true`. This is useful for dealing with `Latent` and `Observed` inputs.
+"""
+is_not_noisy(x) = true
+function is_not_noisy(k::Kernel)
+    fields = fieldnames(typeof(k))
+    isempty(fields) && return true
+    return prod([is_not_noisy(getfield(k, f)) for f in fields])
+end
+
 """
     hourly_cov(k::Kernel, x)
 

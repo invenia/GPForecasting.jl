@@ -106,6 +106,7 @@ function hourly_cov(k::NoiseKernel, x::Vector{Input})
     end
     return out
 end
+is_not_noisy(k::NoiseKernel) = false
 # TODO: Allow the mixing of typed and untyped `Input`s.
 # TODO: Make this function also output BlockDiagonal.
 
