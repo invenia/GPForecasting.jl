@@ -27,7 +27,11 @@ struct Latent <: Input
 end
 
 function Base.getindex(x::Input, i::Int, j::Colon)
-    return typeof(x)(x.val[i, :])
+    if !isa(x.val, DataFrame)
+        return typeof(x)(reshape(x.val[i, :], 1, size(x.val, 2)))
+    else
+        return typeof(x)(DataFrame(x.val[i, :]))
+    end
 end
 
 function Base.getindex(x::Input, i::Int)

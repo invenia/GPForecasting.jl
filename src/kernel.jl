@@ -33,6 +33,9 @@ end
 
 Statistics.var(k::Kernel, x) = elwise(k, x)
 Statistics.var(k::Kernel, x::Vector{Input}) = reduce(vcat, broadcast(c -> var(k, c), x))
+# function Statistics.var(k::Kernel, x::Input)
+#     return reduce(vcat, broadcast(c -> var(k, typeof(x)(c)), x.val))
+# end
 
 Base.size(k::Kernel, i::Int) = i < 1 ? BoundsError() : 1
 
@@ -124,6 +127,9 @@ end
 
 Posterior kernel for a sparse GP under Titsias' approximation. See "Variational
 Learning of Inducing Variables in Sparse Gaussian Processes".
+
+This kernel works with `Observed` and `Latent` input types, similarly to `NoiseKernel`s.
+Untyped inputs will return values in the extended space, with noisy and denoised values.
 """
 mutable struct TitsiasPosteriorKernel <: Kernel
     k::Kernel
@@ -136,7 +142,7 @@ mutable struct TitsiasPosteriorKernel <: Kernel
     end
 end
 
-function (k::TitsiasPosteriorKernel)(x)
+function _titsposkern(k::TitsiasPosteriorKernel, x)
     Xm = unwrap(k.Xm)
     Uz = unwrap(k.Uz)
     Umm = unwrap(k.Umm)
@@ -145,9 +151,32 @@ function (k::TitsiasPosteriorKernel)(x)
     Kmx = k.k(Xm, x)
     sqrt₁ = Umm' \ Kmx
     sqrt₂ = Uz' \ Kmx
-    return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂) + unwrap(k.σ²) * I
+    return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂)
 end
-function elwise(k::TitsiasPosteriorKernel, x)
+function (k::TitsiasPosteriorKernel)(x::Observed)
+    xx = is_not_noisy(k.k) ? x.val : x
+    return _titsposkern(k, xx) + unwrap(k.σ²) * I
+end
+function (k::TitsiasPosteriorKernel)(x::Latent)
+    xx = is_not_noisy(k.k) ? x.val : x
+    return _titsposkern(k, xx)
+end
+function (k::TitsiasPosteriorKernel)(x)
+    @warn(
+        """
+            Working on the extended input space. Output will be two dimensional,
+            corresponding to the noisy and denoised predictions. To compute only the
+            noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
+        """
+    )
+    # Defining `xx` first may look like a roundabout way to go about it, but that makes
+    # `tmp` a matrix of matrices, instead of a simple matrix, and the former is what we want
+    xx = [Observed(x) Latent(x); Latent(x) Latent(x)]
+    tmp = [k(i) for i in xx]
+    return stack(tmp)
+end
+
+function _titselwise(k::TitsiasPosteriorKernel, x)
     Xm = unwrap(k.Xm)
     Uz = unwrap(k.Uz)
     Umm = unwrap(k.Umm)
@@ -156,10 +185,29 @@ function elwise(k::TitsiasPosteriorKernel, x)
     Kxm = k.k(x, Xm)
     sqrt₁ = Kxm / Umm
     sqrt₂ = Kxm / Uz
-    return kx .- sum(sqrt₁ .* sqrt₁, dims=2) .+ sum(sqrt₂ .* sqrt₂, dims=2) .+ unwrap(k.σ²)
+    return kx .- sum(sqrt₁ .* sqrt₁, dims=2) .+ sum(sqrt₂ .* sqrt₂, dims=2)
+end
+function elwise(k::TitsiasPosteriorKernel, x::Observed)
+    xx = is_not_noisy(k.k) ? x.val : x
+    return _titselwise(k, xx) .+ unwrap(k.σ²)
+end
+function elwise(k::TitsiasPosteriorKernel, x::Latent)
+    xx = is_not_noisy(k.k) ? x.val : x
+    return _titselwise(k, xx)
+end
+function elwise(k::TitsiasPosteriorKernel, x)
+    @warn(
+        """
+            Working on the extended input space. Output will be two dimensional,
+            corresponding to the noisy and denoised predictions. To compute only the
+            noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
+        """
+    )
+    tmp = [elwise(k, Observed(x)) elwise(k, Latent(x))]
+    return
 end
 
-function (k::TitsiasPosteriorKernel)(x, y)
+function _titsposkern(k::TitsiasPosteriorKernel, x, y)
     Xm = unwrap(k.Xm)
     Uz = unwrap(k.Uz)
     Umm = unwrap(k.Umm)
@@ -167,11 +215,35 @@ function (k::TitsiasPosteriorKernel)(x, y)
     Kxy = k.k(x, y)
     Kxm = k.k(x, Xm)
     Kmy = k.k(Xm, y)
-    noise = unwrap(k.σ²) * DiagonalKernel()(x, y)
-    return Kxy .- (Kxm / Umm) * (Umm' \ Kmy) .+ (Kxm / Uz) * (Uz' \ Kmy) + noise
+
+    return Kxy .- (Kxm / Umm) * (Umm' \ Kmy) .+ (Kxm / Uz) * (Uz' \ Kmy)
+end
+function (k::TitsiasPosteriorKernel)(x::Input, y::Input)
+    xx, yy = is_not_noisy(k.k) ? (x.val, y.val) : (x, y)
+    return _titsposkern(k::TitsiasPosteriorKernel, xx, yy)
+end
+function (k::TitsiasPosteriorKernel)(x::Observed, y::Observed)
+    noise = unwrap(k.σ²) * DiagonalKernel()(x.val, y.val)
+    xx, yy = is_not_noisy(k.k) ? (x.val, y.val) : (x, y)
+    return _titsposkern(k::TitsiasPosteriorKernel, xx, yy) + noise
+end
+function (k::TitsiasPosteriorKernel)(x, y)
+    @warn(
+        """
+            Working on the extended input space. Output will be two dimensional,
+            corresponding to the noisy and denoised predictions. To compute only the
+            noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
+        """
+    )
+    # Defining `xx` first may look like a roundabout way to go about it, but that makes
+    # `tmp` a matrix of matrices, instead of a simple matrix, and the former is what we want
+    xx = [Observed(x) Latent(x); Latent(x) Latent(x)]
+    yy = [Observed(y) Latent(y); Latent(y) Latent(y)]
+    tmp = [k(i, j) for (i, j) in zip(xx, yy)]
+    return stack(tmp)
 end
 
-function elwise(k::TitsiasPosteriorKernel, x, y)
+function _titselwise(k::TitsiasPosteriorKernel, x, y)
     size(x) != size(y) && throw(DimensionMismatch("`x` and `y` must be of same size."))
     Xm = unwrap(k.Xm)
     Uz = unwrap(k.Uz)
@@ -183,6 +255,25 @@ function elwise(k::TitsiasPosteriorKernel, x, y)
     t₁ = sum((Kxm / Umm) .* (Umm' \ Kmy), dims=2)
     t₂ = sum((Kxm / Uz) .* (Uz' \ Kmy), dims=2)
     return kxy .- t₁ .+ t₂ + unwrap(k.σ²)
+end
+function elwise(k::TitsiasPosteriorKernel, x::Input, y::Input)
+    xx, yy = is_not_noisy(k.k) ? (x.val, y.val) : (x, y)
+    return _titselwise(k, xx, yy)
+end
+function elwise(k::TitsiasPosteriorKernel, x::Observed, y::Observed)
+    xx, yy = is_not_noisy(k.k) ? (x.val, y.val) : (x, y)
+    return _titselwise(k, xx, yy) .+ unwrap(k.σ²)
+end
+function elwise(k::TitsiasPosteriorKernel, x, y)
+    @warn(
+        """
+            Working on the extended input space. Output will be two dimensional,
+            corresponding to the noisy and denoised predictions. To compute only the
+            noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
+        """
+    )
+    tmp = [elwise(k, Observed(x), Observed(y)) elwise(k, Latent(x), Latent(y))]
+    return
 end
 
 
@@ -559,6 +650,7 @@ end
     return k.k(x[unwrap(k.col)], y[unwrap(k.col)])
 end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
+@unionise (k::SpecifiedQuantityKernel)(x::DataFrameRow) = k(x, x)
 function elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame, y::AbstractDataFrame)
     return elwise(k.k, x[unwrap(k.col)], y[unwrap(k.col)])
 end
