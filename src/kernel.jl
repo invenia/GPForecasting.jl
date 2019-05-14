@@ -169,10 +169,11 @@ function (k::TitsiasPosteriorKernel)(x)
             noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
         """
     )
-    # Defining `xx` first may look like a roundabout way to go about it, but that makes
-    # `tmp` a matrix of matrices, instead of a simple matrix, and the former is what we want
-    xx = [Observed(x) Latent(x); Latent(x) Latent(x)]
-    tmp = [k(i) for i in xx]
+    # We need to first create an empty container and then populate it, otherwise, julia
+    # automatically merges all matrices into one, and then `stack` won't work.
+    tmp = Matrix{Matrix{Real}}(undef, 2, 2)
+    tmp[1, 1] = k(Observed(x))
+    tmp[1, 2] = tmp[2, 1] = tmp[2, 2] = k(Latent(x))
     return stack(tmp)
 end
 
@@ -235,11 +236,11 @@ function (k::TitsiasPosteriorKernel)(x, y)
             noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
         """
     )
-    # Defining `xx` first may look like a roundabout way to go about it, but that makes
-    # `tmp` a matrix of matrices, instead of a simple matrix, and the former is what we want
-    xx = [Observed(x) Latent(x); Latent(x) Latent(x)]
-    yy = [Observed(y) Latent(y); Latent(y) Latent(y)]
-    tmp = [k(i, j) for (i, j) in zip(xx, yy)]
+    # We need to first create an empty container and then populate it, otherwise, julia
+    # automatically merges all matrices into one, and then `stack` won't work.
+    tmp = Matrix{Matrix{Real}}(undef, 2, 2)
+    tmp[1, 1] = k(Observed(x), Observed(y))
+    tmp[1, 2] = tmp[2, 1] = tmp[2, 2] = k(Latent(x), Latent(y))
     return stack(tmp)
 end
 
