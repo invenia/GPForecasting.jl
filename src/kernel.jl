@@ -154,7 +154,7 @@ function _titsposkern(k::TitsiasPosteriorKernel, x)
     return Kx .- (sqrt₁' * sqrt₁) .+ (sqrt₂' * sqrt₂)
 end
 function (k::TitsiasPosteriorKernel)(x::Observed)
-    xx = is_not_noisy(k.k) ? x.val : x
+    xx = is_not_noisy(k.k) ? x.val : _Observed(x.val)
     return _titsposkern(k, xx) + unwrap(k.σ²) * I
 end
 function (k::TitsiasPosteriorKernel)(x::Latent)
@@ -188,7 +188,7 @@ function _titselwise(k::TitsiasPosteriorKernel, x)
     return kx .- sum(sqrt₁ .* sqrt₁, dims=2) .+ sum(sqrt₂ .* sqrt₂, dims=2)
 end
 function elwise(k::TitsiasPosteriorKernel, x::Observed)
-    xx = is_not_noisy(k.k) ? x.val : x
+    xx = is_not_noisy(k.k) ? x.val : _Observed(x.val)
     return _titselwise(k, xx) .+ unwrap(k.σ²)
 end
 function elwise(k::TitsiasPosteriorKernel, x::Latent)
@@ -224,7 +224,7 @@ function (k::TitsiasPosteriorKernel)(x::Input, y::Input)
 end
 function (k::TitsiasPosteriorKernel)(x::Observed, y::Observed)
     noise = unwrap(k.σ²) * DiagonalKernel()(x.val, y.val)
-    xx, yy = is_not_noisy(k.k) ? (x.val, y.val) : (x, y)
+    xx, yy = is_not_noisy(k.k) ? (x.val, y.val) : (_Observed(x.val), _Observed(y.val))
     return _titsposkern(k::TitsiasPosteriorKernel, xx, yy) + noise
 end
 function (k::TitsiasPosteriorKernel)(x, y)
@@ -261,7 +261,7 @@ function elwise(k::TitsiasPosteriorKernel, x::Input, y::Input)
     return _titselwise(k, xx, yy)
 end
 function elwise(k::TitsiasPosteriorKernel, x::Observed, y::Observed)
-    xx, yy = is_not_noisy(k.k) ? (x.val, y.val) : (x, y)
+    xx, yy = is_not_noisy(k.k) ? (x.val, y.val) : (_Observed(x.val), _Observed(y.val))
     return _titselwise(k, xx, yy) .+ unwrap(k.σ²)
 end
 function elwise(k::TitsiasPosteriorKernel, x, y)

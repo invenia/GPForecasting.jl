@@ -44,6 +44,9 @@ isMulti(k::NoiseKernel) = isMulti(k.k_true)
 function (k::NoiseKernel)(x::Observed, y::Observed)
     return (k.k_true + k.k_noise)(x.val, y.val)
 end
+function (k::NoiseKernel)(x::_Observed, y::_Observed)
+    return (k.k_true + k.k_noise)(x.val, y.val)
+end
 function Statistics.var(k::NoiseKernel, x::Input)
     if isa(x.val, DataFrame)
         return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in eachrow(x.val)])'
