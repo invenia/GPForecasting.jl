@@ -1,7 +1,7 @@
 # Notes on our GP models
 
 This is by no means intended to be a comprehensive introduction to GPs. For that, refer to
-"Gaussian Processes for Machine Learning" by Rasmussen.
+["Gaussian Processes for Machine Learning" by Rasmussen](https://drive.google.com/open?id=1ScVvDzLu4bg13RjeLTBKnrAVxIZdbSNx).
 
 The intention here is to provide a quick overview of our model and its different parts.
 
