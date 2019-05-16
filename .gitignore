@@ -4,7 +4,6 @@
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
-*.png
 # *.gif # Allow gifs, because they will automatically be tracked by git-lfs
 *.jld2
 *.cov
