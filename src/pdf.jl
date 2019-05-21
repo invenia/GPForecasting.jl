@@ -125,11 +125,10 @@ end
         # U̅, _, V̅ = svd(H) # This breaks in Nabla.
         U = U̅ * V̅' # new U.
         P = Diagonal(S_sqrt.^(-1.0)) * U' # new P.
-        ngp2 = deepcopy(ngp) # not sure if this is necessary, just running from inplace ops.
-        ngp2.k.H = U * Diagonal(S_sqrt)
-        ngp2.k.P = Fixed(P)
-        ngp2.k.U = Fixed(U)
-        return logpdf(ngp2::GP, x, y::AbstractArray)
+        ngp.k.H = U * Diagonal(S_sqrt)
+        ngp.k.P = Fixed(P)
+        ngp.k.U = Fixed(U)
+        return logpdf(ngp::GP, x, y::AbstractArray)
     end
     return logpdf(ngp::GP, x, y::AbstractArray)
 end
