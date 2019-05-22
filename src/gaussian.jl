@@ -145,14 +145,40 @@ Sample `n` samples from a MVN `dist`.
 - `n::Integer`: Number of samples to take.
 
 # Returns
-- `AbstractMatrix{<:Real}`: Samples where the columns correspond to different samples.
+- `AbstractArray{<:Real}`: Samples. Each sample has the same dimension and size as the mean
+of `dist`. In case multiple samples are taken (`n` > 1), the different samples are organised
+using an extra dimension. For example, if `mean(dist)` is a vector and `n`=2, the output
+will be a matrix with two columns, while if `mean(dist)` has size `(r, c)` and `n`=2, the
+output will have size `(r, c, 2)`.
 """
 function StatsBase.sample(dist::Gaussian, n::Integer=1)
     L = cholesky(dist).L
-    if n > 1
-        return mean(dist) .+ reshape(L * randn(dim(dist), n), size(dist)..., n)
-    else
-        return mean(dist) .+ reshape(L * randn(dim(dist), n), size(dist)...)
+    # Check if the distribution is uni or multi dimensional
+    if dim(dist) == size(dist, 1) # Is unidimensional
+        # This other `if` is not strictly necessary. The only thing that it does is
+        # guarantee that the output will have size (s,) instead of (s, 1) for the case
+        # n == 1. Might be some smarter way of doing so.
+        if n > 1
+            return mean(dist) .+ L * randn(dim(dist), n)
+        else
+            return mean(dist) .+ L * randn(dim(dist))
+        end
+    else # Is multidimensional
+        # Same here is in the `if n > 1` above
+        if n > 1
+            # This also looks ugly, there might be a smarter way to do this reshape.
+            function reshapesample(S::AbstractArray{Float64}, sizes::Tuple{Int, Int})
+                samples = (S[:, i] for i in 1:size(S, 2))
+                out = Array{Float64}(undef, sizes..., length(samples))
+                for (i, s) in zip(1:length(samples), samples)
+                    out[:, :, i]  = reshape(s, sizes[2], sizes[1])'
+                end
+                return out
+            end
+            return mean(dist) .+ reshapesample(L * randn(dim(dist), n), size(dist))
+        else
+            return mean(dist) .+ reshape(L * randn(dim(dist)), size(dist, 2), size(dist, 1))'
+        end
     end
 end
 Statistics.rand(dist::Gaussian) = sample(dist)
