@@ -1,9 +1,12 @@
 using ModelAnalysis
 
 @testset "Gaussian" begin
-    n = Gaussian([1.,2.,3.], Eye(3))
-
-    @test size(sample(n, 3)) == (3, 3)
+    n = Gaussian([1.,2e10,3.], Eye(3))
+    samp = sample(n)
+    @test size(samp) == (3,)
+    samp = sample(n, 3)
+    @test size(samp) == (3, 3)
+    @test all(samp[1, :] .< samp[2, :])
     @test isa(logpdf(n, [1., 2., 3.]), Real)
     @test_throws DimensionMismatch logpdf(n, [1., 2., 3., 4.])
 
@@ -13,6 +16,14 @@ using ModelAnalysis
     @test size(mvn.μ) == (6,)
     @test size(mvn.Σ) == (6, 6)
     @test mvn.μ == [1, 2, 3, 4, 5, 6]
+
+    a = rand(6)
+    mvg = Gaussian(Float64[1 -2e10; 3 -4e10; 5 -6e10], a * a' + 1e-3 * Eye(6))
+    samp = sample(mvg)
+    @test all(samp[:, 1] .> samp[:, 2])
+    samp = sample(mvg, 4)
+    @test size(samp) == (3, 2, 4)
+    @test all(samp[:, 1, :] .> samp[:, 2, :])
 
     g = Gaussian(ones(3, 2), Eye(6))
     @test g.chol === nothing
