@@ -101,6 +101,7 @@ Get the dimensionality of a distribution `dist`.
 @unionise Distributions.dim(dist::Gaussian) = length(dist.μ)
 
 Base.size(dist::Gaussian) = size(mean(dist))
+Base.size(dist::Gaussian, i::Int) = size(mean(dist), i)
 
 """
     cholesky(dist::Gaussian) -> Cholesky
