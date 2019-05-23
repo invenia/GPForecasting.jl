@@ -210,9 +210,9 @@ end
     P = GPForecasting.unwrap(gp.k.P)
     @test (P * ngp.m(x)')' ≈ xs atol = 1e-1
     # TODO: Implement k(x, y)
-    # @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_
-    # @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_
-    # @test diag(ngp.k(xx)) ≈ diag(ngp.k(xx, true))  atol = _ATOL_
+    @test ngp.k(x) ≈ ngp.k(x, x) atol = _ATOL_
+    @test ngp.k(x, xx) ≈ ngp.k(xx, x)' atol = _ATOL_
+    @show size(ngp.k(xx)); @show size(diag(ngp.k(xx)))
     @test reshape(diag(ngp.k(xx)), 5, 31)' ≈ var(ngp.k, xx) atol = _ATOL_
     @test ngp.k(xx)[1:5, 1:5] ≈ hourly_cov(ngp.k, xx)[1:5, 1:5] atol = _ATOL_
     @test ngp.k(xx)[6:10, 6:10] ≈ hourly_cov(ngp.k, xx)[6:10, 6:10] atol = _ATOL_
