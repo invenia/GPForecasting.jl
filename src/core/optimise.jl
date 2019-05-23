@@ -227,6 +227,21 @@ function learn(
             linesearch=linesearch,
             kwargs...
         )
+        # We need to do one last updating in the H matrix.
+        if !isa(ngp.k.H, Fixed)
+            ngp = GP(ngp.m, set(ngp.k, Θ_opt))
+            H = unwrap(ngp.k.H)
+            S_sqrt = unwrap(ngp.k.S_sqrt)
+            dec = svd(H)
+            U̅ = dec.U
+            V̅ = dec.V
+            U = U̅ * V̅'
+            P = Diagonal(S_sqrt.^(-1.0)) * U' # new P.
+            ngp.k.H = U * Diagonal(S_sqrt)
+            ngp.k.P = Fixed(P)
+            ngp.k.U = Fixed(U)
+            return ngp
+        end
         return GP(ngp.m, set(ngp.k, Θ_opt)) # Again, assuming we are only optimising kernels
     # Got to overload if we want parameters in the means as well
     end
