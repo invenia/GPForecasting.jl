@@ -101,35 +101,7 @@ end
 ) where {K <: OLMMKernel, M <: Mean, G <: Real}
     ngp = GP(gp.m, set(gp.k, params)) # This has the updated H, but the old U. H might (and
     # usually will) not be of the form H = U. S.
-    if !isa(ngp.k.H, Fixed) # None of this is necessary if we don't learn H.
-        H = unwrap(ngp.k.H)
-        # Using the S_sqrt from the kernel, and not the one from decomposing `H`, allows us to
-        # optimise just `S_sqrt`, just `U`, or both.
-        S_sqrt = unwrap(ngp.k.S_sqrt)
-        # Obtain projector `P` and eigenvalues `U` from `H`. We won't directly use gp.k.P
-        # nor gp.k.U as before, because we
-        # want to tie it to `H` for learning and enforcing all constraints.
-        # First thing we need is to be able to reconstruct `U` from `H`. The issue here is that,
-        # even for H = U * Diagonal(S_sqrt), there are multiple solutions that comprise flipping
-        # the direction of eigenvectors. A way of doing the decomposition while still fixing the
-        # directions of the eigenvectors is by `U̅, S, V̅ = svd(H)`, `U = U̅ * V̅'`.
-        # Proof: `U * S * I = H = U̅ * S * V̅` (here using the fact that `H = U * S`, S diagonal
-        # and positive). Thus, `U * S = U̅ * V̅' * V̅ * S * V̅`. Now, we know that `U` and `U̅` can
-        # differ only by the direction of the eigenvectors, thus, `V̅` can only differ from the
-        # identity by having flipped signals in the main diagonal. Since both `V̅` and `S` 
-        # are diagonal, `V̅ * S` will be equal to `S` with some values with flipped signals, so
-        # `V̅ * S * V̅ = V̅`, meaning that `U = U̅ * V̅'`.
-        dec = svd(H)
-        U̅ = dec.U
-        V̅ = dec.V
-        # U̅, _, V̅ = svd(H) # This breaks in Nabla.
-        U = U̅ * V̅' # new U.
-        P = Diagonal(S_sqrt.^(-1.0)) * U' # new P.
-        ngp.k.H = U * Diagonal(S_sqrt)
-        ngp.k.P = Fixed(P)
-        ngp.k.U = Fixed(U)
-        return logpdf(ngp::GP, x, y::AbstractArray)
-    end
+    isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
     return logpdf(ngp::GP, x, y::AbstractArray)
 end
 
