@@ -732,6 +732,36 @@ end
     return fuse_equal(out)
 end
 
+function (k::OLMMKernel)(x, y)
+    # Use more specific implementation if possible.
+    x === y && return k(x)
+    # isa(k.ks, Kernel) && return optk(k, x, y) TODO: implement this (not necessary for now)
+    # compute latent proc covs
+    n1 = size(x, 1)
+    n2 = size(y, 1)
+    H = unwrap(k.H)
+    σ² = unwrap(k.σ²)
+    p = unwrap(k.p)
+    D = unwrap(k.D)
+    m = unwrap(k.m)
+    D = isa(D, Float64) ? fill(D, m) : D
+    Σs = [lk(x, y) for lk in k.ks]
+    # mix them
+    mix_Σs = Matrix(undef, n1, n2)
+    for j in 1:n2
+        for i in 1:n1
+            mix_Σs[i, j] = H * Diagonal([s[i, j] for s in Σs]) * H'
+        end
+    end
+    # add noises
+    noise_mask = DiagonalKernel()(x, y)
+    noise = σ² * Eye(p) + H * Diagonal(D) * H'
+    # This is ugly, but we do not want a Hadamard product. Instead, we want every non-zero
+    # entry of `noise_mask` to be equal to the entire matrix `noise`.
+    mix_Σs += noise_mask .* [noise]
+    # build big mixed matrix
+    return fuse_equal(mix_Σs)
+end
 function (k::OLMMKernel)(x)
     isa(k.ks, Kernel) && return optk(k, x)
     # compute latent proc covs
