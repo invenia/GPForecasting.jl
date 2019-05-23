@@ -54,7 +54,10 @@ is the posterior process corresponding to the prior updated with the observation
 - `GP`: The posterior process
 """
 function condition(gp::GP, x, y::AbstractArray{<:Real})
-    K = gp.k(x)
+    # This call to Hermitian should not be necessary, but numerical noise has been making
+    # the cholesky fail. TODO: investigate the source of the noise. It only happens if we
+    # learn `H` in the OLMM, but all the constraints are respected. 
+    K = Hermitian(gp.k(x))
     U = cholesky(K + _EPSILON_ * Eye(K)).U
     m = PosteriorMean(gp.k, gp.m, x, U, y)
     k = PosteriorKernel(gp.k, x, U)
