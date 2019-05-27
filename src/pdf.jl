@@ -266,6 +266,12 @@ parameters.  Note that `reg` *must* be of type signature
     end
 end
 
+@unionise function map_obj(reg::Function)
+    return function f(gp::GP, x, y)
+        return map_obj(reg::Function, gp::GP, x, y)
+    end
+end
+
 """
     titsiasELBO(gp::GP, x, y::AbstractArray{<:Real})
 
