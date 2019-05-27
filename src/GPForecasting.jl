@@ -22,7 +22,7 @@ export ConstantMean,
 export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
 
 # pdf.jl
-export logpdf, objective, titsiasobj
+export logpdf, objective, reglogpdf, titsiasobj
 
 # kernel.jl
 export ▷,

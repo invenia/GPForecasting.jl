@@ -70,40 +70,80 @@ function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
     return -(log_det + length(x) * log(2π) + sum(abs2, z)) / 2
 end
 
+"""
+    function reglogpdf(
+        reg::Function,
+        gp::GP,
+        x,
+        y::AbstractArray{<:Real},
+        params::Vector{G}
+    ) where {G <: Real}
+
+Compute the log-pdf of `gp` over inputs `x` and outputs `y`, using `reg` as a regulariser
+and `params` as the parameters of `gp`. Note that `reg` *must* be of type signature
+`reg(::GP, x, ::::AbstractArray{<:Real})`. The value of `reg` will be *subtracted* from the
+log-pdf.
+"""
+@unionise function reglogpdf(
+    reg::Function,
+    gp::GP,
+    x,
+    y::AbstractArray{<:Real},
+    params::Vector{G}
+) where {G <: Real}
+    # update kernels with new parameters.
+    # if we want to update the means as well, we should overload this.
+    ngp = GP(gp.m, set(gp.k, params))
+    return logpdf(ngp::GP, x, y) - reg(ngp, x, y)
+end
+
 @unionise function Distributions.logpdf(
     gp::GP,
     x,
     y::AbstractArray{<:Real},
     params::Vector{G}
 ) where {G <: Real}
-    ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
-    # if we want to update the means as well, we should overload this.
-    return logpdf(ngp::GP, x, y)
+    return reglogpdf((a, b, c) -> 0.0, gp, x, y, params)
 end
 
-@unionise function Distributions.logpdf(
-   gp::GP{K, M},
-    x,
-    y::AbstractMatrix{<:Real},
-    params::Vector{G}
-) where {K <: LMMKernel, M <: Mean, G <: Real}
-    ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
-    # if we want to update the means as well, we should overload this.
-    return logpdf(ngp::GP, x, y)
-end
+# @unionise function Distributions.logpdf(
+#    gp::GP{K, M},
+#     x,
+#     y::AbstractMatrix{<:Real},
+#     params::Vector{G}
+# ) where {K <: LMMKernel, M <: Mean, G <: Real}
+#     ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
+#     # if we want to update the means as well, we should overload this.
+#     return logpdf(ngp::GP, x, y)
+# end
 
 # We need a different one now for the OLMM that ensures that H is updated properly.
-@unionise function Distributions.logpdf(
+@unionise function reglogpdf(
+    reg::Function,
     gp::GP{K, M},
     x,
     y::AbstractArray{<:Real},
     params::Vector{G}
 ) where {K <: OLMMKernel, M <: Mean, G <: Real}
-    ngp = GP(gp.m, set(gp.k, params)) # This has the updated H, but the old U. H might (and
-    # usually will) not be of the form H = U. S.
+    # This has the updated H, but the old U. H might (and usually will) not be of the form
+    # H = U. S.
+    ngp = GP(gp.m, set(gp.k, params))
     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
-    return logpdf(ngp::GP, x, y::AbstractArray)
+    return logpdf(ngp::GP, x, y::AbstractArray) - reg(ngp, x, y)
 end
+
+# We need a different one now for the OLMM that ensures that H is updated properly.
+# @unionise function Distributions.logpdf(
+#     gp::GP{K, M},
+#     x,
+#     y::AbstractArray{<:Real},
+#     params::Vector{G}
+# ) where {K <: OLMMKernel, M <: Mean, G <: Real}
+#     ngp = GP(gp.m, set(gp.k, params)) # This has the updated H, but the old U. H might (and
+#     # usually will) not be of the form H = U. S.
+#     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
+#     return logpdf(ngp::GP, x, y::AbstractArray)
+# end
 
 @unionise function Distributions.logpdf(
     gp::GP{K, U},

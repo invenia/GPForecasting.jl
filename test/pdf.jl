@@ -12,6 +12,18 @@
     n = Gaussian(μ, Σ)
     @test abs(logpdf(n, μ ./ 2) + 0.5*(log(det(Σ)) + 3log(2π) + (μ./2)' * Σ * μ./2)) < 1e-3
 
+    reg(gp, x, y) = sum(gp.k(x))
+    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_
+
+    # OLMM
+    A = rand(5, 3);
+    U, S, V = svd(A);
+    H = U * Diagonal(S);
+    gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, H, [EQ() ▷ Fixed(1.0), EQ() ▷ Fixed(2.0), EQ() ▷ Fixed(3.0)]));
+    y = sample(gp(x));
+    reg(gp, x, y) = sum(abs.(gp.k.H))
+    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_
+
     @testset "Titsias" begin
         # 1D
         x = collect(0:0.01:2)
