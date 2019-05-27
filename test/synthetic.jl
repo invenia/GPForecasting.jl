@@ -12,7 +12,7 @@
     function gpforecasting_1d(m, k, x_train, y_train, x_test, y_test)
         gp = GP(m, k)
         b = condition(gp, Observed(x_train), y_train)
-        pgp = learn(gp, Observed(x_train), y_train, objective, its=50, trace=false)
+        pgp = learn(gp, Observed(x_train), y_train, mle_obj, its=50, trace=false)
         a = condition(pgp, Observed(x_train), y_train)
         return [
             mse(b.m(Latent(x_test)), y_test),
@@ -25,7 +25,7 @@
     function gpforecasting_Nd(m, k, x_train, y_train)
         gp = GP(m, k)
         pgp = condition(gp, Observed(x_train), y_train)
-        o = objective(pgp, Observed(x_train), y_train)
+        o = mle_obj(pgp, Observed(x_train), y_train)
         return [o(pgp.k[:]); ∇(o)(pgp.k[:])[1]]
     end
 
@@ -91,7 +91,7 @@
             seed!(314159265)
             y_sample = vec(sample(p(Observed(x_train))))
             k = NoiseKernel(EQ() ▷ 2.0, 0.02 * DiagonalKernel())
-            pgp = learn(GP(m, k), Observed(x_train), y_sample, objective, its=50, trace=false)
+            pgp = learn(GP(m, k), Observed(x_train), y_sample, mle_obj, its=50, trace=false)
             @test exp.(pgp.k[:]) ≈ [0.7879293181025795, 0.005724751058727742] rtol = _RTOL_
         end
     end
@@ -157,7 +157,7 @@
         k = [(EQ() ▷ 10.0) for i=1:5]
         gp = GP(LMMKernel(Fixed(5), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
-        gp = learn(gp, x_train, y_train, objective, its=50, trace=false)
+        gp = learn(gp, x_train, y_train, mle_obj, its=50, trace=false)
         a = condition(gp, x_train, y_train).m(x_test)
         @test mse(vec(b), vec(y_test)) ≈ 0.927596879880526  rtol = _RTOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.8087681056630357 rtol = _RTOL_
@@ -167,7 +167,7 @@
         k = [(EQ() ▷ 10.0) for i=1:5]
         gp = GP(LMMKernel(Fixed(5), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
-        gp = learn(gp, x_train, y_train, objective, its=50, trace=false)
+        gp = learn(gp, x_train, y_train, mle_obj, its=50, trace=false)
         a = condition(gp, x_train, y_train).m(x_test)
         @test mse(vec(b), vec(y_test)) ≈ 0.8751756874359901  rtol = _RTOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.10721174421720554 rtol = _RTOL_
@@ -176,7 +176,7 @@
         k = [(EQ() ▷ 10.0) for i=1:3]
         gp = GP(LMMKernel(Fixed(3), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
-        gp = learn(gp, x_train, y_train, objective, its=50, trace=false)
+        gp = learn(gp, x_train, y_train, mle_obj, its=50, trace=false)
         a = condition(gp, x_train, y_train).m(x_test)
         @test mse(vec(b), vec(y_test)) ≈ 0.8754142897078707  rtol = _RTOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.10636472286495949 rtol = _RTOL_
@@ -185,7 +185,7 @@
         k = [(EQ() ▷ 10.0)]
         gp = GP(LMMKernel(Fixed(1), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
-        gp = learn(gp, x_train, y_train, objective, its=50, trace=false)
+        gp = learn(gp, x_train, y_train, mle_obj, its=50, trace=false)
         a = condition(gp, x_train, y_train).m(x_test)
         @test mse(vec(b), vec(y_test)) ≈ 0.8846475452351197  rtol = _RTOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.11874106402148683 rtol = _RTOL_
@@ -195,7 +195,7 @@
         k = [(EQ() ▷ 10.0) for i=1:7]
         gp = GP(LMMKernel(Fixed(7), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
-        gp = learn(gp, x_train, y_train, objective, its=50, trace=false)
+        gp = learn(gp, x_train, y_train, mle_obj, its=50, trace=false)
         a = condition(gp, x_train, y_train).m(x_test)
         @test mse(vec(b), vec(y_test)) ≈ 0.8202143612660611  rtol = _RTOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.20612005452907958 rtol = _RTOL_
@@ -333,7 +333,7 @@
         close(f)
 
         gp = GP(1.0 * (EQ() ▷ 0.5) + 1e-2 * DiagonalKernel())
-        ngp = learn(gp, x_train, y_train, objective, its = 50, trace = false)
+        ngp = learn(gp, x_train, y_train, mle_obj, its = 50, trace = false)
         pos = condition(ngp, x_train, y_train)
 
         x_test = collect(0:0.01:6);

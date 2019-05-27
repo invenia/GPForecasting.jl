@@ -2,7 +2,7 @@
     gp = GP(0, 5 * ConstantKernel())
     x = collect(1:10)
     y = 18 * ones(10)
-    obj = objective(gp, x, y)
+    obj = mle_obj(gp, x, y)
 
     @test isa(obj, Function)
     @test isa(obj(GPForecasting.pack(Positive(18))), Float64)
@@ -23,6 +23,7 @@
     y = sample(gp(x));
     reg(gp, x, y) = sum(abs.(gp.k.H))
     @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_
+    @test mle_obj(gp, x, y)(gp.k[:]) + reg(gp, x, y) ≈ map_obj(reg, gp, x, y)(gp.k[:]) atol = _ATOL_
 
     @testset "Titsias" begin
         # 1D

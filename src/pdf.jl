@@ -106,17 +106,6 @@ end
     return reglogpdf((a, b, c) -> 0.0, gp, x, y, params)
 end
 
-# @unionise function Distributions.logpdf(
-#    gp::GP{K, M},
-#     x,
-#     y::AbstractMatrix{<:Real},
-#     params::Vector{G}
-# ) where {K <: LMMKernel, M <: Mean, G <: Real}
-#     ngp = GP(gp.m, set(gp.k, params)) # update kernels with new parameters
-#     # if we want to update the means as well, we should overload this.
-#     return logpdf(ngp::GP, x, y)
-# end
-
 # We need a different one now for the OLMM that ensures that H is updated properly.
 @unionise function reglogpdf(
     reg::Function,
@@ -131,19 +120,6 @@ end
     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
     return logpdf(ngp::GP, x, y::AbstractArray) - reg(ngp, x, y)
 end
-
-# We need a different one now for the OLMM that ensures that H is updated properly.
-# @unionise function Distributions.logpdf(
-#     gp::GP{K, M},
-#     x,
-#     y::AbstractArray{<:Real},
-#     params::Vector{G}
-# ) where {K <: OLMMKernel, M <: Mean, G <: Real}
-#     ngp = GP(gp.m, set(gp.k, params)) # This has the updated H, but the old U. H might (and
-#     # usually will) not be of the form H = U. S.
-#     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
-#     return logpdf(ngp::GP, x, y::AbstractArray)
-# end
 
 @unionise function Distributions.logpdf(
     gp::GP{K, U},
@@ -264,14 +240,29 @@ end
 end
 
 """
-    objective(gp::GP, x, y::AbstractArray) -> Function
+    mle_obj(gp::GP, x, y::AbstractArray) -> Function
 
-Objective function that, when minimised, yields maximum probability of observations `y` for
-a `gp` evaluated at points `x`. Returns a function of the `GP` parameters.
+Objective function that, when minimised, yields maximum likelihood of observations `y` for
+a `gp` evaluated at points `x`. Returns a function of the `GP` parameters. Use this for
+maximum likelihood estimates.
 """
-@unionise function objective(gp::GP, x, y::AbstractArray{<:Real})
+@unionise function mle_obj(gp::GP, x, y::AbstractArray{<:Real})
     return function f(params)
         return -logpdf(gp::GP, x, y, params)
+    end
+end
+
+"""
+    map_obj(reg::Function, gp::GP, x, y::AbstractArray) -> Function
+
+Objective function that, when minimised, yields maximum likelihood of observations `y` for
+a `gp` evaluated at points `x`, regularised by `reg`. Returns a function of the `GP`
+parameters.  Note that `reg` *must* be of type signature
+`reg(::GP, x, ::::AbstractArray{<:Real})`. Use this for maximum a posteriori estimates.
+"""
+@unionise function map_obj(reg::Function, gp::GP, x, y::AbstractArray{<:Real})
+    return function f(params)
+        return -reglogpdf(reg::Function, gp::GP, x, y, params)
     end
 end
 
