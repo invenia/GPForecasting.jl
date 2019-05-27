@@ -61,8 +61,8 @@ export LMMKernel,
     MultiOutputKernel,
     NaiveLMMKernel,
     NoiseKernel,
-    OLMMKernel,
-    verynaiveLMMKernel
+    OLMMKernel
+    # verynaiveLMMKernel
 
 # core/pairwise
 export elwise_dist, pairwise_dist, sq_elwise_dist, sq_pairwise_dist

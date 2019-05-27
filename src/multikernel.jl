@@ -227,21 +227,24 @@ Base.:+(k::ScaledKernel, m::MultiKernel) = m + k
 Base.:+(m::MultiKernel, k::SumKernel) = isMulti(k) ? SumKernel(m, k) : MultiKernel(m.k .+ k)
 Base.:+(k::SumKernel, m::MultiKernel) = m + k
 
-"""
-    verynaiveLMMKernel(m, p, σ², H, k)
-
-The most naive way of doing the LMM. Basically generates the full multi-dimensional kernel
-and returns it as a general MultiKernel. Don't expect it to be efficient.
-"""
-function verynaiveLMMKernel(m, p, σ², H, k)
-    K = Matrix{Kernel}(undef, m, m)
-    K .= 0
-    for i in 1:m
-        K[i, i] = k
-    end
-    K = H * K * H' + σ² * Eye(p)
-    return MultiKernel(K)
-end
+# Leaving this here simply commented out for in case someone thinks it might be worth fixing
+# in the future. But this is pretty useless anyway.
+# """
+#     verynaiveLMMKernel(m, p, σ², H, k)
+#
+# The most naive way of doing the LMM. Basically generates the full multi-dimensional kernel
+# and returns it as a general MultiKernel. Don't expect it to be efficient.
+# """
+# function verynaiveLMMKernel(m, p, σ², H, k)
+#     K = Matrix{Kernel}(undef, m, m)
+#     K .= 0
+#     for i in 1:m
+#         K[i, i] = k
+#     end
+#     # this here is wrong, because it puts noise even for different timestamps.
+#     K = H * K * H' + σ² * Eye(p)
+#     return MultiKernel(K)
+# end
 
 """
     NaiveLMMKernel <: MultiOutputKernel
@@ -267,9 +270,8 @@ function (k::NaiveLMMKernel)(x, y)
     H = unwrap(k.H)
     σ² = unwrap(k.σ²)
     p = size(H, 1)
-    n1 = size(x, 1)
-    n2 = size(y, 1)
-    Λ = fuse(fill(σ² * Eye(p), (n1, n2)))
+    mask = DiagonalKernel()(x, y)
+    Λ = fuse(mask .* [Diagonal(fill(σ², p))])
     return kron_lid_lmul(H, kron_lid_lmul(H, k.k(x, y))')' .+ Λ
 end
 (k::NaiveLMMKernel)(x) = k(x, x)
@@ -374,6 +376,18 @@ function LMMKernel(m::Int, p::Int, σ²::Union{Float64, Vector{Float64}}, H::Mat
     )
 end
 isMulti(k::LMMKernel) = unwrap(k.p) > 1
+
+# This is decidedly not the most optimised implementation of this (we could use stuff from
+# optimisedalgebra.jl). However, this is a function that will be very rarely called. The
+# important implementation is that of the posterior, which should already be optimised.
+function (k::LMMKernel)(x, y)
+    H = unwrap(k.H)
+    Ks = (kron(k.ks[i](x, y), H[:, i] * H[:, i]') for i in 1:unwrap(k.m))
+    mask = DiagonalKernel()(x, y)
+    Λ = fuse(mask .* [Diagonal(fill(unwrap(k.σ²), unwrap(k.p)))])
+    return sum(Ks) + Λ
+end
+(k::LMMKernel)(x) = k(x, x)
 
 """
     LMMPosKernel <: MultiOutputKernel
