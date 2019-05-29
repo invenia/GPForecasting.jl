@@ -314,8 +314,9 @@ a regular GP, which will be made sparse.
 """
 @unionise function titsiasobj(gp::GP, x, y::AbstractArray{<:Real}, Xm, σ²)
     sk = SparseKernel(gp.k, Xm, σ²)
+    ngp = GP(gp.m, sk)
     return function f(params)
-        return -titsiasELBO(GP(gp.m, sk), x, y, params)
+        return -titsiasELBO(ngp, x, y, params)
     end
 end
 # TODO: A method that let's specify only the number of inducing points
