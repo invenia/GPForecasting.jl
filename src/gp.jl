@@ -190,16 +190,16 @@ PAC-Bayesian Generalisation Error Bounds and Sparse Approximations.". For other 
 some form of dispatching would be needed.
 """
 function condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
-    pos_m, pos_k = _condition_sparse(gp.k, gp.m, x, Xm, y, σ²)
+    xm = unwrap(Xm)
+    pos_m, pos_k = _condition_sparse(gp.k, gp.m, x, xm, y, σ²)
     return GP(pos_m, pos_k)
 end
 
 function _condition_sparse(k::Kernel, m::Mean, x, Xm, y::AbstractArray{<:Real}, σ²; )
-    xm = unwrap(Xm)
     # Compute the relevant Choleskys
-    Kmm = k(xm, xm)
+    Kmm = k(Xm, Xm)
     Umm = cholesky(Kmm + _EPSILON_^2 * I).U
-    Knm = k(x, xm)
+    Knm = k(x, Xm)
     T = Umm' \ Knm'
     P = I + (1/unwrap(σ²)) .* (T * T')
     Up = cholesky(P + _EPSILON_^2 * I).U
@@ -210,8 +210,8 @@ function _condition_sparse(k::Kernel, m::Mean, x, Xm, y::AbstractArray{<:Real}, 
     # Uz = Nabla.chol(Z + _EPSILON_^2 * I)
 
     # Build posterior TitsiasPosteriorKernel and TitsiasPosteriorMean
-    pos_m = TitsiasPosteriorMean(k, m, x, xm, Uz, σ², y)
-    pos_k = TitsiasPosteriorKernel(k, xm, Uz, Umm, σ²)
+    pos_m = TitsiasPosteriorMean(k, m, x, Xm, Uz, σ², y)
+    pos_k = TitsiasPosteriorKernel(k, Xm, Uz, Umm, σ²)
     return pos_m, pos_k
 end
 
@@ -223,6 +223,7 @@ function condition_sparse(gp::GP{<:OLMMKernel, <:Mean}, x, Xm, y::AbstractArray{
     D = unwrap(gp.k.D)
     S_sqrt = unwrap(gp.k.S_sqrt)
     D = isa(D, Float64) ? fill(D, m) : D
+    xm = unwrap(Xm)
     yp = y * P'
     # sparse condition gp.k.ks on y
     pos_ks = Vector{TitsiasPosteriorKernel}(undef, m)
@@ -230,7 +231,7 @@ function condition_sparse(gp::GP{<:OLMMKernel, <:Mean}, x, Xm, y::AbstractArray{
     for (k, s, d, i) in zip(gp.k.ks, S_sqrt, D, collect(1:m))
         # This is a temporary kernel meant to reuse the condition_sparse code
         tk = k + (σ²/s^2 + d) * DiagonalKernel()
-        pm, pk = _condition_sparse(tk, ZeroMean(), x, Xm, yp[:, i], sσ²)
+        pm, pk = _condition_sparse(tk, ZeroMean(), x, xm, yp[:, i], sσ²)
         # Now we move back to the proper kernels that should be stored.
         pk.k = k
         pm.k = k
