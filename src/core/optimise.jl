@@ -122,7 +122,7 @@ function learn(
     gp::GP,
     x,
     y::AbstractArray{<:Real},
-    obj::Function;
+    obj::Function=objective;
     Θ_init::Array=[],
     its=200,
     trace=true,
@@ -168,7 +168,7 @@ function learn_summary(
     gp::GP,
     x,
     y::AbstractArray{<:Real},
-    obj::Function;
+    obj::Function=objective;
     Θ_init::Array=[],
     its=200,
     trace=true,
@@ -198,7 +198,7 @@ function learn(
     gp::GP{OLMMKernel, <:Mean},
     x,
     y::AbstractMatrix{<:Real},
-    obj::Function;
+    obj::Function=objective;
     opt_U=false,
     K_U_cycles::Int=0,
     Θ_init::Array=[],
@@ -299,7 +299,7 @@ function learn_sparse(
 
     # Again, assuming we are only optimising kernels
     # Got to overload if we want parameters in the means as well
-    sk = SparseKernel(gp.k, Xm, Fixed(length(unwrap(Xm))), σ²)
+    sk = SparseKernel(gp.k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
     sparse_gp = GP(gp.m, set(sk, Θ_opt))
     return GP(sparse_gp.m, sparse_gp.k.k), sparse_gp.k.Xm, sparse_gp.k.σ²
 end

@@ -2,7 +2,7 @@
     @test sum(minimise(
         x -> x[1]^2+abs(x[2]),
         [100., 900.],
-        trace=true,
+        trace=false,
         alphaguess=LineSearches.InitialQuadratic(),
         linesearch=LineSearches.HagerZhang(),
     )) < 1e-5
@@ -10,7 +10,7 @@
     @test minimise(
         x -> (1.0 - x[1])^2 + 100.0 * (x[2] - x[1]^2)^2,
         [10., -10.],
-        trace=true,
+        trace=false,
         algorithm=Optim.ConjugateGradient,
         alphaguess=LineSearches.InitialQuadratic(),
         linesearch=LineSearches.HagerZhang(),
@@ -19,7 +19,7 @@
     gp = GP(0, EQ() ▷ 10)
     x = collect(1.0:10.0);
     y = 2 .* x .+ 1e-1 * randn()
-    ngp = learn(gp, x, y, objective, trace=true)
+    ngp = learn(gp, x, y, objective, trace=false)
     @test 1.5 < ngp.k.stretch.p < 3.5
 
     # test the OLMM learn method
