@@ -282,7 +282,7 @@ end
     sσ² = unwrap(gp.k.σ²)
     num_m = unwrap(gp.k.n)
     for i in 1:m
-        proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i]) * Eye(n)
+        proj_noise = (unwrap(gp.k.k.σ²)/(S_sqrt[i])^2 + D[i]) * Eye(n)
         # Here we compute the sparse GP contributions
         Kmm = gp.k.k.ks[i](Xm, Xm)
         Kmn = gp.k.k.ks[i](Xm, x)
