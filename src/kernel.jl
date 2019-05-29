@@ -290,7 +290,7 @@ struct RootLog <: Kernel end
 function (k::RootLog)(x::ArrayOrReal, y::ArrayOrReal)
     d = pairwise_dist(x, y)
     # This expression here is just to make sure that we get the correct limit when d → 0
-    return (log.(d .+ 1 .+ 1e-8) ./ max.(d, 1e-8)) .+ (1 - 1e8 * log(1 + 1e-8))
+    return (log.(max(d, 1e-8) .+ 1) ./ max.(d, 1e-8)) .+ (1 - 1e8 * log(1 + 1e-8))
 end
 (k::RootLog)(x::ArrayOrReal) = k(x, x)
 function elwise(k::RootLog, x::ArrayOrReal, y::ArrayOrReal)
