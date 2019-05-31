@@ -171,7 +171,7 @@ function StatsBase.sample(dist::Gaussian, n::Integer=1)
                 n= size(S, 2)
                 samples = (S[:, i] for i in 1:n)
                 out = Array{Float64}(undef, sizes..., n)
-                for (i, s) in in enumerate(samples)
+                for (i, s) in enumerate(samples)
                     out[:, :, i]  = reshape(s, sizes[2], sizes[1])'
                 end
                 return out
