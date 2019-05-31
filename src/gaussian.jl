@@ -155,13 +155,12 @@ function StatsBase.sample(dist::Gaussian, n::Integer=1)
     L = cholesky(dist).L
     # Check if the distribution is uni or multi dimensional
     if dim(dist) == size(dist, 1) # Is unidimensional
-        # This other `if` is not strictly necessary. The only thing that it does is
-        # guarantee that the output will have size (s,) instead of (s, 1) for the case
-        # n == 1. Might be some smarter way of doing so.
-        if n > 1
-            return mean(dist) .+ L * randn(dim(dist), n)
+        samples = mean(dist) .+ L * randn(dim(dist), n)
+        if n == 1
+            # want output to have size (s,) instead of (s, 1)
+            return dropdims(samples; dims=2)
         else
-            return mean(dist) .+ L * randn(dim(dist))
+            return samples
         end
     else # Is multidimensional
         # Same here is in the `if n > 1` above
