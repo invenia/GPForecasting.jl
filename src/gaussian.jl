@@ -167,9 +167,10 @@ function StatsBase.sample(dist::Gaussian, n::Integer=1)
         if n > 1
             # This also looks ugly, there might be a smarter way to do this reshape.
             function reshapesample(S::AbstractArray{Float64}, sizes::Tuple{Int, Int})
-                samples = (S[:, i] for i in 1:size(S, 2))
-                out = Array{Float64}(undef, sizes..., length(samples))
-                for (i, s) in zip(1:length(samples), samples)
+                n= size(S, 2)
+                samples = (S[:, i] for i in 1:n)
+                out = Array{Float64}(undef, sizes..., n)
+                for (i, s) in in enumerate(samples)
                     out[:, :, i]  = reshape(s, sizes[2], sizes[1])'
                 end
                 return out
