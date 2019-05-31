@@ -153,7 +153,8 @@ output will have size `(r, c, 2)`.
 """
 function StatsBase.sample(dist::Gaussian, n::Integer=1)
     L = cholesky(dist).L
-    # Check if the distribution is uni or multi dimensional
+    # Check if the distribution output space is uni or multi dimensional, i.e., check if,
+    # for each timestep (row) of the output, we have a single or multiple dimensions.
     if dim(dist) == size(dist, 1) # Is unidimensional
         samples = mean(dist) .+ L * randn(dim(dist), n)
         if n == 1
