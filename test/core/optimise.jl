@@ -18,28 +18,28 @@
            ) ≈ [1.0, 1.0] atol = _ATOL_
    end
 
-    @testset "Learn" begin 
+    @testset "Learn" begin
         gp = GP(0, EQ() ▷ 10)
         x = collect(1.0:10.0);
         y = 2 .* x .+ 1e-1 * randn()
         ngp = learn(gp, x, y, mle_obj, trace=false)
         @test 1.5 < ngp.k.stretch.p < 3.5
 
-    # test the OLMM learn method
-    xs = hcat([sin.(2π*collect(0:0.1:2)./i) for i in 1:3]...)
-    A = ones(5,5) + 2Eye(5)
-    U, S, V = svd(A)
-    H = U * Diagonal(S)[:, 1:3]
-    y = (H * xs')'
-    gp = GP(OLMMKernel(3, 5, 10., 1e-2, H, [periodicise(EQ(), i) for i in 1:3]))
-    gp.k.H = Fixed(gp.k.H)
-    x = collect(0:0.1:2)
-    ngp = learn(gp, x, y, mle_obj, opt_U=true, its=3, trace=false)
-    Ug = GPForecasting.unwrap(gp.k.U)
-    @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_
-    ngp = learn(gp, x, y, mle_obj, its=3, K_U_cycles=2, trace=false)
-    Ug = GPForecasting.unwrap(gp.k.U)
-    @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_
+        # test the OLMM learn method
+        xs = hcat([sin.(2π*collect(0:0.1:2)./i) for i in 1:3]...)
+        A = ones(5,5) + 2Eye(5)
+        U, S, V = svd(A)
+        H = U * Diagonal(S)[:, 1:3]
+        y = (H * xs')'
+        gp = GP(OLMMKernel(3, 5, 10., 1e-2, H, [periodicise(EQ(), i) for i in 1:3]))
+        gp.k.H = Fixed(gp.k.H)
+        x = collect(0:0.1:2)
+        ngp = learn(gp, x, y, mle_obj, opt_U=true, its=3, trace=false)
+        Ug = GPForecasting.unwrap(gp.k.U)
+        @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_
+        ngp = learn(gp, x, y, mle_obj, its=3, K_U_cycles=2, trace=false)
+        Ug = GPForecasting.unwrap(gp.k.U)
+        @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_
 
         # Test that the summary is outputted when called
         out = learn_summary(gp, x, y, mle_obj, its=3, trace=false)
