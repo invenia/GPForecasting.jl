@@ -28,6 +28,7 @@
             @test isa(k(1, [1, 2]), AbstractMatrix)
             @test isa(k([1, 2], 1), AbstractMatrix)
             @test isa(sprint(show, k), String)
+            @test GPForecasting.is_not_noisy(k)
             # Tolerance is high below because of the RootLog kernel. TODO: Implement a
             # more stable version of it.
             @test diag(k([1., 2., 3.])) ≈ elwise(k, [1., 2., 3.]) atol = _ATOL_#2e-4
@@ -45,6 +46,7 @@
             @test k(x) ≈ [1. 1. 0.; 1.0 2.0 0.5; 0. 0.5 0.25] atol = _ATOL_
             @test k(x, y) ≈ [0.5 1.0; 1.5 2.0; 0.5 0.5] atol = _ATOL_
             @test isposdef(k(x) + 1e-10 * I)
+            @test GPForecasting.is_not_noisy(k)
         end
 
         @testset "HazardKernel" begin
@@ -59,6 +61,7 @@
             k = HazardKernel(0.2, [5 2])
             @test k(x) ≈ [26.04 0.2; 0.2 1.] atol = _ATOL_
             @test k(x, y) ≈ [0.2 0.2 0.2; 1. 1. 1.] atol = _ATOL_
+            @test GPForecasting.is_not_noisy(k)
         end
 
         @testset "BinaryKernel" begin
@@ -73,6 +76,7 @@
             @test k([1, 0, 1]) ≈ [500 6 500; 6 1 6; 500 6 500]
             @test !isMulti(k)
             @test isa(sprint(show, k), String)
+            @test GPForecasting.is_not_noisy(k)
         end
 
         @test_throws ArgumentError SimilarHourKernel(30, zeros(30))
@@ -90,10 +94,12 @@
     @testset "Algebra" begin
         k = 5 * EQ()
         @test GPForecasting.unwrap((6 * k).scale) == 30
+        @test GPForecasting.is_not_noisy(k)
         kk = 0 * EQ()
         @test kk + k == k + kk == k
         @test isa(k * kk, ZeroKernel)
         @test isa(kk * k, ZeroKernel)
+        @test GPForecasting.is_not_noisy(kk)
         kkk = EQ()
         @test kkk + kk == kk + kkk == kkk
         @test isa(kkk * kk, ZeroKernel)
@@ -102,6 +108,7 @@
 
     @testset "Parameter" begin
         k = EQ() ▷ 0.7
+        @test GPForecasting.is_not_noisy(k)
         @test k[:][1] ≈ -0.35667637251118145 atol = _ATOL_
         k = EQ() ▷ Named(0.7, "named")
         @test k[:][1] ≈ -0.35667637251118145 atol = _ATOL_
@@ -124,6 +131,7 @@
             MA(5/2),
         ]
             k = periodicise(k, 10)
+            @test GPForecasting.is_not_noisy(k)
             @test k([1.,2.]) ≈ k([11.,12.]) atol = _ATOL_
             k = periodicise(k ▷ [2.0, 3.0], [2π, 3π])
             @test k[:][1:2] ≈ [1.8378769072543897, 2.2433420684142087] atol = _ATOL_
@@ -141,6 +149,7 @@
         df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input1, :input2])
         sqk1 = k ← :input1
         sqk2 = k ← :input2
+        @test GPForecasting.is_not_noisy(sqk1)
         @test !isMulti(sqk1)
         @test !(sqk1(df) ≈ sqk2(df))
         @test sqk2(df) ≈ ones(3, 3) atol = _ATOL_
@@ -151,7 +160,9 @@
     @testset "Sum and Products" begin
         k_sum = EQ() + EQ()
         @test !isMulti(k_sum)
+        @test GPForecasting.is_not_noisy(k_sum)
         k_prod = (2 * EQ()) * (3 * EQ())
+        @test GPForecasting.is_not_noisy(k_prod)
         @test !isMulti(k_prod)
         @test k_sum([1.])[1, 1] ≈ 2.0 atol = _ATOL_
         @test k_sum([1.], [2.])[1, 1] ≈ 1.2130613194252668 atol = _ATOL_
@@ -173,6 +184,7 @@
     @testset "PosteriorKernel" begin
         pk = PosteriorKernel(ConstantKernel(), [1,2,3], Eye(3))
         @test !isMulti(pk)
+        @test GPForecasting.is_not_noisy(pk)
         @test pk([1,2], [1,2]) ≈ [-2. -2.; -2. -2.] atol = _ATOL_
         @test isa(sprint(show, pk), String)
     end
@@ -181,6 +193,7 @@
         k = EQ() ← :in
         k2 = 5* EQ() ← :in
         mk = MultiKernel([k k2; k2 k])
+        @test GPForecasting.is_not_noisy(mk)
         input = DataFrame([rand(5), rand(5)], [:in, :bs])
         @test isa(hourly_cov(mk, input), BlockDiagonal)
         @test isa(var(k, input), Vector)
@@ -208,6 +221,7 @@
         mx = [Latent([1,2,3]), Observed([11, 22]), Latent([15])]
 
         nk = GPForecasting.NoiseKernel(EQ(), 12*DiagonalKernel()) # Giant noise to make it easy to spot
+        @test !GPForecasting.is_not_noisy(nk)
         @test !isMulti(nk)
         @test nk(px, oy) ≈ nk(ox, py) ≈ nk(px, py)
         @test nk(ox, oy) ≈ nk(px, py) + [12 0 0 0 0; 0 12 0 0 0; 0 0 12 0 0; 0 0 0 0 0; 0 0 0 0 0] atol = _ATOL_
@@ -398,6 +412,7 @@
         mk = ManifoldKernel(k, nn)
 
         x = rand(50)
+        @test GPForecasting.is_not_noisy(mk)
         @test isa(mk(x), AbstractMatrix)
         @test mk(x) ≈ mk(x, x) atol = _ATOL_
         @test diag(mk(x)) ≈ var(mk, x) atol = _ATOL_
@@ -406,6 +421,7 @@
         k = NoiseKernel(1.0 * stretch(EQ(), Positive([1.0, 1.0])), Fixed(1e-2) * DiagonalKernel())
         x = Observed(x)
         mk = ManifoldKernel(k, nn)
+        @test !GPForecasting.is_not_noisy(mk)
         @test isa(mk(x), AbstractMatrix)
         @test mk(x) ≈ mk(x, x) atol = _ATOL_
         @test diag(mk(x)) ≈ var(mk, x) atol = _ATOL_

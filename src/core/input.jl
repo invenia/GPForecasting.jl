@@ -18,6 +18,19 @@ struct Observed <: Input
 end
 
 """
+    `_Observed` <: Input
+
+Type for inputs that correspond to noisy observations under Titsias' sparse GPs framework.
+This is an internal type that the user should not touch. The reason for this type to exist
+is such that we can predict noisy functions with uncorrelated noisy (i.e., `k(xd, x)` does
+not add observation noise, with `xd` the inputs over which we conditioned and `x` the
+predictive inputs).
+"""
+struct _Observed <: Input
+    val
+end
+
+"""
     Latent <: Input
 
 Type for inputs that correspond to non-noisy observations.
@@ -27,7 +40,11 @@ struct Latent <: Input
 end
 
 function Base.getindex(x::Input, i::Int, j::Colon)
-    return typeof(x)(x.val[i, :])
+    if !isa(x.val, DataFrame)
+        return typeof(x)(reshape(x.val[i, :], 1, size(x.val, 2)))
+    else
+        return typeof(x)(DataFrame(x.val[i, :]))
+    end
 end
 
 function Base.getindex(x::Input, i::Int)

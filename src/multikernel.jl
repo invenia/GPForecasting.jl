@@ -44,6 +44,9 @@ isMulti(k::NoiseKernel) = isMulti(k.k_true)
 function (k::NoiseKernel)(x::Observed, y::Observed)
     return (k.k_true + k.k_noise)(x.val, y.val)
 end
+function (k::NoiseKernel)(x::_Observed, y::_Observed)
+    return (k.k_true + k.k_noise)(x.val, y.val)
+end
 function Statistics.var(k::NoiseKernel, x::Input)
     if isa(x.val, DataFrame)
         return reduce(hcat, [diag(k(typeof(x)(xx))) for xx in eachrow(x.val)])'
@@ -106,6 +109,7 @@ function hourly_cov(k::NoiseKernel, x::Vector{Input})
     end
     return out
 end
+is_not_noisy(k::NoiseKernel) = false
 # TODO: Allow the mixing of typed and untyped `Input`s.
 # TODO: Make this function also output BlockDiagonal.
 

@@ -202,8 +202,7 @@ mutable struct TitsiasPosteriorMean <: Mean
         )
     end
 end
-
-function (m::TitsiasPosteriorMean)(x)
+function _titsposmean(m::TitsiasPosteriorMean, x)
     xn = unwrap(m.x)
     Xm = unwrap(m.Xm)
     Uz = unwrap(m.Uz)
@@ -216,4 +215,23 @@ function (m::TitsiasPosteriorMean)(x)
     Kmn = m.k(Xm, xn)
     posmeans = (1/σ²) .* ((Kxm / Uz) * (Uz' \ Kmn)) * ydv
     return unstack(posmeans, size(yd, 2))
+end
+function (m::TitsiasPosteriorMean)(x)
+    if is_not_noisy(m.k)
+        @warn(
+            """
+                Working on the extended input space. Output will be two dimensional,
+                corresponding to the noisy and denoised predictions. To compute only the
+                noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
+            """
+        )
+        val = _titsposmean(m::TitsiasPosteriorMean, x)
+        return [val val]
+    else
+        return _titsposmean(m::TitsiasPosteriorMean, x)
+    end 
+end
+function (m::TitsiasPosteriorMean)(x::Input)
+    xx = is_not_noisy(m.k) ? x.val : x
+    return _titsposmean(m::TitsiasPosteriorMean, xx)
 end

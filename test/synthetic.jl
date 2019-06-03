@@ -355,7 +355,7 @@
         spos = GPForecasting.condition_sparse(sgp, xtrain, Xm, y_train, σ²)
 
         xtest = DataFrame([x_test, rand(size(x_test, 1))], [:data, :bs])
-        smeans, slb, sub = credible_interval(spos, xtest);
+        smeans, slb, sub = credible_interval(spos, Observed(xtest));
 
         @test mean(abs.(means .- smeans)) / mean(abs.(means)) < 0.01
         @test mean(abs.(lb .- slb)) / mean(abs.(lb)) < 0.01
@@ -363,7 +363,15 @@
         @test isa(Xm, DataFrame)
         @test Xm_i[:bs] ≈ Xm[:bs]
         @test !(Xm[:data] ≈ Xm_i[:data])
-        @test size(spos.k(xtest[1:5, :], xtest[1:8, :])) == (5, 8)
+        @test size(spos.k(Observed(xtest[1:5, :]), Observed(xtest[1:8, :]))) == (5, 8)
+        @test size(spos.k(Latent(xtest[1:5, :]), Observed(xtest[1:8, :]))) == (5, 8)
+        @test size(spos.k(xtest[1:5, :], xtest[1:8, :])) == (10, 16)
+        smeansl, slbl, subl = credible_interval(spos, Latent(xtest));
+        @test smeansl ≈ smeans atol = _ATOL_
+        @test all(slbl .> slb)
+        @test all(subl .< sub)
+        @test size(spos.m(xtest[1:5, :])) == (5, 2)
+        @test size(spos.m(Observed(xtest[1:5, :]))) == (5,)
 
         # OLMM
         ytrain = [y_train y_train]
@@ -396,7 +404,7 @@
             [k for i in 1:2])
         )
         spos = GPForecasting.condition_sparse(sgp, xtrain, xtrain, ytrain, 0.01)
-        smeans, s_lb, s_ub = credible_interval(spos, xtest)
+        smeans, s_lb, s_ub = credible_interval(spos, Observed(xtest))
         @test mean(abs.(means .- smeans)) / mean(abs.(means)) < 0.01
         @test mean(abs.(lb .- s_lb)) / mean(abs.(lb)) < 0.01
         @test mean(abs.(ub .- s_ub)) / mean(abs.(ub)) < 0.01
