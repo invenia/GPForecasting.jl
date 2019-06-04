@@ -44,7 +44,7 @@
         @test v4 ≈ -v1 atol = 1e-8
         # 2D Input
         x = [x reverse(x)]
-        y = sin.(4π * sum(x, dims=2)) .+ 1e-1 .* randn(size(x, 1))
+        y = sin.(4π * sum(x, dims=2)) .+ 1e-1 .* randn(size(x, 1)); y = dropdims(y, dims=2)
         v1 = GPForecasting.logpdf(GP(periodicise(EQ(), 1.0) + 0.01 * DiagonalKernel()), x, y)
         Xm = collect(0:0.1:2);
         Xm = [Xm reverse(Xm)];

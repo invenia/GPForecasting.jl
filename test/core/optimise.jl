@@ -69,7 +69,7 @@
         @test GPForecasting.unwrap(σ²) == 0.01
         # Multidmensional inputs
         x = [x reverse(x)]
-        y = sin.(4π * sum(x, dims=2)) .+ 1e-1 .* randn(size(x, 1))
+        y = sin.(4π * sum(x, dims=2)) .+ 1e-1 .* randn(size(x, 1)); y = dropdims(y, dims=2)
         gp = GP(periodicise(EQ(), 1.0))
         Xm_i = [0.0, 1.0, 2.0]
         Xm_i = [Xm_i reverse(Xm_i)]
