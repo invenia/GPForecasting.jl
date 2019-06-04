@@ -298,8 +298,8 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     # L = cholesky(Kmm + Kmn * Kmn' ./ σ² + _EPSILON_^2 * Eye(num_m)).L
     log_dets = -sum(log, diag(Umm)) + sum(log, diag(L))
     μ = y .- m(x)
-    Z = (L \ Kmn) * μ
-    log_N = -0.5 * (n * log(2π * σ²) + 2 * log_dets + (μ' * μ) / σ² - (Z' * Z) / (σ²)^2)
+    Z = L \ (Kmn * μ)
+    log_N = -0.5 * (n * log(2π * σ²) + 2 * log_dets + ((μ' * μ) - (Z' * Z) / (σ²)) / σ²)
     # Compute K̅
     return log_N - (2 * σ²)^(-1) * (sum(var(k, x)) - sum(w -> w^2, T))
 end
@@ -374,7 +374,7 @@ end
         # L = cholesky(Kmm + Kmn * Kmn' ./ σ² + _EPSILON_^2 * Eye(num_m)).L
         log_dets = -sum(log, diag(Umm)) + sum(log, diag(L))
         μ = yl[:, i]
-        Z = (L \ Kmn) * μ
+        Z = L \ (Kmn * μ)
         log_N = -0.5 * (n * log(2π * pσ²) + 2 * log_dets + (μ' * μ) / pσ² - (Z' * Z) / (pσ²)^2)
         gln = Gaussian(zeros(n), proj_noise * Eye(n))
         slpdf = log_N - (2 * sσ²)^(-1) * (sum(var(gp.k.k.ks[i], x)) - sum(w -> w^2, T))
