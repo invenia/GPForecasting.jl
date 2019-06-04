@@ -12,7 +12,12 @@ end
 Base.size(k::MultiOutputKernel, i::Int) = size(k([1.0]), i)
 
 function hourly_cov(k::MultiOutputKernel, x)
-     ks = [k(x[i, :]) for i in 1:size(x, 1)]
+    ks = [k(x[i, :]) for i in 1:size(x, 1)]
+    return BlockDiagonal(ks)
+end
+
+function hourly_cov(k::MultiOutputKernel, x::AbstractMatrix{<:Real})
+    ks = [k(x[i, :]') for i in 1:size(x, 1)]
     return BlockDiagonal(ks)
 end
 
