@@ -29,104 +29,104 @@
         return [o(pgp.k[:]); ∇(o)(pgp.k[:])[1]]
     end
 
-    @testset "One dimensional problems" begin
-        seed!(314159265)
-        n = 50
-        f_1d(x) = sin.(x) .* sin.(2.0 * x) + 0.25 * rand(n)
-        x_train = sort(2pi .* rand(n))
-        x_test = sort(2pi .* rand(n))
-        y_train = f_1d(x_train)
-        y_test = f_1d(x_test)
-
-        m = ZeroMean()
-
-        @testset "Kernels" begin
-            k = NoiseKernel(2.0 * (EQ() ▷ 10.0), 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.14825538985254585, -1476.7191748817445,
-                0.006339639909681351, 0.5729040630047109] rtol = _RTOL_
-            k = NoiseKernel(2.0 * periodicise(EQ() ▷ 10.0, 2π), 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.13079765742455027, -760.2721834289244,
-                0.010108277078091326, -0.3649906189846872] rtol = _RTOL_
-            k = NoiseKernel(2.0 * (RQ(2.0) ▷ 5.0), 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.12226859947646133, -771.9774842426579,
-                0.006339625546752299, 0.5728913634245152] rtol = _RTOL_
-            k = NoiseKernel(2.0 * (MA(5/2) ▷ 10.0), 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.11075488248840884, -625.1263034476407,
-                0.005838031744600918, 0.8934805590277801] rtol = _RTOL_
-            k = NoiseKernel(2.0 * ((EQ() ▷ 10.0) + periodicise(EQ() ▷ 10.0, 2π) * (RQ(2.0) ▷ 10.0))
-                + (MA(5/2) ▷ 10.0), 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.10434757275194265, -514.815138737102,
-                0.005479951882127995, 0.3219275089452709] rtol = _RTOL_
-        end
-
-        @testset "Parameters" begin
-            k = NoiseKernel(2.0 * (EQ() ▷ Positive(10.0)), 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.14825538985254585, -1476.7191748817445,
-                0.006339639909681351, 0.5729040630047109] rtol = _RTOL_
-            k = NoiseKernel(2.0 * (EQ() ▷ Fixed(10.0)), 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.14825538985254585, -1476.7191748817445,
-                0.15858203241161153, -9.226749455383052] rtol = _RTOL_
-            k = NoiseKernel(2.0 * (EQ() ▷ Bounded(10.0, 9.0, 11.0)), 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.14825538985254585, -1476.7191748817445,
-                0.15799166609928814, -9.14512057822587] rtol = _RTOL_
-            k = NoiseKernel(Fixed(2.0) * (EQ() ▷ Positive(10.0) +
-                periodicise(EQ() ▷ 10.0, Fixed(2π)) * RQ(Bounded(2.0, 1.5, 4.0)) ▷ 10.0) +
-                MA(5/2) ▷ 10.0, 0.001 * DiagonalKernel())
-            @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
-                [0.11769231376325562, -745.8368568684314,
-                0.005934614644065813, 0.8602727131669052] rtol = _RTOL_
-        end
-
-        @testset "Sampled from GP" begin
-            k = NoiseKernel(EQ() ▷ 0.7, 0.01 * DiagonalKernel())
-            p = condition(GP(m, k), Observed(x_train), y_train)
-            seed!(314159265)
-            y_sample = vec(sample(p(Observed(x_train))))
-            k = NoiseKernel(EQ() ▷ 2.0, 0.02 * DiagonalKernel())
-            pgp = learn(GP(m, k), Observed(x_train), y_sample, mle_obj, its=50, trace=false)
-            @test exp.(pgp.k[:]) ≈ [0.7879293181025795, 0.005724751058727742] rtol = _RTOL_
-        end
-    end
-
-    @testset "Multidimensional input problems" begin
-
-        seed!(314159265)
-        n = 100
-        d = 3
-        s = collect(1.0:1.0:d)
-        f_Md(x) = prod(sin.(x .* s'), dims=2)[:] + 0.1 * rand(n)
-        x_train = 2pi .* rand(n, d)
-        y_train = f_Md(x_train)
-
-        m = ZeroMean()
-
-        k = NoiseKernel(1.0 * (EQ() ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
-        @test gpforecasting_Nd(m, k, x_train, y_train) ≈
-            [-563.8558154227734, -2.499981131718716e7, -534.6407925136859,
-            -464.71299879973594, -404.09023778090716, -24779.550162742707] rtol = _RTOL_
-        k = NoiseKernel(2.0 * periodicise(EQ() ▷ [5.0 for i=1:d],
-            [2π for i=1:d]), 0.001 * DiagonalKernel())
-        @test gpforecasting_Nd(m, k, x_train, y_train) ≈
-            [-562.6989054719278, -4.9999872575423315e7, -232.66363721841196,
-            -53.71585730176522, -177.59044544763736, -197.15399559966824,
-            -190.27007463253395, -166.5338842075279, -24182.313430424398] rtol = _RTOL_
-        k = NoiseKernel(2.0 * (RQ(Fixed(2.0)) ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
-        @test gpforecasting_Nd(m, k, x_train, y_train) ≈
-            [-564.1889437420803, -4.9999885050279684e7, -181.8608782523528,
-            -159.26934605686552, -140.12542604317656, -24953.94896081927] rtol = _RTOL_
-        k = NoiseKernel(2.0 * (MA(5/2) ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
-        @test gpforecasting_Nd(m, k, x_train, y_train) ≈
-            [-564.2224589732117, -4.999992177482256e7, -51.00221804594257,
-            -52.366706897103924, -54.317938124597326, -24973.305713052014] rtol = _RTOL_
-    end
+    # @testset "One dimensional problems" begin
+    #     seed!(314159265)
+    #     n = 50
+    #     f_1d(x) = sin.(x) .* sin.(2.0 * x) + 0.25 * rand(n)
+    #     x_train = sort(2pi .* rand(n))
+    #     x_test = sort(2pi .* rand(n))
+    #     y_train = f_1d(x_train)
+    #     y_test = f_1d(x_test)
+    #
+    #     m = ZeroMean()
+    #
+    #     @testset "Kernels" begin
+    #         k = NoiseKernel(2.0 * (EQ() ▷ 10.0), 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.14825538985254585, -1476.7191748817445,
+    #             0.006339639909681351, 0.5729040630047109] rtol = _RTOL_
+    #         k = NoiseKernel(2.0 * periodicise(EQ() ▷ 10.0, 2π), 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.13079765742455027, -760.2721834289244,
+    #             0.010108277078091326, -0.3649906189846872] rtol = _RTOL_
+    #         k = NoiseKernel(2.0 * (RQ(2.0) ▷ 5.0), 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.12226859947646133, -771.9774842426579,
+    #             0.006339625546752299, 0.5728913634245152] rtol = _RTOL_
+    #         k = NoiseKernel(2.0 * (MA(5/2) ▷ 10.0), 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.11075488248840884, -625.1263034476407,
+    #             0.005838031744600918, 0.8934805590277801] rtol = _RTOL_
+    #         k = NoiseKernel(2.0 * ((EQ() ▷ 10.0) + periodicise(EQ() ▷ 10.0, 2π) * (RQ(2.0) ▷ 10.0))
+    #             + (MA(5/2) ▷ 10.0), 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.10434757275194265, -514.815138737102,
+    #             0.005479951882127995, 0.3219275089452709] rtol = _RTOL_
+    #     end
+    #
+    #     @testset "Parameters" begin
+    #         k = NoiseKernel(2.0 * (EQ() ▷ Positive(10.0)), 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.14825538985254585, -1476.7191748817445,
+    #             0.006339639909681351, 0.5729040630047109] rtol = _RTOL_
+    #         k = NoiseKernel(2.0 * (EQ() ▷ Fixed(10.0)), 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.14825538985254585, -1476.7191748817445,
+    #             0.15858203241161153, -9.226749455383052] rtol = _RTOL_
+    #         k = NoiseKernel(2.0 * (EQ() ▷ Bounded(10.0, 9.0, 11.0)), 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.14825538985254585, -1476.7191748817445,
+    #             0.15799166609928814, -9.14512057822587] rtol = _RTOL_
+    #         k = NoiseKernel(Fixed(2.0) * (EQ() ▷ Positive(10.0) +
+    #             periodicise(EQ() ▷ 10.0, Fixed(2π)) * RQ(Bounded(2.0, 1.5, 4.0)) ▷ 10.0) +
+    #             MA(5/2) ▷ 10.0, 0.001 * DiagonalKernel())
+    #         @test gpforecasting_1d(m, k, x_train, y_train, x_test, y_test) ≈
+    #             [0.11769231376325562, -745.8368568684314,
+    #             0.005934614644065813, 0.8602727131669052] rtol = _RTOL_
+    #     end
+    #
+    #     @testset "Sampled from GP" begin
+    #         k = NoiseKernel(EQ() ▷ 0.7, 0.01 * DiagonalKernel())
+    #         p = condition(GP(m, k), Observed(x_train), y_train)
+    #         seed!(314159265)
+    #         y_sample = vec(sample(p(Observed(x_train))))
+    #         k = NoiseKernel(EQ() ▷ 2.0, 0.02 * DiagonalKernel())
+    #         pgp = learn(GP(m, k), Observed(x_train), y_sample, mle_obj, its=50, trace=false)
+    #         @test exp.(pgp.k[:]) ≈ [0.7879293181025795, 0.005724751058727742] rtol = _RTOL_
+    #     end
+    # end
+    #
+    # @testset "Multidimensional input problems" begin
+    #
+    #     seed!(314159265)
+    #     n = 100
+    #     d = 3
+    #     s = collect(1.0:1.0:d)
+    #     f_Md(x) = prod(sin.(x .* s'), dims=2)[:] + 0.1 * rand(n)
+    #     x_train = 2pi .* rand(n, d)
+    #     y_train = f_Md(x_train)
+    #
+    #     m = ZeroMean()
+    #
+    #     k = NoiseKernel(1.0 * (EQ() ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
+    #     @test gpforecasting_Nd(m, k, x_train, y_train) ≈
+    #         [-563.8558154227734, -2.499981131718716e7, -534.6407925136859,
+    #         -464.71299879973594, -404.09023778090716, -24779.550162742707] rtol = _RTOL_
+    #     k = NoiseKernel(2.0 * periodicise(EQ() ▷ [5.0 for i=1:d],
+    #         [2π for i=1:d]), 0.001 * DiagonalKernel())
+    #     @test gpforecasting_Nd(m, k, x_train, y_train) ≈
+    #         [-562.6989054719278, -4.9999872575423315e7, -232.66363721841196,
+    #         -53.71585730176522, -177.59044544763736, -197.15399559966824,
+    #         -190.27007463253395, -166.5338842075279, -24182.313430424398] rtol = _RTOL_
+    #     k = NoiseKernel(2.0 * (RQ(Fixed(2.0)) ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
+    #     @test gpforecasting_Nd(m, k, x_train, y_train) ≈
+    #         [-564.1889437420803, -4.9999885050279684e7, -181.8608782523528,
+    #         -159.26934605686552, -140.12542604317656, -24953.94896081927] rtol = _RTOL_
+    #     k = NoiseKernel(2.0 * (MA(5/2) ▷ [2.0 for i=1:d]), 0.001 * DiagonalKernel())
+    #     @test gpforecasting_Nd(m, k, x_train, y_train) ≈
+    #         [-564.2224589732117, -4.999992177482256e7, -51.00221804594257,
+    #         -52.366706897103924, -54.317938124597326, -24973.305713052014] rtol = _RTOL_
+    # end
 
     @testset "Multidimensional output problems" begin
         seed!(314159265)
