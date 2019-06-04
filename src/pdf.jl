@@ -225,12 +225,11 @@ end
     # These decouple amongst different latent processes, so we can compute one at time.
     yl = y * P'
     for i in 1:m
-        proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i]) * Eye(n)
+        proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i])
         Σlk = gp.k.ks[i](x)
-        glk = Gaussian(Zeros(n), proj_noise + Σlk)
-        gln = Gaussian(Zeros(n), proj_noise)
+        glk = Gaussian(Zeros(n), proj_noise * Eye(n) + Σlk)
         yls = yl[:, i]
-        lpdf += logpdf(glk, yls) - logpdf(gln, yls)
+        lpdf += logpdf(glk, yls) + 0.5 * (n * log(2π * proj_noise) + yls' * yls / proj_noise)
     end
     return lpdf
 end
@@ -304,6 +303,7 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     return log_N - (2 * σ²)^(-1) * (sum(var(k, x)) - sum(w -> w^2, T))
 end
 
+# This is here simply for reference, as it is more readable.
 @unionise function slowtitsiasELBO(gp::GP, x, y::AbstractArray{<:Real})
     Xm = unwrap(gp.k.Xm)
     k = gp.k.k
@@ -376,9 +376,8 @@ end
         μ = yl[:, i]
         Z = L \ (Kmn * μ)
         log_N = -0.5 * (n * log(2π * pσ²) + 2 * log_dets + (μ' * μ) / pσ² - (Z' * Z) / (pσ²)^2)
-        gln = Gaussian(zeros(n), proj_noise * Eye(n))
         slpdf = log_N - (2 * sσ²)^(-1) * (sum(var(gp.k.k.ks[i], x)) - sum(w -> w^2, T))
-        lpdf += slpdf - logpdf(gln, yl[:, i])
+        lpdf += slpdf + 0.5 * (n * log(2π * proj_noise) + μ' * μ / proj_noise)
     end
     return lpdf
 end
