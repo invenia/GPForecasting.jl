@@ -376,7 +376,7 @@ end
         μ = yl[:, i]
         Z = L \ (Kmn * μ)
         log_N = -0.5 * (n * log(2π * pσ²) + 2 * log_dets + (μ' * μ) / pσ² - (Z' * Z) / (pσ²)^2)
-        slpdf = log_N - (2 * sσ²)^(-1) * (sum(var(gp.k.k.ks[i], x)) - sum(w -> w^2, T))
+        slpdf = log_N - (sum(var(gp.k.k.ks[i], x)) - sum(w -> w^2, T)) / (2 * sσ²)
         lpdf += slpdf + 0.5 * (n * log(2π * proj_noise) + μ' * μ / proj_noise)
     end
     return lpdf
