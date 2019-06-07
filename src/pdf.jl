@@ -225,12 +225,11 @@ end
     # These decouple amongst different latent processes, so we can compute one at time.
     yl = y * P'
     for i in 1:m
-        proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i]) * Eye(n)
+        proj_noise = (unwrap(gp.k.σ²)/(S_sqrt[i])^2 + D[i])
         Σlk = gp.k.ks[i](x)
-        glk = Gaussian(Zeros(n), proj_noise + Σlk)
-        gln = Gaussian(Zeros(n), proj_noise)
+        glk = Gaussian(Zeros(n), proj_noise * Eye(n) + Σlk)
         yls = yl[:, i]
-        lpdf += logpdf(glk, yls) - logpdf(gln, yls)
+        lpdf += logpdf(glk, yls) + 0.5 * (n * log(2π * proj_noise) + yls' * yls / proj_noise)
     end
     return lpdf
 end
@@ -278,7 +277,34 @@ end
 Compute the lower bound for the posterior logpdf under Titsias' approach. See:
 "Variational Learning of Inducing Variables in Sparse Gaussian Processes"
 """
-@unionise function titsiasELBO(gp::GP, x, y::AbstractArray{<:Real})
+@unionise function titsiasELBO(gp::GP, x, y::AbstractVector{<:Real})
+    Xm = unwrap(gp.k.Xm)
+    k = gp.k.k
+    m = gp.m
+    σ² = unwrap(gp.k.σ²)
+    num_m = unwrap(gp.k.n)
+    n = size(x, 1)
+    # Compute first term
+    Kmm = k(Xm, Xm)
+    Kmn = k(Xm, x)
+    Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
+    T = Umm' \ Kmn
+    P = Eye(num_m) + (T * T') ./ σ²
+    Up = cholesky(P).U
+    L = (Up * Umm)'
+    # The implementation above should be mathematically equivalent to the one below, but
+    # numerically more stable.
+    # L = cholesky(Kmm + Kmn * Kmn' ./ σ² + _EPSILON_^2 * Eye(num_m)).L
+    log_dets = -sum(log, diag(Umm)) + sum(log, diag(L))
+    μ = y .- m(x)
+    Z = L \ (Kmn * μ)
+    log_N = -0.5 * (n * log(2π * σ²) + 2 * log_dets + ((μ' * μ) - (Z' * Z) / σ²) / σ²)
+    # Compute K̅
+    return log_N - (sum(var(k, x)) - sum(w -> w^2, T)) / (2 * σ²)
+end
+
+# This is here simply for reference, as it is more readable.
+@unionise function slowtitsiasELBO(gp::GP, x, y::AbstractArray{<:Real})
     Xm = unwrap(gp.k.Xm)
     k = gp.k.k
     m = gp.m
@@ -333,18 +359,25 @@ end
     sσ² = unwrap(gp.k.σ²)
     num_m = unwrap(gp.k.n)
     for i in 1:m
-        proj_noise = (unwrap(gp.k.k.σ²)/(S_sqrt[i])^2 + D[i]) * Eye(n)
+        proj_noise = unwrap(gp.k.k.σ²) / S_sqrt[i]^2 + D[i]
+        pσ² = sσ² + proj_noise
         # Here we compute the sparse GP contributions
         Kmm = gp.k.k.ks[i](Xm, Xm)
         Kmn = gp.k.k.ks[i](Xm, x)
         Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
-        Q_sqrt = Umm' \ Kmn
-        Qnn = Q_sqrt' * Q_sqrt
-        log_N = logpdf(Gaussian(Zeros(n), Qnn + sσ² * Eye(n) + proj_noise), yl[:, i])
-        gln = Gaussian(zeros(n), proj_noise)
-        # The implementation below is better, but leads to Nabla issues. TODO: make it work,
-        slpdf = log_N - (2 * sσ²)^(-1) * (sum(var(gp.k.k.ks[i], x)) - tr(Qnn))
-        lpdf += slpdf - logpdf(gln, yl[:, i])
+        T = Umm' \ Kmn
+        P = Eye(num_m) + (T * T') ./ pσ²
+        Up = cholesky(P).U
+        L = (Up * Umm)'
+        # The implementation above should be mathematically equivalent to the one below, but
+        # numerically more stable.
+        # L = cholesky(Kmm + Kmn * Kmn' ./ σ² + _EPSILON_^2 * Eye(num_m)).L
+        log_dets = -sum(log, diag(Umm)) + sum(log, diag(L))
+        μ = yl[:, i]
+        Z = L \ (Kmn * μ)
+        log_N = -0.5 * (n * log(2π * pσ²) + 2 * log_dets + (μ' * μ) / pσ² - (Z' * Z) / (pσ²)^2)
+        slpdf = log_N - (sum(var(gp.k.k.ks[i], x)) - sum(w -> w^2, T)) / (2 * sσ²)
+        lpdf += slpdf + 0.5 * (n * log(2π * proj_noise) + μ' * μ / proj_noise)
     end
     return lpdf
 end
