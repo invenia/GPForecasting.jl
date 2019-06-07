@@ -300,7 +300,7 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     Z = L \ (Kmn * μ)
     log_N = -0.5 * (n * log(2π * σ²) + 2 * log_dets + ((μ' * μ) - (Z' * Z) / σ²) / σ²)
     # Compute K̅
-    return log_N - (2 * σ²)^(-1) * (sum(var(k, x)) - sum(w -> w^2, T))
+    return log_N - (sum(var(k, x)) - sum(w -> w^2, T)) / (2 * σ²)
 end
 
 # This is here simply for reference, as it is more readable.
