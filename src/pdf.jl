@@ -298,7 +298,7 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     log_dets = -sum(log, diag(Umm)) + sum(log, diag(L))
     μ = y .- m(x)
     Z = L \ (Kmn * μ)
-    log_N = -0.5 * (n * log(2π * σ²) + 2 * log_dets + ((μ' * μ) - (Z' * Z) / (σ²)) / σ²)
+    log_N = -0.5 * (n * log(2π * σ²) + 2 * log_dets + ((μ' * μ) - (Z' * Z) / σ²) / σ²)
     # Compute K̅
     return log_N - (2 * σ²)^(-1) * (sum(var(k, x)) - sum(w -> w^2, T))
 end
