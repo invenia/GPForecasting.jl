@@ -290,7 +290,7 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
     T = Umm' \ Kmn
     P = Eye(num_m) + (T * T') ./ σ²
-    Up = cholesky(P + _EPSILON_^2 * Eye(num_m)).U
+    Up = cholesky(P).U
     L = (Up * Umm)'
     # The implementation above should be mathematically equivalent to the one below, but
     # numerically more stable.
