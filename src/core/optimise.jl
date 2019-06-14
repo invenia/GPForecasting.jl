@@ -25,7 +25,7 @@ function minimise(
     linesearch=LineSearches.BackTracking(),
     kwargs...
 )
-
+    its < 1 && return x_init
     ∇grad   = ∇(f)
     function grad!(storage::Vector, x::Vector)
         storage[:] = ∇grad(x)[1]
