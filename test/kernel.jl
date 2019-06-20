@@ -47,6 +47,11 @@
             @test k(x, y) ≈ [0.5 1.0; 1.5 2.0; 0.5 0.5] atol = _ATOL_
             @test isposdef(k(x) + 1e-10 * I)
             @test GPForecasting.is_not_noisy(k)
+            k = DotKernel(1.0)
+            @test k(x) ≈ [2.0 1.0 1.5; 1.0 1.0 1.0; 1.5 1.0 2.25]
+            k = DotKernel([1.0, 1.0, 0.0])
+            @test k(x) ≈ [1.0 0.0 0.5; 0.0 0.0 0.0; 0.5 0.0 1.25]
+            @test isposdef(k(x) + 1e-10 * I)
         end
 
         @testset "HazardKernel" begin
