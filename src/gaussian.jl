@@ -153,24 +153,25 @@ output will have size `(r, c, 2)`.
 """
 function StatsBase.sample(dist::Gaussian, n::Integer=1)
     L = cholesky(dist).L
-    # Check if the distribution is uni or multi dimensional
+    # Check if the distribution output space is uni or multi dimensional, i.e., check if,
+    # for each timestep (row) of the output, we have a single or multiple dimensions.
     if dim(dist) == size(dist, 1) # Is unidimensional
-        # This other `if` is not strictly necessary. The only thing that it does is
-        # guarantee that the output will have size (s,) instead of (s, 1) for the case
-        # n == 1. Might be some smarter way of doing so.
-        if n > 1
-            return mean(dist) .+ L * randn(dim(dist), n)
+        samples = mean(dist) .+ L * randn(dim(dist), n)
+        if n == 1
+            # want output to have size (s,) instead of (s, 1)
+            return dropdims(samples; dims=2)
         else
-            return mean(dist) .+ L * randn(dim(dist))
+            return samples
         end
     else # Is multidimensional
         # Same here is in the `if n > 1` above
         if n > 1
             # This also looks ugly, there might be a smarter way to do this reshape.
             function reshapesample(S::AbstractArray{Float64}, sizes::Tuple{Int, Int})
-                samples = (S[:, i] for i in 1:size(S, 2))
-                out = Array{Float64}(undef, sizes..., length(samples))
-                for (i, s) in zip(1:length(samples), samples)
+                n= size(S, 2)
+                samples = (S[:, i] for i in 1:n)
+                out = Array{Float64}(undef, sizes..., n)
+                for (i, s) in enumerate(samples)
                     out[:, :, i]  = reshape(s, sizes[2], sizes[1])'
                 end
                 return out

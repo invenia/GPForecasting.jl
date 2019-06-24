@@ -47,6 +47,11 @@
             @test k(x, y) ≈ [0.5 1.0; 1.5 2.0; 0.5 0.5] atol = _ATOL_
             @test isposdef(k(x) + 1e-10 * I)
             @test GPForecasting.is_not_noisy(k)
+            k = DotKernel(1.0)
+            @test k(x) ≈ [2.0 1.0 1.5; 1.0 1.0 1.0; 1.5 1.0 2.25]
+            k = DotKernel([1.0, 1.0, 0.0])
+            @test k(x) ≈ [1.0 0.0 0.5; 0.0 0.0 0.0; 0.5 0.0 1.25]
+            @test isposdef(k(x) + 1e-10 * I)
         end
 
         @testset "HazardKernel" begin
@@ -428,5 +433,28 @@
         @test mk(x) ≈ mk(x, x) atol = _ATOL_
         @test diag(mk(x)) ≈ var(mk, x) atol = _ATOL_
         @test hourly_cov(mk, x) ≈ Diagonal(var(mk, x)) atol = _ATOL_
+    end
+
+    @testset "hourly_cov" begin
+        n = 100;
+        p = 5;
+        m = 3;
+        d = 3;
+        x = rand(n, d);
+        y = rand(n, p);
+        H = rand(p, m);
+        U, S, V = svd(H);
+        H = U * Diagonal(sqrt.(S))
+        k = [(EQ() ▷ 10.0) for i=1:m];
+        gp = GP(OLMMKernel(m, p, 0.1, 0.0, H, k));
+        olmm = condition(gp, x, y);
+        @test size(hourly_cov(olmm.k, x[1:10, :])) == (50, 50)
+
+        k = [(EQ() ▷ [10.0, 10.0, 10.0]) for i=1:m];
+        gp = GP(OLMMKernel(m, p, 0.1, 0.0, H, k));
+        olmm = condition(gp, x, y);
+        size(olmm.m(x[1:10, :]))
+        size(olmm.k(x[1:10, :]))
+        @test size(hourly_cov(olmm.k, x[1:10, :])) == (50, 50)
     end
 end

@@ -768,9 +768,12 @@ Base.show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
 
 Dot product kernel. Non-stationary.
 """
-struct DotKernel <: Kernel end
-@unionise function (::DotKernel)(x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
-    return x * y'
+struct DotKernel <: Kernel
+    offset
+end
+DotKernel() = DotKernel(Fixed(0.0))
+@unionise function (k::DotKernel)(x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
+    return (x .- unwrap(k.offset)') * (y .- unwrap(k.offset)')'
 end
 (k::DotKernel)(x::Number, y) = k([x], y)
 (k::DotKernel)(x, y::Number) = k(x, [y])
