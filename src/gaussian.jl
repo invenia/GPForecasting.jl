@@ -119,7 +119,7 @@ Compute the Cholesky of the covariance matrix of a MVN `dist`
         # NOTE: Adding a tiny regularizer to the main diagonal shifts the eigenvalues
         # and ensures that the matrix is positive definite, which avoids the possibility
         # of a PosDefException
-        dist.chol = cholesky(Symmetric(dist.Σ) .+ _EPSILON_ .* Eye(dim(dist)))
+        dist.chol = cholesky(Symmetric(dist.Σ) .+ _EPSILON_^2 .* Eye(dim(dist)))
     end
     return dist.chol
 end

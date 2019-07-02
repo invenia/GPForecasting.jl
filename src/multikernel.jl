@@ -232,21 +232,24 @@ Base.:+(k::ScaledKernel, m::MultiKernel) = m + k
 Base.:+(m::MultiKernel, k::SumKernel) = isMulti(k) ? SumKernel(m, k) : MultiKernel(m.k .+ k)
 Base.:+(k::SumKernel, m::MultiKernel) = m + k
 
-"""
-    verynaiveLMMKernel(m, p, σ², H, k)
-
-The most naive way of doing the LMM. Basically generates the full multi-dimensional kernel
-and returns it as a general MultiKernel. Don't expect it to be efficient.
-"""
-function verynaiveLMMKernel(m, p, σ², H, k)
-    K = Matrix{Kernel}(undef, m, m)
-    K .= 0
-    for i in 1:m
-        K[i, i] = k
-    end
-    K = H * K * H' + σ² * Eye(p)
-    return MultiKernel(K)
-end
+# Leaving this here simply commented out for in case someone thinks it might be worth fixing
+# in the future. But this is pretty useless anyway.
+# """
+#     verynaiveLMMKernel(m, p, σ², H, k)
+#
+# The most naive way of doing the LMM. Basically generates the full multi-dimensional kernel
+# and returns it as a general MultiKernel. Don't expect it to be efficient.
+# """
+# function verynaiveLMMKernel(m, p, σ², H, k)
+#     K = Matrix{Kernel}(undef, m, m)
+#     K .= 0
+#     for i in 1:m
+#         K[i, i] = k
+#     end
+#     # this here is wrong, because it puts noise even for different timestamps.
+#     K = H * K * H' + σ² * Eye(p)
+#     return MultiKernel(K)
+# end
 
 """
     NaiveLMMKernel <: MultiOutputKernel
@@ -272,9 +275,8 @@ function (k::NaiveLMMKernel)(x, y)
     H = unwrap(k.H)
     σ² = unwrap(k.σ²)
     p = size(H, 1)
-    n1 = size(x, 1)
-    n2 = size(y, 1)
-    Λ = fuse(fill(σ² * Eye(p), (n1, n2)))
+    mask = DiagonalKernel()(x, y)
+    Λ = fuse(mask .* [Diagonal(fill(σ², p))])
     return kron_lid_lmul(H, kron_lid_lmul(H, k.k(x, y))')' .+ Λ
 end
 (k::NaiveLMMKernel)(x) = k(x, x)
@@ -379,6 +381,18 @@ function LMMKernel(m::Int, p::Int, σ²::Union{Float64, Vector{Float64}}, H::Mat
     )
 end
 isMulti(k::LMMKernel) = unwrap(k.p) > 1
+
+# This is decidedly not the most optimised implementation of this (we could use stuff from
+# optimisedalgebra.jl). However, this is a function that will be very rarely called. The
+# important implementation is that of the posterior, which should already be optimised.
+function (k::LMMKernel)(x, y)
+    H = unwrap(k.H)
+    Ks = (kron(k.ks[i](x, y), H[:, i] * H[:, i]') for i in 1:unwrap(k.m))
+    mask = DiagonalKernel()(x, y)
+    Λ = fuse(mask .* [Diagonal(fill(unwrap(k.σ²), unwrap(k.p)))])
+    return sum(Ks) + Λ
+end
+(k::LMMKernel)(x) = k(x, x)
 
 """
     LMMPosKernel <: MultiOutputKernel
@@ -499,8 +513,13 @@ Kernel that corresponds to the Orthogonal Linear Mixing Model.
 
 - `m`: Number of latent processes
 - `p`: Number of outputs
-- `σ²`: Variance. Same for all processes (so you should normalise the data first)
+- `σ²`: Observation noise variance. Same for all processes (so you should normalise the data
+    first)
+- `D`: Noise variance for the latent processes.
 - `H`: Mixing matrix of shape `p`x`m`
+- `P`: Projection matrix. `PH=I`.
+- `U`: Orthogonal component of the mixing matrix, i.e. its eigenvectors.
+- `S_sqrt`: Eigenvalues of the mixing matrix.
 - `ks`: Vector containing the kernel for each latent process
 
 * Constructors:
@@ -520,9 +539,14 @@ mutable struct OLMMKernel <: MultiOutputKernel
     σ² # Observation noise
     D # latent noise(s)
     H # Mixing matrix, (p x m)
-    P # Projection matrix, (m x p)
-    U # Orthogonal component of the mixing matrix. This is already truncated!
-    S_sqrt # Eigenvalues of the latent processes. This is already truncated!
+    P::Fixed # Projection matrix, (m x p). Can only be learned through H, since PH=I.
+    U::Fixed # Orthogonal component of the mixing matrix, i.e. its eigenvectors.
+    # This is already truncated!
+    # U is required to be Fixed because, in order to enforce the constraints, it can
+    # only be learned through H.
+    S_sqrt::Union{<:Positive, <:Fixed} # Eigenvalues of the latent processes.
+    # This is already truncated!
+    # S_sqrt is restricted to be Positive or Fixed because it can never be non-positive.
     ks::Union{<:Kernel, Vector{<:Kernel}} # Kernels for the latent processes, m-long or the same for all
 
     global function _unsafe_OLMMKernel(
@@ -555,9 +579,9 @@ mutable struct OLMMKernel <: MultiOutputKernel
         σ², # Observation noise
         D, # latent noise(s)
         H, # Mixing matrix, (p x m)
-        P, # Projection matrix, (m x p)
-        U, # Orthogonal component of the mixing matrix. This is already truncated!
-        S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+        P, # Projection matrix, (m x p). Can only be learned through H, since PH=I.
+        U, # Orthogonal component of the mixing matrix, i.e. its eigenvectors.
+        S_sqrt, # Eigenvalues of the latent processes.
         ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
     )
         # Do a bunch of consistency checks
@@ -653,10 +677,10 @@ function OLMMKernel( # Initialise with H. IT HAS TO BE OF THE FORM `U * S`, with
         Fixed(p),
         Positive(σ²),
         Positive(D),
-        Fixed(H),
+        H,
         Fixed(P),
         Fixed(U),
-        Fixed(S_sqrt),
+        Positive(S_sqrt),
         ks
     )
 end
@@ -677,10 +701,10 @@ function OLMMKernel( # Initialise with U and S
         Fixed(p),
         Positive(σ²),
         Positive(D),
-        Fixed(H),
+        H,
         Fixed(P),
         Fixed(U),
-        Fixed(S_sqrt),
+        Positive(S_sqrt),
         ks
     )
 end

@@ -2,7 +2,7 @@
     gp = GP(0, 5 * ConstantKernel())
     x = collect(1:10)
     y = 18 * ones(10)
-    obj = objective(gp, x, y)
+    obj = mle_obj(gp, x, y)
 
     @test isa(obj, Function)
     @test isa(obj(GPForecasting.pack(Positive(18))), Float64)
@@ -11,6 +11,19 @@
     Σ = Eye(3)
     n = Gaussian(μ, Σ)
     @test abs(logpdf(n, μ ./ 2) + 0.5*(log(det(Σ)) + 3log(2π) + (μ./2)' * Σ * μ./2)) < 1e-3
+
+    reg(gp, x, y) = sum(gp.k(x))
+    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_
+
+    # OLMM
+    A = rand(5, 3);
+    U, S, V = svd(A);
+    H = U * Diagonal(S);
+    gp = GP(OLMMKernel(3, 5, 1e-2, 1e-2, H, [EQ() ▷ Fixed(1.0), EQ() ▷ Fixed(2.0), EQ() ▷ Fixed(3.0)]));
+    y = sample(gp(x));
+    reg(gp, x, y) = sum(abs.(gp.k.H))
+    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_
+    @test mle_obj(gp, x, y)(gp.k[:]) + reg(gp, x, y) ≈ map_obj(reg, gp, x, y)(gp.k[:]) atol = _ATOL_
 
     @testset "Titsias" begin
         # 1D
@@ -31,7 +44,7 @@
         @test v4 ≈ -v1 atol = 1e-8
         # 2D Input
         x = [x reverse(x)]
-        y = sin.(4π * sum(x, dims=2)) .+ 1e-1 .* randn(size(x, 1))
+        y = sin.(4π * sum(x, dims=2)) .+ 1e-1 .* randn(size(x, 1)); y = dropdims(y, dims=2)
         v1 = GPForecasting.logpdf(GP(periodicise(EQ(), 1.0) + 0.01 * DiagonalKernel()), x, y)
         Xm = collect(0:0.1:2);
         Xm = [Xm reverse(Xm)];

@@ -22,7 +22,7 @@ export ConstantMean,
 export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
 
 # pdf.jl
-export logpdf, objective, titsiasobj
+export logpdf, map_obj, mle_obj, reglogpdf, titsiasobj
 
 # kernel.jl
 export ▷,
@@ -61,8 +61,8 @@ export LMMKernel,
     MultiOutputKernel,
     NaiveLMMKernel,
     NoiseKernel,
-    OLMMKernel,
-    verynaiveLMMKernel
+    OLMMKernel
+    # verynaiveLMMKernel
 
 # core/pairwise
 export elwise_dist, pairwise_dist, sq_elwise_dist, sq_pairwise_dist

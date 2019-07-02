@@ -122,7 +122,7 @@ function learn(
     gp::GP,
     x,
     y::AbstractArray{<:Real},
-    obj::Function=objective;
+    obj::Function=mle_obj;
     Θ_init::Array=[],
     its=200,
     trace=true,
@@ -168,7 +168,7 @@ function learn_summary(
     gp::GP,
     x,
     y::AbstractArray{<:Real},
-    obj::Function=objective;
+    obj::Function=mle_obj;
     Θ_init::Array=[],
     its=200,
     trace=true,
@@ -198,7 +198,7 @@ function learn(
     gp::GP{OLMMKernel, <:Mean},
     x,
     y::AbstractMatrix{<:Real},
-    obj::Function=objective;
+    obj::Function=mle_obj;
     opt_U=false,
     K_U_cycles::Int=0,
     Θ_init::Array=[],
@@ -227,7 +227,10 @@ function learn(
             linesearch=linesearch,
             kwargs...
         )
-        return GP(ngp.m, set(ngp.k, Θ_opt)) # Again, assuming we are only optimising kernels
+        ngp = GP(ngp.m, set(ngp.k, Θ_opt))
+        # We need to do one last updating in the H matrix.
+        isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
+        return ngp # Again, assuming we are only optimising kernels
     # Got to overload if we want parameters in the means as well
     end
     for i in 1:K_U_cycles
@@ -248,6 +251,45 @@ function learn(
         Θ_init = Θ_opt
     end
     return ngp
+end
+
+"""
+    _constrain_H!(gp::GP{<:OLMMKernel})
+
+An internal function that modifies the given `GP` object with updated `H`, `U`, and `P`
+matrices.
+
+# Details
+
+We obtain the projector `P` and eigenvalues `U` from `H`. We won't directly use `gp.k.P`
+nor `gp.k.U`, because we want to tie it to `H` for learning and enforcing all constraints.
+First thing we need is to be able to reconstruct `U` from `H`. The issue here is that,
+even for `H = U * Diagonal(S_sqrt)`, there are multiple solutions that comprise flipping
+the direction of eigenvectors. A way of doing the decomposition while still fixing the
+directions of the eigenvectors is by `U̅, S, V̅ = svd(H)`, `U = U̅ * V̅'`.
+
+## Proof
+
+`U * S * I = H = U̅ * S * V̅` (here using the fact that `H = U * S`, S diagonal
+and positive). Thus, `U * S = U̅ * V̅' * V̅ * S * V̅`. Now, we know that `U` and `U̅` can
+differ only by the direction of the eigenvectors, thus, `V̅` can only differ from the
+identity by having flipped signals in the main diagonal. Since both `V̅` and `S` 
+are diagonal, `V̅ * S` will be equal to `S` with some values with flipped signals, so
+`V̅ * S * V̅ = V̅`, meaning that `U = U̅ * V̅'`.
+"""
+function _constrain_H!(gp::GP{<:OLMMKernel})
+    isa(gp.k.H, Fixed) && return gp  # nothing to do
+    H = unwrap(gp.k.H)
+    # Using the S_sqrt from the kernel, and not the one from decomposing `H`, allows us to
+    # optimise just `S_sqrt`, just `U`, or both.
+    S_sqrt = Diagonal(unwrap(gp.k.S_sqrt))
+    Ū, _, V̄ = svd(H)
+    U = Ū * V̄'       # new U.
+    P = S_sqrt \ U'  # new P. NOTE: Using \ here is for numerical stability but is slower
+    gp.k.H = U * S_sqrt
+    gp.k.P = Fixed(P)
+    gp.k.U = Fixed(U)
+    return gp
 end
 
 """

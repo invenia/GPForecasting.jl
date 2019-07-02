@@ -305,11 +305,13 @@
     @testset "Naive LMM" begin
         H = [1 2 3; 4 3 2; 4 4 4; 1 3 2; 7 6 3]
         nlmm = NaiveLMMKernel(3, 1e-2, H, EQ())
-        vnlmm = verynaiveLMMKernel(3, 5, 1e-2, H, EQ())
+        # vnlmm = verynaiveLMMKernel(3, 5, 1e-2, H, EQ())
+        lmm = LMMKernel(3, 5, 1e-2, H, [EQ(), EQ(), EQ()])
         @test isa(nlmm, NaiveLMMKernel)
-        @test isa(vnlmm, MultiKernel)
+        # @test isa(vnlmm, MultiKernel)
         x = collect(1:5)
-        @test nlmm(x) ≈ vnlmm(x) atol = _ATOL_
+        # @test nlmm(x) ≈ vnlmm(x) atol = _ATOL_
+        @test lmm(x) ≈ nlmm(x) atol = _ATOL_
         @test isMulti(nlmm)
     end
 
