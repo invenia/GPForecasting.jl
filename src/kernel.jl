@@ -787,7 +787,13 @@ elwise(k::DotKernel, x::Number, y) = elwise(k, [x], y)
 elwise(k::DotKernel, x, y::Number) = elwise(k, x, [y])
 elwise(k::DotKernel, x::Number, y::Number) = elwise(k, [x], [y])
 @unionise elwise(k::DotKernel, x::AbstractArray{<:Real}) = elwise(k, x, x)
-Base.show(io::IO, k::DotKernel) = print(io, "<., .>")
+function Base.show(io::IO, k::DotKernel)
+    if k.offset ≈ Fixed(0.0)
+        print(io, "<., .>")
+    else
+        print(io, "<. - $(k.offset), . - $(k.offset)>")
+    end
+end
 
 """
     HazardKernel <: Kernel
