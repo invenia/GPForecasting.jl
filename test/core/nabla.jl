@@ -1,44 +1,27 @@
-using FDM
-
 # Here we want to ensure that stuff is differentiable
 @testset "Nabla" begin
     # Check gradients of `pairwise_dist`.
     for (is_x, is_y) in (((4,), (6,)), ((4, 2), (6, 2)))
-        x, y = randn(is_x...), randn(is_y...)
-        v_x, v_y = randn(is_x...), randn(is_y...)
-        z̄ = randn(is_x[1], is_y[1])
-        grad_numerical_x = dot(z̄, FDM.central_fdm(3, 1)(ε -> pairwise_dist(x .+ ε .* v_x, y)))
-        grad_numerical_y = dot(z̄, FDM.central_fdm(3, 1)(ε -> pairwise_dist(x, y .+ ε .* v_y)))
-        grads = ∇((x, y) -> dot(pairwise_dist(x, y), z̄))(x, y)
-        grad_∇_x, grad_∇_y = dot(v_x, grads[1]), dot(v_y, grads[2])
-        @test grad_numerical_x ≈ grad_∇_x atol = _ATOL_
-        @test grad_numerical_y ≈ grad_∇_y atol = _ATOL_
+        rx, dx = randn(is_x...), randn(is_x...)
+        ry, dy = randn(is_y...), randn(is_y...)
+        @test check_errs(x -> pairwise_dist(x, ry), randn(is_x[1], is_y[1]), rx, dx)
+        @test check_errs(y -> pairwise_dist(rx, y), randn(is_x[1], is_y[1]), ry, dy)
     end
 
     # Check gradients of `elwise_dist`.
     for (is_x, is_y) in (((4,), (4,)), ((4, 2), (4, 2)))
-        x, y = randn(is_x...), randn(is_y...)
-        v_x, v_y = randn(is_x...), randn(is_y...)
-        z̄ = randn(is_x[1])
-        grad_numerical_x = dot(z̄, FDM.central_fdm(3, 1)(ε -> elwise_dist(x .+ ε .* v_x, y)))
-        grad_numerical_y = dot(z̄, FDM.central_fdm(3, 1)(ε -> elwise_dist(x, y .+ ε .* v_y)))
-        grads = ∇((x, y) -> dot(elwise_dist(x, y), z̄))(x, y)
-        grad_∇_x, grad_∇_y = dot(v_x, grads[1]), dot(v_y, grads[2])
-        @test grad_numerical_x ≈ grad_∇_x atol = _ATOL_
-        @test grad_numerical_y ≈ grad_∇_y atol = _ATOL_
+        rx, dx = randn(is_x...), randn(is_x...)
+        ry, dy = randn(is_y...), randn(is_y...)
+        @test check_errs(x -> elwise_dist(x, ry), randn(is_x[1]), rx, dx)
+        @test check_errs(y -> elwise_dist(rx, y), randn(is_x[1]), ry, dy)
     end
 
     # Check gradients of `sq_elwise_dist`.
     for (is_x, is_y) in (((4,), (4,)), ((4, 2), (4, 2)))
-        x, y = randn(is_x...), randn(is_y...)
-        v_x, v_y = randn(is_x...), randn(is_y...)
-        z̄ = randn(is_x[1])
-        grad_numerical_x = dot(z̄, FDM.central_fdm(3, 1)(ε -> sq_elwise_dist(x .+ ε .* v_x, y)))
-        grad_numerical_y = dot(z̄, FDM.central_fdm(3, 1)(ε -> sq_elwise_dist(x, y .+ ε .* v_y)))
-        grads = ∇((x, y) -> dot(sq_elwise_dist(x, y), z̄))(x, y)
-        grad_∇_x, grad_∇_y = dot(v_x, grads[1]), dot(v_y, grads[2])
-        @test grad_numerical_x ≈ grad_∇_x atol = _ATOL_
-        @test grad_numerical_y ≈ grad_∇_y atol = _ATOL_
+        rx, dx = randn(is_x...), randn(is_x...)
+        ry, dy = randn(is_y...), randn(is_y...)
+        @test check_errs(x -> sq_elwise_dist(x, ry), randn(is_x[1]), rx, dx)
+        @test check_errs(y -> sq_elwise_dist(rx, y), randn(is_x[1]), ry, dy)
     end
 
     gp = GP(0, EQ() ▷ 10)

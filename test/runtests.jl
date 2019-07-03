@@ -2,7 +2,6 @@ using CSV
 using DataFrames
 using Dates
 using Distributions
-using FDM
 using FillArrays
 using GPForecasting
 using LineSearches
