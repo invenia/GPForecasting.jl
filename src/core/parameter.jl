@@ -110,6 +110,8 @@ set(x::Parameter, y) = reconstruct(x, set(parameter(x), y), others(x))
 
 # Fallback when x and y have different types
 Base.isapprox(x::Parameter, y::Parameter) = false
+Base.isapprox(x, y::Parameter) = false
+Base.isapprox(x::Parameter, y) = false
 
 function Base.isapprox(x::T, y::T) where T<:Parameter
     return all(i -> _isapprox(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
