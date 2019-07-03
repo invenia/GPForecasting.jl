@@ -1,5 +1,3 @@
-using FDM
-
 # Here we want to ensure that stuff is differentiable
 @testset "Nabla" begin
     # Check gradients of `pairwise_dist`.
