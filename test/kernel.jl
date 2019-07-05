@@ -152,14 +152,18 @@
     @testset "Specified Quantity" begin
         k = EQ()
         df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input1, :input2])
+        df[:input3] = [[0.,0.], [1.,0.], [0.5,sqrt(0.75)]]
         sqk1 = k ← :input1
         sqk2 = k ← :input2
+        sqk3 = k ← :input3
         @test GPForecasting.is_not_noisy(sqk1)
         @test !isMulti(sqk1)
         @test !(sqk1(df) ≈ sqk2(df))
         @test sqk2(df) ≈ ones(3, 3) atol = _ATOL_
         @test isa(sprint(show, k), String)
         @test isa(var(sqk1, df), Vector)
+        @test all(diag(sqk3(df)) .≈ 1.0)
+        @test all([sqk3(df)[i,j] for i=1:3 for j=i+1:3] .≈ 0.6065306597126334)
     end
 
     @testset "Sum and Products" begin
