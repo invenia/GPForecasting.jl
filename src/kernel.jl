@@ -657,7 +657,7 @@ end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
 @unionise (k::SpecifiedQuantityKernel)(x::DataFrameRow) = k(x, x)
 function elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame, y::AbstractDataFrame)
-    if typeof(x[unwrap(k.col)]) <: Array{Array{T, 1}, 1} where T <: Number
+    if eltype(x[unwrap(k.col)]) <: AbstractVector
         return elwise(k.k, Matrix(hcat(x[unwrap(k.col)]...)'), Matrix(hcat(y[unwrap(k.col)]...)'))
     else
         return elwise(k.k, x[unwrap(k.col)], y[unwrap(k.col)])
