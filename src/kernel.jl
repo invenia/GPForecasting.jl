@@ -648,7 +648,7 @@ end
     # using it is that `disallowmissing` does not play nice with Nabla. So if we need to
     # come back to this, we'll need to implement it.
     # return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
-    if typeof(x[unwrap(k.col)]) <: Array{Array{T, 1}, 1} where T <: Number
+    if eltype(x[unwrap(k.col)]) <: AbstractVector
         return k.k(Matrix(hcat(x[unwrap(k.col)]...)'), Matrix(hcat(y[unwrap(k.col)]...)'))
     else
         return k.k(x[unwrap(k.col)], y[unwrap(k.col)])
