@@ -1,7 +1,7 @@
 name = "GPForecasting"
 uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
 authors = ["Invenia Technical Computing"]
-version = "1.1.0"
+version = "1.1.1"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -21,7 +21,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 CSV = ">= 0.2.5"
-DataFrames = "= 0.17"
+DataFrames = "~ 0.18"
 Distributions = ">= 0.15"
 LineSearches = ">= 3.2.5"
 Memento = ">= 0.10"

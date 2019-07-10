@@ -64,6 +64,29 @@ function Nabla.∇(
     return hcat(ȳ...)
 end
 
+# This is necessary because we can't have `eachindex` called for DataFrames anymore.
+function Nabla.zerod_container(x::DataFrame)
+    y = Base.copy(x)
+    for n in names(y)
+        y[n] = Nabla.zerod_container(y[n])
+    end
+    return y
+end
+function Nabla.oned_container(x::DataFrame)
+    y = Base.copy(x)
+    for n in names(y)
+        y[n] = Nabla.oned_container(y[n])
+    end
+    return y
+end
+function Nabla.randned_container(x::DataFrame)
+    y = Base.copy(x)
+    for n in names(y)
+        y[n] = Nabla.randned_container(y[n])
+    end
+    return y
+end
+
 @unionise function unpack(df::DataFrame, y::Vector)
     v = reshape(y, size(df))
     col_names = names(df)
