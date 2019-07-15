@@ -33,7 +33,7 @@ function cov_LW(X)
     b2 = b2 / n^2 / p
     b2 = min(b2, d2)
     if b2 == d2
-        warn("a2 is zero => covariance matrix is scaled identity matrix")
+        @warn("a2 is zero => covariance matrix is scaled identity matrix")
     end
     a2 = d2 - b2
     return (b2 / d2 * m) .* Eye(S) .+ (a2 / d2) .* S
