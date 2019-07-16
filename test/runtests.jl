@@ -18,7 +18,6 @@ _ATOL_ = 1e-5
 # Keep Logging to a minimum
 logger = Memento.config!("warn"; fmt="[{level} | {name}]: {msg}")
 #
-include("core/util.jl")
 include("core/optimise.jl")
 include("pairwise.jl")
 include("core/algebra.jl")
