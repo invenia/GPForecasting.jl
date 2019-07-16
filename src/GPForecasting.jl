@@ -70,9 +70,6 @@ export elwise_dist, pairwise_dist, sq_elwise_dist, sq_pairwise_dist
 # core/input
 export Input, Observed, Latent
 
-# core/util
-export cov_EB, cov_LW
-
 # core/optimise
 export minimise, learn, learn_summary, learn_sparse, minimise_summary
 
@@ -131,7 +128,6 @@ Abstract supertype for all Means.
 """
 abstract type Mean <: AbstractNode end
 
-include("core/util.jl")
 include("core/input.jl")
 include("core/parameter.jl")
 include("gaussian.jl")
