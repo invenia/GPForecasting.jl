@@ -128,7 +128,6 @@ Abstract supertype for all Means.
 """
 abstract type Mean <: AbstractNode end
 
-include("core/util.jl")
 include("core/input.jl")
 include("core/parameter.jl")
 include("gaussian.jl")
