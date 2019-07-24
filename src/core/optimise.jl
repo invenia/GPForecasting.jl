@@ -213,7 +213,7 @@ function learn(
     if opt_U
         U = greedy_U(gp.k, x, y)
         H, P = build_H_and_P(U, unwrap(gp.k.S_sqrt))
-        ngp.k.U, ngp.k.H, ngp.k.P = Fixed(U), Fixed(H), Fixed(P)
+        ngp.k.U, ngp.k.H, ngp.k.P = Fixed(U), typeof(ngp.k.H)(H), Fixed(P)
     end
     Θ_init = isempty(Θ_init) ? ngp.k[:] : Θ_init
     if K_U_cycles == 0
