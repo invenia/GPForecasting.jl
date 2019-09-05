@@ -1,48 +1,8 @@
-stages:
-  - test
-  - teardown
-
+---
 include:
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/hidden-jobs.yml
-  - https://gitlab.invenia.ca/infrastructure/gitlab-ci-helper/raw/master/templates/teardown.yml
+  - project: infrastructure/gitlab-ci-helper
+    file: /templates/julia.yml
 
-# Do not test on 32-bit machines becuase of the memory requirements of this package
-# https://gitlab.invenia.ca/research/GPForecasting.jl/issues/31
-"1.0 (Mac)":
-  tags:
-    - mac
-    - shell-ci
-  extends: .test_shell_1_0
-
-"1.0 (Linux, 64-bit)":
-  tags:
-    - linux
-    - 64-bit
-    - docker-ci
-  extends: .test_docker_1_0
-
-"1.1 (Mac)":
-  tags:
-    - mac
-    - shell-ci
-  extends: .test_shell_1_1
-
-"1.1 (Linux, 64-bit)":
-  tags:
-    - linux
-    - 64-bit
-    - docker-ci
-  extends: .test_docker_1_1
-
-"Nightly (Mac)":
-  tags:
-    - mac
-    - shell-ci
-  extends: .test_shell_nightly
-
-"Nightly (Linux, 64-bit)":
-  tags:
-    - linux
-    - 64-bit
-    - docker-ci
-  extends: .test_docker_nightly
+variables:
+  # Only include Mac and Linux 64-bit jobs in the job matrix         
+  platform: "64-bit"  
