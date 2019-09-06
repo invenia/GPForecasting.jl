@@ -471,7 +471,11 @@ function (k::LMMPosKernel)(x)
 end
 
 # TODO: optimise the LMM covariance matrix only for hourly blocks.
-function Statistics.var(k::LMMPosKernel, x)
+Statistics.var(k::LMMPosKernel, x) = _LMMPosvar(k, x)
+# The next one is just to break a method ambiguity
+Statistics.var(k::LMMPosKernel, x::AbstractDataFrame) = _LMMPosvar(k, x)
+
+function _LMMPosvar(k::LMMPosKernel, x)
     m = unwrap(k.k.m)
     n = size(x, 1)
     H = unwrap(k.k.H)

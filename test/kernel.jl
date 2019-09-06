@@ -289,6 +289,15 @@
         @test var(k, Latent(df)) == [1.0 1.0 1.0]'
         @test var(k, Observed(df)) == [6.0 6.0 6.0]'
         @test var(k, df) == [6.0, 1.0, 6.0, 1.0, 6.0, 1.0]
+
+        k = LMMKernel(1, 3, 1e-2, rand(3, 1), EQ())
+        @test var(k, df[:input1]) ≈ reshape(diag(k(df[:input1])), 3, 3)'
+        kp = LMMPosKernel(k, df[:input1], rand(3, 3))
+        @test var(kp, df[:input1]) ≈ reshape(diag(kp(df[:input1])), 3, 3)'
+        k = LMMKernel(1, 3, 1e-2, rand(3, 1), EQ() ← :input1)
+        @test var(k, df) ≈ reshape(diag(k(df)), 3, 3)'
+        kp = LMMPosKernel(k, df, rand(3, 3))
+        @test var(kp, df) ≈ reshape(diag(kp(df)), 3, 3)'
     end
 
     @testset "Matrix algebra" begin
