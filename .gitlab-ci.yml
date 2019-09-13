@@ -5,4 +5,4 @@ include:
 
 variables:
   # Only include Mac and Linux 64-bit jobs in the job matrix         
-  platform: "64-bit"  
+  platform: "64-bit"
