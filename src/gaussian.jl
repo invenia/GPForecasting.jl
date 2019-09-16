@@ -37,6 +37,7 @@ mutable struct Gaussian{
         Σ::Wrapped{G},
         chol::Union{Wrapped{<:Cholesky}, Nothing}=nothing,
     ) where {T <: AbstractArray, G <: AbstractArray}
+
         return new{materialize(T), materialize(G)}(materialize(μ), materialize(Σ), chol)
     end
 end
@@ -187,10 +188,7 @@ Statistics.rand(dist::Gaussian, n::Int) = sample(dist, n)
 
 Distributions.MvNormal(d::Gaussian{T}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
 
-# handles old version of Eye on old versions of FillArrays (with Julia 0.6)
-Distributions.MvNormal(d::Gaussian{T, <:Eye}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), collect(d.Σ))
-
-function ModelAnalysis.mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
+function Metrics.joint_loglikelihood(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
     if length(blocks(d.Σ)) != size(y, 1) # Not sure why one would ever do this, but anyway
         return -logpdf(d, y) / length(y)
     elseif d.chol !== nothing && isa(d.chol.U, BlockDiagonal)
@@ -205,6 +203,24 @@ function ModelAnalysis.mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) w
             blocks(d.Σ)[i]
         ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / length(y)
     end
+end
+
+function Metrics.joint_loglikelihood(d::Distribution{Matrixvariate, Continuous}, y::AbstractMatrix{<:Real})
+    means = vec(mean(d)')
+    y_true = vec(y')
+
+    U = cholesky(cov(d) + 1e-12 * I).U
+    z = U' \ (y_true .- means)
+    log_det = 2 * sum(log.(diag(U)))
+    return 0.5 * (log_det + length(y_true) * log(2π) + dot(z, z)) / length(y_true)
+end
+
+function Metrics.marginal_loglikelihood(d::Distribution{Matrixvariate, Continuous}, y::AbstractMatrix{<:Real})
+    means = vec(mean(d))
+    vars = vec(var(d))
+    y_true = vec(y)
+
+    return 0.5 * mean(log.(2π .* vars)) .+ 0.5 * mean((y_true .- means).^2 ./ vars)
 end
 
 """

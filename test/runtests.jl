@@ -6,6 +6,7 @@ using GPForecasting
 using LineSearches
 using LinearAlgebra
 using Memento
+using Metrics
 using Nabla
 using Optim
 using Random: MersenneTwister, seed!

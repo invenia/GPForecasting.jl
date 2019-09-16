@@ -86,7 +86,7 @@ using FillArrays
 using LineSearches
 using LinearAlgebra
 using Memento
-using ModelAnalysis
+using Metrics
 using Nabla
 using Optim
 using Random

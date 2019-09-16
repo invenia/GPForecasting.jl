@@ -1,5 +1,3 @@
-using ModelAnalysis
-
 @testset "Gaussian" begin
     n = Gaussian([1.,2e10,3.], Eye(3))
     samp = sample(n)
@@ -48,9 +46,14 @@ using ModelAnalysis
     g2 = Gaussian(zeros(3, 5), BlockDiagonal(fill(Eye(5), 3)))
     g3 = Gaussian(zeros(3, 5), Eye(15))
     g4 = Gaussian(zeros(3, 5), BlockDiagonal([Eye(10), Eye(5)]))
-    @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g2, ones(3, 5)) atol = _ATOL_
-    @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g3, ones(3, 5)) atol = _ATOL_
-    @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g4, ones(3, 5)) atol = _ATOL_
+
+    @test joint_loglikelihood(g1, ones(3, 5)) ≈ joint_loglikelihood(g2, ones(3, 5)) atol = _ATOL_
+    @test joint_loglikelihood(g1, ones(3, 5)) ≈ joint_loglikelihood(g3, ones(3, 5)) atol = _ATOL_
+    @test joint_loglikelihood(g1, ones(3, 5)) ≈ joint_loglikelihood(g4, ones(3, 5)) atol = _ATOL_
+
+    @test marginal_loglikelihood(g1, ones(3, 5)) ≈ marginal_loglikelihood(g2, ones(3, 5)) atol = _ATOL_
+    @test marginal_loglikelihood(g1, ones(3, 5)) ≈ marginal_loglikelihood(g3, ones(3, 5)) atol = _ATOL_
+    @test marginal_loglikelihood(g1, ones(3, 5)) ≈ marginal_loglikelihood(g4, ones(3, 5)) atol = _ATOL_
 
     # Test Adjoint constructors
     g = Gaussian(rand(3, 2), rand(6, 6)')
