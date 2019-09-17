@@ -84,11 +84,12 @@ using ModelAnalysis
                 chol: <not yet computed>
             )"""
         c = cholesky(g)
+        context = IOContext(IOBuffer(), :compact=>true, :limit=>true)
         @test sprint(show, g) == """
             Gaussian{Array{Float64,2}, $(typeof(Eye(6)))}(
                 μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
                 Σ: [1.0 0.0 … 0.0 0.0; 0.0 1.0 … 0.0 0.0; … ; 0.0 0.0 … 1.0 0.0; 0.0 0.0 … 0.0 1.0]
-                chol: $(sprint(show, c, context=:limit=>true))
+                chol: $(sprint(show, c, context=context))
             )"""
     end
 end
