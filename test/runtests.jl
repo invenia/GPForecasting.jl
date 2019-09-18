@@ -16,17 +16,19 @@ _ATOL_ = 1e-5
 
 # Keep Logging to a minimum
 logger = Memento.config!("warn"; fmt="[{level} | {name}]: {msg}")
-#
-include("core/optimise.jl")
-include("pairwise.jl")
-include("core/algebra.jl")
-include("core/node.jl")
-include("core/parameter.jl")
-include("kernel.jl")
-include("mean.jl")
-include("gp.jl")
-include("gaussian.jl")
-include("pdf.jl")
-include("core/nabla.jl")
-include("synthetic.jl")
-include("NN.jl")
+
+@testset "GPForecasting" begin
+    include("core/optimise.jl")
+    include("pairwise.jl")
+    include("core/algebra.jl")
+    include("core/node.jl")
+    include("core/parameter.jl")
+    include("kernel.jl")
+    include("mean.jl")
+    include("gp.jl")
+    include("gaussian.jl")
+    include("pdf.jl")
+    include("core/nabla.jl")
+    include("synthetic.jl")
+    include("NN.jl")
+end
