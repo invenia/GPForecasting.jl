@@ -151,8 +151,11 @@
 
     @testset "Specified Quantity" begin
         k = EQ()
-        df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input1, :input2])
-        df[:input3] = [[1.,1.], [2.,1.], [3.,1.]]
+        df = DataFrame(
+            input1=[1.0, 2.0, 3.0],
+            input2=[1.0, 1.0, 1.0],
+            input3=[[1.0, 1.0], [2.0 , 1.0], [3.0, 1.0]],
+        )
         sqk1 = k ← :input1
         sqk2 = k ← :input2
         sqk12 = (k ← :input1) * (k ← :input2)
@@ -291,9 +294,9 @@
         @test var(k, df) == [6.0, 1.0, 6.0, 1.0, 6.0, 1.0]
 
         k = LMMKernel(1, 3, 1e-2, rand(3, 1), EQ())
-        @test var(k, df[:input1]) ≈ reshape(diag(k(df[:input1])), 3, 3)'
-        kp = LMMPosKernel(k, df[:input1], rand(3, 3))
-        @test var(kp, df[:input1]) ≈ reshape(diag(kp(df[:input1])), 3, 3)'
+        @test var(k, df[:, :input1]) ≈ reshape(diag(k(df[:, :input1])), 3, 3)'
+        kp = LMMPosKernel(k, df[:, :input1], rand(3, 3))
+        @test var(kp, df[:, :input1]) ≈ reshape(diag(kp(df[:, :input1])), 3, 3)'
         k = LMMKernel(1, 3, 1e-2, rand(3, 1), EQ() ← :input1)
         @test var(k, df) ≈ reshape(diag(k(df)), 3, 3)'
         kp = LMMPosKernel(k, df, rand(3, 3))

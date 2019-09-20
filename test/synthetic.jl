@@ -361,8 +361,8 @@
         @test mean(abs.(lb .- slb)) / mean(abs.(lb)) < 0.01
         @test mean(abs.(ub .- sub)) / mean(abs.(ub)) < 0.01
         @test isa(Xm, DataFrame)
-        @test Xm_i[:bs] ≈ Xm[:bs]
-        @test !(Xm[:data] ≈ Xm_i[:data])
+        @test Xm_i[:, :bs] ≈ Xm[:, :bs]
+        @test !(Xm[:, :data] ≈ Xm_i[:, :data])
         @test size(spos.k(Observed(xtest[1:5, :]), Observed(xtest[1:8, :]))) == (5, 8)
         @test size(spos.k(Latent(xtest[1:5, :]), Observed(xtest[1:8, :]))) == (5, 8)
         @test size(spos.k(xtest[1:5, :], xtest[1:8, :])) == (10, 16)
