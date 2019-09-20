@@ -68,21 +68,21 @@ end
 function Nabla.zerod_container(x::DataFrame)
     y = Base.copy(x)
     for n in names(y)
-        y[n] = Nabla.zerod_container(y[n])
+        y[:, n] .= Nabla.zerod_container(y[:, n])
     end
     return y
 end
 function Nabla.oned_container(x::DataFrame)
     y = Base.copy(x)
     for n in names(y)
-        y[n] = Nabla.oned_container(y[n])
+        y[:, n] .= Nabla.oned_container(y[:, n])
     end
     return y
 end
 function Nabla.randned_container(x::DataFrame)
     y = Base.copy(x)
     for n in names(y)
-        y[n] = Nabla.randned_container(y[n])
+        y[:, n] .= Nabla.randned_container(y[:, n])
     end
     return y
 end

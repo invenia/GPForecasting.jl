@@ -648,19 +648,26 @@ end
     # using it is that `disallowmissing` does not play nice with Nabla. So if we need to
     # come back to this, we'll need to implement it.
     # return k.k(disallowmissing(x[unwrap(k.col)]), disallowmissing(y[unwrap(k.col)]))
-    if eltype(x[unwrap(k.col)]) <: AbstractVector
-        return k.k(Matrix(hcat(x[unwrap(k.col)]...)'), Matrix(hcat(y[unwrap(k.col)]...)'))
+    if eltype(x[:, unwrap(k.col)]) <: AbstractVector
+        return k.k(
+            Matrix(hcat(x[:, unwrap(k.col)]...)'),
+            Matrix(hcat(y[:, unwrap(k.col)]...)')
+        )
     else
-        return k.k(x[unwrap(k.col)], y[unwrap(k.col)])
+        return k.k(x[:, unwrap(k.col)], y[:, unwrap(k.col)])
     end
 end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
 @unionise (k::SpecifiedQuantityKernel)(x::DataFrameRow) = k(x, x)
 function elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame, y::AbstractDataFrame)
-    if eltype(x[unwrap(k.col)]) <: AbstractVector
-        return elwise(k.k, Matrix(hcat(x[unwrap(k.col)]...)'), Matrix(hcat(y[unwrap(k.col)]...)'))
+    if eltype(x[:, unwrap(k.col)]) <: AbstractVector
+        return elwise(
+            k.k,
+            Matrix(hcat(x[:, unwrap(k.col)]...)'),
+            Matrix(hcat(y[:, unwrap(k.col)]...)')
+        )
     else
-        return elwise(k.k, x[unwrap(k.col)], y[unwrap(k.col)])
+        return elwise(k.k, x[:, unwrap(k.col)], y[:, unwrap(k.col)])
     end
 end
 elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame) = elwise(k, x, x)
