@@ -110,7 +110,10 @@ others(p::Parameter) = collect(Iterators.rest(getfields(p), 1))
 reconstruct(p::Parameter, parameter, others) = typeof(p)(parameter, others...)
 unwrap(p::Parameter) = unwrap(parameter(p))
 name(p::Parameter) = name(parameter(p))
-Base.show(io::IO, p::Parameter) = show(IOContext(io, :compact => true), parameter(p))
+Base.show(io::IO, ::MIME"text/plain", p::Parameter) = show(io, parameter(p))
+function Base.show(io::IO, p::Parameter)
+    return get(io, :compact, false) ? show(io, parameter(p)) : Base.show_default(io, p)
+end
 
 """
     pack(k::Parameter) -> Vector
@@ -186,9 +189,11 @@ isconstrained(x::Positive) = true
 
 """
     Bounded{T} <: Parameter
+    Bounded(p::T, lb, ub, ε::Float64=$_EPSILON_) -> Bounded{T}
 
-Type for parameters that should be kept within `lb` and `ub` during the optimisation process.
-Optional `ε` is used to map [lb, ub] to [lb + ε, ub - ε] for numerical stability.
+Type for parameters that should be kept within lower-bound `lb` and upper-bound `ub` during
+the optimisation process.
+Optional `ε` is used to map `[lb, ub]` to `[lb + ε, ub - ε]` for numerical stability.
 """
 mutable struct Bounded{T} <: Parameter
     p::T
@@ -204,12 +209,11 @@ Bounded(p, ub) = Bounded(p, 0.0, ub, _EPSILON_)
 function Bounded{T}(p::T, ub) where T
    return Bounded{T}(p, 0.0, ub, _EPSILON_)
 end
-clip(x, lb, ub) = min.(max.(x, lb), ub)
 function bounded2R(x, lb, ub, ε)
     # Map x from [lb, ub] to [lb + ε, ub - ε].
     x = (x .- lb) ./ (ub .- lb) .* (ub .- lb .- 2 .* ε) .+ lb .+ ε
     # Clip in case x isn't in [lb + ε, ub - ε].
-    x = clip(x, lb .+ ε, ub .- ε)
+    x = clamp.(x, lb .+ ε, ub .- ε)
     # Map x from [lb + ε, ub - ε] to [log(ε) - log(ub - lb), -log(ε) + log(ub - lb)].
     return log.(x .- lb) .- log.(ub .- x)
 end

@@ -2,8 +2,9 @@ Base.:^(m::Mean, n::Integer) = Base.power_by_squaring(m, n)
 
 """
     ScaledMean <: Mean
+    ScaledMean(scale, mean::Mean) -> ScaledMean
 
-Result from the multiplication of a `Mean` by a number or `Parameter`.
+Result from the multiplication of a `Mean` by a `Number` or `Parameter`.
 """
 mutable struct ScaledMean <: Mean
     scale
@@ -43,10 +44,11 @@ function Base.:+(k1::ScaledMean, k2::ScaledMean)
         return SumMean(k1, k2)
     end
 end
-Base.show(io::IO, k::ScaledMean) = print(io, "($(k.scale) * $(k.m))")
+Base.show(io::IO, ::MIME"text/plain", k::ScaledMean) = print(io, "(", k.scale, " * ", k.m, ")")
 
 """
     SumMean <: Mean
+    SumMean(m1::Mean, m2::Mean) -> SumMean
 
 Mean built by adding two Means, `m1` and `m2`.
 """
@@ -54,12 +56,16 @@ mutable struct SumMean <: Mean
     m1::Mean
     m2::Mean
 end
+
 Base.:+(k1::Mean, k2::Mean) = SumMean(k1, k2)
+
 (k::SumMean)(x) = k.m1(x) .+ k.m2(x)
-Base.show(io::IO, k::SumMean) = print(io, "($(k.m1) + $(k.m2))")
+
+Base.show(io::IO, ::MIME"text/plain", k::SumMean) = print(io, "(", k.m1, " + ", k.m2, ")")
 
 """
     ProductMean <: Mean
+    ProductMean(m1::Mean, m2::Mean) -> ProductMean
 
 Mean built by multiplying two Means, `m1` and `m2`.
 """
@@ -67,6 +73,7 @@ mutable struct ProductMean <: Mean
     m1::Mean
     m2::Mean
 end
+
 Base.:*(k1::Mean, k2::Mean) = ProductMean(k1, k2)
 function Base.:*(k1::Mean, k2::ScaledMean)
     return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? Mean(0) : ProductMean(k1, k2)
@@ -83,8 +90,10 @@ function Base.:*(k1::ScaledMean, k2::ScaledMean)
         return ProductMean(k1, k2)
     end
 end
+
 (k::ProductMean)(x) = k.m1(x) .* k.m2(x)
-Base.show(io::IO, k::ProductMean) = print(io, "($(k.m1) * $(k.m2))")
+
+Base.show(io::IO, ::MIME"text/plain", k::ProductMean) = print(io, "(", k.m1, " * ", k.m2, ")")
 
 """
     ConstantMean <: Mean
@@ -92,17 +101,23 @@ Base.show(io::IO, k::ProductMean) = print(io, "($(k.m1) * $(k.m2))")
 Mean that returns 1.0 for every point.
 """
 struct ConstantMean <: Mean end
+
 (k::ConstantMean)(x) = ones(Float64, size(x, 1))
 (k::ConstantMean)(x::Vector{Input}) = ones(Float64, size(vcat([c.val for c in x]...), 1))
 (k::ConstantMean)(x::Real, y::Real) = 1.0
+
 function Base.:+(k::Mean, x)
-    return isconstrained(x) ?
-        SumMean(k, x * ConstantMean()) :
-        (unwrap(x) ≈ zero(unwrap(x)) ? k : SumMean(k, x * ConstantMean()))
+    isconstrained(x) && return SumMean(k, x * ConstantMean())
+    return unwrap(x) ≈ zero(unwrap(x)) ? k : SumMean(k, x * ConstantMean())
 end
 Base.:+(x, k::Mean) = (+)(k::Mean, x)
+
 Base.convert(::Type{Mean}, x::Real) = x ≈ 0.0 ? ZeroMean() : Fixed(x) * ConstantMean()
-Base.show(io::IO, k::ConstantMean) = print(io, "𝟏")
+
+Base.show(io::IO, ::MIME"text/plain", ::ConstantMean) = print(io, "𝟏")
+
+# TODO: remove this, because all constructors should be such that `T(args...) isa T`
+# replace with e.g. rename `constant_mean` and `@deprecate ConstantMean(x) constant_mean(x)`
 ConstantMean(x) = unwrap(x) == 0 ? ZeroMean() : x * ConstantMean()
 
 """
@@ -113,11 +128,13 @@ Zero Mean. Returns zero.
 struct ZeroMean <: Mean; end
 (::ZeroMean)(x) = zeros(size(x, 1))
 (::ZeroMean)(x::Vector{Input}) = zeros(size(vcat([c.val for c in x]...), 1))
+
 Base.:+(k::Mean, z::ZeroMean) = k
 Base.:+(z::ZeroMean, k::Mean) = k + z
 Base.:+(z::ZeroMean, k::ZeroMean) = z
 Base.:+(z::ZeroMean, k::ScaledMean) = k
 Base.:+(k::ScaledMean, z::ZeroMean) = z + k
+
 Base.:*(k::Mean, z::ZeroMean) = z
 Base.:*(z::ZeroMean, k::Mean) = k * z
 Base.:*(z::ZeroMean, k::ZeroMean) = z
@@ -125,20 +142,23 @@ Base.:*(z::ZeroMean, k::ScaledMean) = z
 Base.:*(k::ScaledMean, z::ZeroMean) = z * k
 Base.:*(x, z::ZeroMean) = z
 Base.:*(z::ZeroMean, x) = x * z
-Base.show(io::IO, z::ZeroMean) = print(io, "𝟎")
+
+Base.show(io::IO, ::MIME"text/plain", ::ZeroMean) = print(io, "𝟎")
 
 Base.zero(::Mean) = ZeroMean()
 Base.zero(::Type{GPForecasting.Mean}) = ZeroMean()
 
 """
     FunctionMean <: Mean
+    FunctionMean(m::Union{Function, Fixed}) -> FunctionMean
 
 Mean that follows function `m`.
 """
 struct FunctionMean <: Mean
     m::Fixed
-    FunctionMean(m::Union{Fixed, Function}) = isa(m, GPForecasting.Fixed) ? new(m) : new(Fixed(m))
 end
+FunctionMean(m::Function) = FunctionMean(Fixed(m))
+
 (m::FunctionMean)(x) = broadcast(unwrap(m.m), x)
 (m::FunctionMean)(x::Input) = broadcast(unwrap(m.m), x.val)
 (m::FunctionMean)(x::Vector{Input}) = broadcast(unwrap(m.m), vcat([c.val for c in x]...))
@@ -149,8 +169,8 @@ end
 Posterior mean for a GP.
 
 # Fields:
-- `k`: prior kernel.
-- `m`: prior mean.
+- `k::Kernel`: prior kernel.
+- `m::Mean`: prior mean.
 - `x`: points over which `m` was conditioned.
 - `U`: Cholesky decomposition of the covariance matrix.
 - `y`: values corresponding to the points `x`.
@@ -161,9 +181,12 @@ struct PosteriorMean <: Mean
     x
     U
     y
+
     PosteriorMean(k, m, x, U, y) = new(k, m, Fixed(x), Fixed(U), Fixed(y))
 end
-Base.show(io::IO, k::PosteriorMean) = print(io, "Posterior($(k.k), $(k.m))")
+
+Base.show(io::IO, ::MIME"text/plain", k::PosteriorMean) = print(io, "Posterior(", k.k, k.m, ")")
+
 function (m::PosteriorMean)(x)
     xd = unwrap(m.x)
     U = unwrap(m.U)
@@ -178,9 +201,11 @@ end
 
 """
     TitsiasPosteriorMean <: Mean
+    TitsiasPosteriorMean(k::Kernel, m::Mean, x, Xm, Uz, σ², y) -> TitsiasPosteriorMean
 
-Posterior mean for a sparse GP under Titsias' approximation. See "Variational
-Learning of Inducing Variables in Sparse Gaussian Processes".
+Posterior mean for a sparse GP under Titsias' approximation.
+
+See: ["Variational Learning of Inducing Variables in Sparse Gaussian Processes"](http://proceedings.mlr.press/v5/titsias09a.html)
 """
 mutable struct TitsiasPosteriorMean <: Mean
     k::Kernel
@@ -220,16 +245,16 @@ function (m::TitsiasPosteriorMean)(x)
     if is_not_noisy(m.k)
         @warn(
             """
-                Working on the extended input space. Output will be two dimensional,
-                corresponding to the noisy and denoised predictions. To compute only the
-                noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
+            Working on the extended input space. Output will be two dimensional,
+            corresponding to the noisy and denoised predictions. To compute only the
+            noisy (denoised) predictions, please wrap your input in `Observed` (`Latent`).
             """
         )
         val = _titsposmean(m::TitsiasPosteriorMean, x)
         return [val val]
     else
         return _titsposmean(m::TitsiasPosteriorMean, x)
-    end 
+    end
 end
 function (m::TitsiasPosteriorMean)(x::Input)
     xx = is_not_noisy(m.k) ? x.val : x
