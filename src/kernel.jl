@@ -96,7 +96,7 @@ mutable struct PosteriorKernel <: Kernel
     U
     PosteriorKernel(k, x, U) = new(k, Fixed(x), Fixed(U))
 end
-Base.show(io::IO, k::PosteriorKernel) = print(io, "Posterior($(k.k))")
+Base.show(io::IO, ::MIME"text/plain", k::PosteriorKernel) = print(io, "Posterior(", k.k, ")")
 isMulti(k::PosteriorKernel) = isMulti(k.k)
 function (k::PosteriorKernel)(x)
     U = unwrap(k.U)
@@ -288,7 +288,6 @@ struct EQ <: Kernel end
 (k::EQ)(x) = k(x, x)
 elwise(k::EQ, x, y) = exp.((-0.5) .* sq_elwise_dist(x, y))
 elwise(k::EQ, x) = ones(size(x, 1))
-Base.show(io::IO, k::EQ) = print(io, "EQ()")
 
 const ArrayOrReal = Union{Wrapped{<:AbstractArray{<:Real}}, Wrapped{<:Real}}
 
@@ -309,26 +308,28 @@ function elwise(k::RQ, x::ArrayOrReal, y::ArrayOrReal)
     return (1.0 .+ (sq_elwise_dist(x, y) ./ (2.0 * unwrap(k.α)))) .^ (-unwrap(k.α))
 end
 elwise(k::RQ, x::ArrayOrReal) = ones(size(x, 1))
-Base.show(io::IO, k::RQ) = print(io, "RQ($(k.α))")
 
+"""
+    SimilarHourKernel <: Kernel
+    SimilarHourKernel(hour_deltas, coeffs) -> SimilarHourKernel
+"""
 mutable struct SimilarHourKernel <: Kernel
     hdeltas::Fixed{Int}
     coeffs
+
     function SimilarHourKernel(hdeltas::Union{Fixed{Int}, Int}, coeffs)
         unwrap(hdeltas) > 24 && throw(ArgumentError("Can't have more than 24 hour deltas."))
         unwrap(hdeltas) < 1 && throw(ArgumentError("Need at least one hour delta."))
-        length(unwrap(coeffs)) != unwrap(hdeltas) && throw(
-            DimensionMismatch(
-                "The number of coefficients must be the same as the number of hour deltas."
-            )
-        )
+        length(unwrap(coeffs)) != unwrap(hdeltas) && throw(DimensionMismatch(
+            "The number of coefficients must be the same as the number of hour deltas."
+        ))
         hd = isconstrained(hdeltas) ? hdeltas : Fixed(hdeltas)
         cs = isconstrained(coeffs) ? coeffs : Positive(coeffs)
         return new(hd, cs)
     end
 end
 function (k::SimilarHourKernel)(x::ArrayOrReal, y::ArrayOrReal)
-    δ(x) = isapprox(x, 0.0, atol=1e-15) ? 1 : 0
+    δ(x) = isapprox(x, 0.0, atol=1e-15) ? 1 : 0  # delta function
     d = pairwise_dist(x, y) .% 24
     cs = unwrap(k.coeffs)
     hd = unwrap(k.hdeltas)
@@ -340,25 +341,26 @@ function (k::SimilarHourKernel)(x::ArrayOrReal, y::ArrayOrReal)
     end
 end
 (k::SimilarHourKernel)(x::ArrayOrReal) = k(x, x)
-function Base.show(io::IO, k::SimilarHourKernel)
+function Base.show(io::IO, ::MIME"text/plain", k::SimilarHourKernel)
     cs = unwrap(k.coeffs)
-    ds = "$(cs[1])*δ(0)"
+    print(io, cs[1], "*δ(0)")
     for i in 1:(unwrap(k.hdeltas) - 1)
-        ds *= " + $(cs[i + 1])*δ($i)"
+        print(io, " + ", cs[i + 1], "*δ($i)")
     end
-    print(io, ds)
 end
 
 
 """
     MA <: Kernel
+    MA(ν::Union{Fixed, Real}) -> MA
 
-Matérn kernel. Implemented only for ν in [1/2, 3/2, 5/2].
+    Matérn kernel. Implemented only for `ν ∈ (1/2, 3/2, 5/2)`.
 """
 struct MA <: Kernel
     ν::Fixed
 end
 MA(n::Real) = MA(Fixed(n))
+
 function (k::MA)(x::ArrayOrReal, y::ArrayOrReal)
     d = pairwise_dist(x, y)
     if unwrap(k.ν) ≈ 1/2
@@ -372,6 +374,7 @@ function (k::MA)(x::ArrayOrReal, y::ArrayOrReal)
     end
 end
 (k::MA)(x::ArrayOrReal) = k(x, x)
+
 function elwise(k::MA, x::ArrayOrReal, y::ArrayOrReal)
     d = elwise_dist(x, y)
     if unwrap(k.ν) ≈ 1/2
@@ -385,12 +388,12 @@ function elwise(k::MA, x::ArrayOrReal, y::ArrayOrReal)
     end
 end
 elwise(k::MA, x::ArrayOrReal) = ones(size(x, 1))
-Base.show(io::IO, k::MA) = print(io, "MA($(k.ν))")
 
 """
     RootLog <: Kernel
+    RootLog() -> RootLog
 
-Kernel that computes (1/|x - y|) * log(1 + |x - y|).
+Kernel that computes ``(1/|x - y|) * log(1 + |x - y|)``.
 """
 struct RootLog <: Kernel end
 function (k::RootLog)(x::ArrayOrReal, y::ArrayOrReal)
@@ -405,25 +408,30 @@ function elwise(k::RootLog, x::ArrayOrReal, y::ArrayOrReal)
     return (log.(max.(d, 1e-8) .+ 1) ./ max.(d, 1e-8)) .+ (1 - 1e8 * log(1 + 1e-8))
 end
 elwise(k::RootLog, x::ArrayOrReal) = ones(size(x, 1))
-Base.show(io::IO, k::RootLog) = print(io, "RootLog()")
 
 """
     BinaryKernel <: Kernel
+    BinaryKernel(Θ₁, Θ₂, Θ₃=Fixed(0)) -> BinaryKernel
 
-Kernel for binary inputs. Has three possible outcomes: Θ₁ if x = y = 1, Θ₂ if x = y = 0 and
-Θ₃ if x ≠ y. Naturally, this only accepts unidimensional inputs.
+Kernel for binary inputs.
+
+Has three possible outcomes: `Θ₁` if `x = y = 1`, `Θ₂` if `x = y = 0` and `Θ₃` if `x ≠ y`.
+Naturally, this only accepts unidimensional inputs.
 """
 mutable struct BinaryKernel <: Kernel
     Θ₁
     Θ₂
     Θ₃
+    BinaryKernel(Θ₁::Parameter, Θ₂::Parameter, Θ₃::Parameter=Fixed(0)) = new(Θ₁, Θ₂, Θ₃)
 end
+
 @unionise function (k::BinaryKernel)(x::AbstractArray{<:Integer}, y::AbstractArray{<:Integer})
     return unwrap(k.Θ₁) .* (x .≈ y' .≈ 1) .+
         unwrap(k.Θ₂) .* (x .≈ y' .≈ 0) .+
         unwrap(k.Θ₃) .* (x .!= y')
 end
 @unionise (k::BinaryKernel)(x::AbstractArray{<:Integer}) = k(x, x)
+
 function BinaryKernel(a::Real, b::Real, c::Real)
     pa = Positive(a)
     pb = Positive(b)
@@ -437,37 +445,38 @@ function BinaryKernel(a::Real, b::Real, c::Real)
         )
     )
 end
-BinaryKernel(a::Real, b::Real) = BinaryKernel(Positive(a), Positive(b), Fixed(0))
+BinaryKernel(a::Real, b::Real) = BinaryKernel(Positive(a), Positive(b))
 
 """
     ScaledKernel <: Kernel
+    ScaledKernel(scale, k::Kernel)
 
-Result from the multiplication of a `Kernel` by a number or `Parameter`.
+Result from the multiplication of a kernel `k` by a `Number` or `Parameter`.
 Scales the kernel variance.
 """
 mutable struct ScaledKernel <: Kernel
     scale
     k::Kernel
 end
+
 isMulti(k::ScaledKernel) = isMulti(k.k)
+
 function Base.:*(x, k::Kernel)
-    return isconstrained(x) ?
-        ScaledKernel(x, k) :
-        (unwrap(x) ≈ zero(unwrap(x)) ? ZeroKernel() : ScaledKernel(Positive(x), k))
+    isconstrained(x) && return ScaledKernel(x, k)
+    unwrap(x) ≈ zero(unwrap(x)) && return ZeroKernel()
+    return ScaledKernel(Positive(x), k)
 end
 function Base.:*(x, k::ScaledKernel)
-    if isconstrained(x)
-        return ScaledKernel(x, k)
+    isconstrained(x) && return ScaledKernel(x, k)
+    unwrap(x) * unwrap(k.scale) ≈ zero(unwrap(x)) && return ZeroKernel()
+    if (isconstrained(k.scale) && !isa(k.scale, Positive))
+        return ScaledKernel(Positive(x), k)
     else
-        return unwrap(x) * unwrap(k.scale) ≈ zero(unwrap(x)) ? ZeroKernel() :
-            (
-                (isconstrained(k.scale) && !isa(k.scale, Positive)) ?
-                ScaledKernel(Positive(x), k) :
-                ScaledKernel(Positive(unwrap(x) * unwrap(k.scale)), k.k)
-            )
+        return ScaledKernel(Positive(unwrap(x) * unwrap(k.scale)), k.k)
     end
 end
-Base.:*(k::Kernel, x) = (*)(x, k::Kernel)
+Base.:*(k::Kernel, x) = x * k
+
 function Base.:+(k1::Kernel, k2::ScaledKernel)
     return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? k1 : SumKernel(k1, k2)
 end
@@ -483,37 +492,44 @@ function Base.:+(k1::ScaledKernel, k2::ScaledKernel)
         return SumKernel(k1, k2)
     end
 end
+
 (k::ScaledKernel)(x, y) = unwrap(k.scale) .* k.k(x, y)
 (k::ScaledKernel)(x) = k(x, x)
+
 elwise(k::ScaledKernel, x, y) = unwrap(k.scale) .* elwise(k.k, x, y)
 elwise(k::ScaledKernel, x) = elwise(k, x, x)
-Base.show(io::IO, k::ScaledKernel) = print(io, "($(k.scale) * $(k.k))")
+
+Base.show(io::IO, ::MIME"text/plain", k::ScaledKernel) = print(io, "(", k.scale, " * ", k.k, ")")
 
 """
-    StretchedKernel <: Kernel
+    StretchedKernel(l, k::Kernel) -> StretchedKernel
 
-Represent any `Kernel` with length scale stretched to `stretch`.
+Represent any kernel `k` with its length scale stretched to be `l`.
+
+See also: [`stretch`](@ref)
 """
 mutable struct StretchedKernel <: Kernel
     stretch
     k::Kernel
 end
+
 isMulti(k::StretchedKernel) = isMulti(k.k)
 
 """
-    k ▷ l
-    stretch(k, l)
+    k::Kernel ▷ l -> StretchedKernel
+    stretch(k::Kernel, l) -> StretchedKernel
 
-Stretch `Kernel` k's length scale by l.
+Create a [`StretchedKernel`](@ref) by stretching kernel k's length scale to `l`.
 """
 stretch(k::Kernel, x) = StretchedKernel(isconstrained(x) ? x : Positive(x), k)
-(▷)(k::Kernel, x) = stretch(k, x)
 function stretch(k::StretchedKernel, x)
     return StretchedKernel(
         isconstrained(x) ? x .* unwrap(k.stretch) : Positive(x .* unwrap(k.stretch)),
         k.k
     )
 end
+const ▷ = stretch
+
 function (k::StretchedKernel)(x, y)
     lscale = unwrap(k.stretch)'
 
@@ -527,6 +543,7 @@ function (k::StretchedKernel)(x, y)
     end
 end
 (k::StretchedKernel)(x) = k(x, x)
+
 function elwise(k::StretchedKernel, x, y)
     lscale = unwrap(k.stretch)'
 
@@ -540,10 +557,13 @@ function elwise(k::StretchedKernel, x, y)
     end
 end
 elwise(k::StretchedKernel, x) = elwise(k, x, x)
-Base.show(io::IO, k::StretchedKernel) = print(io, "($(k.k) ▷ $(k.stretch))")
+
+# This is a simplification.; in some case stretch(k, l) != StretchedKernel(l, k).
+Base.show(io::IO, ::MIME"text/plain", k::StretchedKernel) = print(io, "(", k.k, " ▷ ", k.stretch, ")")
 
 """
     SumKernel <: Kernel
+    SumKernel(k1::Kernel, k2::Kernel) -> SumKernel
 
 Kernel built by adding two kernels, `k1` and `k2`.
 """
@@ -551,16 +571,23 @@ mutable struct SumKernel <: Kernel
     k1::Kernel
     k2::Kernel
 end
+
 Base.:+(k1::Kernel, k2::Kernel) = SumKernel(k1, k2)
+
 (k::SumKernel)(x, y) = k.k1(x, y) .+ k.k2(x, y)
 (k::SumKernel)(x) = k(x, x)
+
 elwise(k::SumKernel, x, y) = elwise(k.k1, x, y) .+ elwise(k.k2, x, y)
 elwise(k::SumKernel, x) = elwise(k, x, x)
-Base.show(io::IO, k::SumKernel) = print(io, "($(k.k1) + $(k.k2))")
+
+# This leads to prettier-printing in most cases, but it is a simplification;
+# in some cases `k1 + k2 != SumKernel(k1, k2)` e.g. when `k1 = ZeroKernel()`
+Base.show(io::IO, ::MIME"text/plain", k::SumKernel) = print(io, "(", k.k1, " + ", k.k2, ")")
 isMulti(k::SumKernel) = isMulti(k.k1) || isMulti(k.k2)
 
 """
     ProductKernel <: Kernel
+    ProductKernel(k1::Kernel, k2::Kernel) -> ProductKernel
 
 Kernel built by multiplying two kernels, `k1` and `k2`.
 """
@@ -568,6 +595,7 @@ mutable struct ProductKernel <: Kernel
     k1::Kernel
     k2::Kernel
 end
+
 Base.:*(k1::Kernel, k2::Kernel) = ProductKernel(k1, k2)
 function Base.:*(k1::Kernel, k2::ScaledKernel)
     return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? Kernel(0) : ProductKernel(k1, k2)
@@ -584,55 +612,84 @@ function Base.:*(k1::ScaledKernel, k2::ScaledKernel)
         return ProductKernel(k1, k2)
     end
 end
+
 (k::ProductKernel)(x, y) = k.k1(x, y) .* k.k2(x, y)
 (k::ProductKernel)(x) = k(x, x)
+
 elwise(k::ProductKernel, x, y) = elwise(k.k1, x, y) .* elwise(k.k2, x, y)
 elwise(k::ProductKernel, x) = elwise(k, x, x)
-Base.show(io::IO, k::ProductKernel) = print(io, "($(k.k1) * $(k.k2))")
+
+# This leads to prettier-printing in most cases, but it is a simplification;
+# in some cases `k1 * k2 != ProductKernel(k1, k2)` e.g. when `k1 = ZeroKernel()`
+Base.show(io::IO, ::MIME"text/plain", k::ProductKernel) = print(io, "(", k.k1, " * ", k.k2, ")")
+
 isMulti(k::ProductKernel) = isMulti(k.k1) || isMulti(k.k2)
 
 """
     PeriodicKernel <: Kernel
+    PeriodicKernel(period, k::Kernel) -> PeriodicKernel
 
-Kernel built by defining a period `T` for kernel `k`.
+Kernel built by defining a period `period` for kernel `k`.
 """
 mutable struct PeriodicKernel <: Kernel
-    T
+    T  # `T` is common nomenclature for period, and makes the code a little nicer
     k::Kernel
 end
+
 function (k::PeriodicKernel)(x, y)
     px = [cos.(2π .* x ./ unwrap(k.T)') sin.(2π .* x ./ unwrap(k.T)')]
     py = [cos.(2π .* y ./ unwrap(k.T)') sin.(2π .* y ./ unwrap(k.T)')]
     return k.k(px, py)
 end
 (k::PeriodicKernel)(x) = k(x, x)
+
 function elwise(k::PeriodicKernel, x, y)
     px = [cos.(2π .* x ./ unwrap(k.T)') sin.(2π .* x ./ unwrap(k.T)')]
     py = [cos.(2π .* y ./ unwrap(k.T)') sin.(2π .* y ./ unwrap(k.T)')]
     return elwise(k.k, px, py)
 end
 elwise(k::PeriodicKernel, x) = elwise(k, x, x)
-Base.show(io::IO, k::PeriodicKernel) = print(io, "($(k.k) ∿ $(k.T))")
+
+# This gives us pretty-printing but is wrong in some case e.g. if k.T is a scalar
+# `(ConstantKernel() ↻ 3) != PeriodicKernel(3, ConstantKernel())`
+Base.show(io::IO, k::PeriodicKernel) = print(io, "(", k.k, " ↻ ", k.T, ")")
+
 isMulti(k::PeriodicKernel) = isMulti(k.k)
 
 """
-    periodicise(k::Kernel, l::Real)
+    k::Kernel ↻ l::Real -> PeriodicKernel
+    periodicise(k::Kernel, l::Real) -> PeriodicKernel
 
-Turn kernel `k` into a periodic kernel of period `l`.
+Turn kernel `k` into a [`PeriodicKernel`](@ref) of period `l`.
 """
 periodicise(k::Kernel, l) = PeriodicKernel(isconstrained(l) ? l : Positive(l), k)
-# (∿)(k::Kernel, l::Real) = periodicise(k, l) # Charachter seems to be problematic
+const ↻ = periodicise
 
 """
     SpecifiedQuantityKernel <: Kernel
+    SpecifiedQuantityKernel(col::Fixed, k::Kernel) -> SpecifiedQuantityKernel
+	k::Kernel ← col::Fixed -> SpecifiedQuantityKernel
 
 A kernel `k` that acts on the column `col` of a dataframe. Allows for input selection.
+
+See also: [`takes_in`](@ref)
 """
 mutable struct SpecifiedQuantityKernel <: Kernel
     col::Fixed
     k::Kernel
 end
-(←)(k::Kernel, s::Symbol) = SpecifiedQuantityKernel(Fixed(s), k)
+
+"""
+	k::Kernel ← col::Union{Symbol, Fixed} -> SpecifiedQuantityKernel
+	takes_in(k::Kernel, col::Union{Symbol, Fixed}) -> SpecifiedQuantityKernel
+
+Specify that kernel `k` is a [`SpecifiedQuantityKernel`](@ref) which takes in data from the
+`DataFrame` column `col`.
+"""
+takes_in(k::Kernel, col::Symbol) = SpecifiedQuantityKernel(Fixed(col), k)
+takes_in(k::Kernel, col::Fixed) = SpecifiedQuantityKernel(col, k)
+const ← = takes_in
+
 @unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
     return k(DataFrame(x), DataFrame(y))
 end
@@ -659,6 +716,7 @@ end
 end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractDataFrame) = k(x, x)
 @unionise (k::SpecifiedQuantityKernel)(x::DataFrameRow) = k(x, x)
+
 function elwise(k::SpecifiedQuantityKernel, x::AbstractDataFrame, y::AbstractDataFrame)
     if eltype(x[:, unwrap(k.col)]) <: AbstractVector
         return elwise(
@@ -680,7 +738,8 @@ end
 function elwise(k::SpecifiedQuantityKernel, x::DataFrameRow, y::AbstractDataFrame)
     return elwise(k, DataFrame(x), y)
 end
-Base.show(io::IO, k::SpecifiedQuantityKernel) = print(io, "($(k.k) ← $(k.col))")
+
+Base.show(io::IO, k::SpecifiedQuantityKernel) = print(io, "(", k.k, " ← ", k.col, ")")
 isMulti(k::SpecifiedQuantityKernel) = isMulti(k.k)
 
 """
@@ -703,7 +762,7 @@ function Base.:+(k::Kernel, x)
 end
 Base.:+(x, k::Kernel) = (+)(k::Kernel, x)
 Base.convert(::Type{Kernel}, x::Real) = x ≈ 0.0 ? ZeroKernel() : Fixed(x) * ConstantKernel()
-Base.show(io::IO, k::ConstantKernel) = print(io, "𝟏")
+Base.show(io::IO, ::MIME"text/plain", k::ConstantKernel) = print(io, "𝟏")
 
 """
     ZeroKernel <: Kernel
@@ -730,7 +789,7 @@ Base.:*(z::ZeroKernel, k::ScaledKernel) = z
 Base.:*(k::ScaledKernel, z::ZeroKernel) = z * k
 Base.:*(x, z::ZeroKernel) = z
 Base.:*(z::ZeroKernel, x) = x * z
-Base.show(io::IO, z::ZeroKernel) = print(io, "𝟎")
+Base.show(io::IO, ::MIME"text/plain", z::ZeroKernel) = print(io, "𝟎")
 
 """
     DiagonalKernel <: Kernel
@@ -776,17 +835,19 @@ elwise(k::DiagonalKernel, x::Number, y) = elwise(k, [x], y)
 elwise(k::DiagonalKernel, x, y::Number) = elwise(k, x, [y])
 elwise(k::DiagonalKernel, x::Number, y::Number) = elwise(k, [x], [y])
 elwise(k::DiagonalKernel, x) = ones(size(x, 1))
-Base.show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
+Base.show(io::IO, ::MIME"text/plain", k::DiagonalKernel) = print(io, "δₓ")
 
 """
     DotKernel <: Kernel
+    DotKernel(offset=Fixed(0.0)) -> DotKernel
 
 Dot product kernel. Non-stationary.
 """
 struct DotKernel <: Kernel
     offset
+
+    DotKernel(offset=Fixed(0.0)) = new(offset)
 end
-DotKernel() = DotKernel(Fixed(0.0))
 @unionise function (k::DotKernel)(x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
     return (x .- unwrap(k.offset)') * (y .- unwrap(k.offset)')'
 end
@@ -802,44 +863,47 @@ elwise(k::DotKernel, x::Number, y) = elwise(k, [x], y)
 elwise(k::DotKernel, x, y::Number) = elwise(k, x, [y])
 elwise(k::DotKernel, x::Number, y::Number) = elwise(k, [x], [y])
 @unionise elwise(k::DotKernel, x::AbstractArray{<:Real}) = elwise(k, x, x)
-function Base.show(io::IO, k::DotKernel)
+function Base.show(io::IO, ::MIME"text/plain", k::DotKernel)
     if k.offset ≈ Fixed(0.0)
         print(io, "<., .>")
     else
-        print(io, "<. - $(k.offset), . - $(k.offset)>")
+        print(io, "<. - ", k.offset, ". - ", k.offset, ">")
     end
 end
 
 """
     HazardKernel <: Kernel
+    HazardKernel(bias, scale) -> HazardKernel
 
-Kernel tailor-made for hazards. It uses an augmented version of the `DotKernel` and has two
-fields, `bias` and `scale`. `bias` defaults to `Fixed(0.0)` and determines the projection of
-every hazard vector into the non-hazard space. `scale` defaults to `Fixed(ones(d))`, where
-`d` is the dimension of the hazards space and represents a (possibly non-uniform) scale to be
-applied to every hazard vector, `v`, as `v .* scale`.
+Kernel tailor-made for hazards. It uses an augmented version of the [`DotKernel`](@ref).
 
-In order for this to make sense, `abs(bias)` has to be smaller than one and `scale` has to
-be a `RowVector` when unwrapped. It probably makes more sense to use normalised hazard
-vectors. Also, this is thought of as a multiplicative kernel.
+# Fields
+- `bias=Fixed(0.0)`: determines the projection of every hazard vector into the non-hazard
+  space.
+- `scale=Fixed(-1.0)`: represents a (possibly non-uniform) scale to be applied to every hazard
+  vector `v` as `v .* scale`.
+
+!!! note
+    In order for a `HazardKernel` to make sense, we must have `abs(bias) < 1` and
+    `size(unwrap(scale), 1) == 1` i.e. `scale` must be a row vector when unwrapped.
+    It probably makes more sense to use normalised hazard vectors.
+    Also, this is thought of as a "multiplicative" kernel.
 """
 mutable struct HazardKernel <: Kernel
     bias
     scale
 
-    function HazardKernel(b, s)
-        unwrap(b) >= 1.0 && warn(
+    function HazardKernel(bias=Fixed(0.0), scale=Fixed(-1.0))
+        unwrap(bias) >= 1.0 && @warn(
             """
             A HazardKernel with bias larger than or equal to 1.0 can yield unexpected
             results. Value received: $(unwrap(bias)).
             """
         )
-        size(unwrap(s), 1) != 1 && throw(ArgumentError("Scale must be a `RowVector`"))
-        return new(b, s)
+        size(unwrap(scale), 1) != 1 && throw(ArgumentError("Scale must be a `RowVector`"))
+        return new(bias, scale)
     end
 end
-HazardKernel() = HazardKernel(Fixed(0.0), Fixed(-1))
-HazardKernel(bias) = HazardKernel(bias, Fixed(-1))
 @unionise function (k::HazardKernel)(x::AbstractArray{<:Real}, y::AbstractArray{<:Real})
     # First, augment the input space
     xl = [x[i, :] for i in 1:size(x, 1)]
@@ -876,14 +940,20 @@ end
 elwise(k::HazardKernel, x::Number, y) = elwise(k, [x], y)
 elwise(k::HazardKernel, x, y::Number) = elwise(k, x, [y])
 elwise(k::HazardKernel, x::Number, y::Number) = elwise(k, [x], [y])
-Base.show(io::IO, k::HazardKernel) = print(io, "Hazard()")
 
 """
     ManifoldKernel <: Kernel
+    ManifoldKernel(k::Kernel, nn::GPFNN) -> ManifoldKernel
 
-Build a kernel under the Manifold GPs framework. `k` is a regular kernel, while `NN` is a
-neural network. The inputs to `k` are pre-transformed by `NN`. For more details, see:
-"Manifold Gaussian Processes for Regression".
+Build a kernel under the Manifold GPs framework.
+
+The inputs to the kernel `k` are pre-transformed by the neural network `nn`.
+For more details, see:
+    ["Manifold Gaussian Processes for Regression"](https://arxiv.org/abs/1402.5876)
+
+# Fields
+- `k::Kernel`: any regular kernel
+- `nn::GPFNN`: a neural network.
 """
 struct ManifoldKernel <: Kernel
     k::Kernel
@@ -925,7 +995,7 @@ function elwise(k::ManifoldKernel, x::T) where T <: Input
 end
 
 Base.zero(::Kernel) = ZeroKernel()
-Base.zero(::Type{GPForecasting.Kernel}) = ZeroKernel()
+Base.zero(::Type{Kernel}) = ZeroKernel()
 
 """
     SparseKernel{K <: Kernel} <: Kernel
@@ -942,4 +1012,4 @@ end
 SparseKernel(k::Kernel, Xm, σ²) = SparseKernel(k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
 (k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
 (k::SparseKernel)() = k.k(unwrap(k.Xm))
-Base.show(io::IO, k::SparseKernel) = print(io, "Sparse($(k.k))")
+Base.show(io::IO, ::MIME"text/plain", k::SparseKernel) = print(io, "Sparse(", k.k, ")")

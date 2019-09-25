@@ -27,7 +27,7 @@ export logpdf, map_obj, mle_obj, reglogpdf, titsiasobj
 # kernel.jl
 export ▷,
     ←,
-    ∿,
+    ↻,
     BinaryKernel,
     ConstantKernel,
     DiagonalKernel,
@@ -100,6 +100,8 @@ const packagehomedir = dirname(@__DIR__) #dirname ascends the directory...
 const Wrapped{T} = Union{T, Node{T}}
 
 __init__() = Memento.register(LOGGER)  # Register the Logger
+
+@deprecate(∿, ↻, true)
 
 """
     Process
