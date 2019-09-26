@@ -186,42 +186,26 @@ end
 Statistics.rand(dist::Gaussian) = sample(dist)
 Statistics.rand(dist::Gaussian, n::Int) = sample(dist, n)
 
-Distributions.MvNormal(d::Gaussian{T}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
+Distributions.MvNormal(d::Gaussian) = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
 
-function Metrics.joint_loglikelihood(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
-    if length(blocks(d.Σ)) != size(y, 1) # Not sure why one would ever do this, but anyway
-        return -logpdf(d, y) / length(y)
-    elseif d.chol !== nothing && isa(d.chol.U, BlockDiagonal)
-        return sum([-logpdf(Gaussian(
-            reshape(d.μ[i, :], 1, size(d.μ, 2)),
-            blocks(d.Σ)[i],
-            Cholesky(blocks(d.chol.U)[i], 'U', 0),
-        ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / length(y)
-    else
-        return sum([-logpdf(Gaussian(
-            reshape(d.μ[i, :], 1, size(d.μ, 2)),
-            blocks(d.Σ)[i]
-        ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / length(y)
-    end
+# `xs` distinguish uni-, multi- and matrix-variate cases.
+# We need to define all of them because Gaussian subtypes MatrixDistribution
+# but can actually be Univariate or Multivariate.
+function StatsBase.loglikelihood(d::Gaussian, xs::AbstractVector)
+    return sum(x -> logpdf(d, x), xs)
 end
 
-function Metrics.joint_loglikelihood(d::Distribution{Matrixvariate, Continuous}, y::AbstractMatrix{<:Real})
-    means = vec(mean(d)')
-    y_true = vec(y')
-
-    U = cholesky(cov(d) + 1e-12 * I).U
-    z = U' \ (y_true .- means)
-    log_det = 2 * sum(log.(diag(U)))
-    return 0.5 * (log_det + length(y_true) * log(2π) + dot(z, z)) / length(y_true)
+function StatsBase.loglikelihood(d::MatrixDistribution, xs::AbstractMatrix)
+    length(d) == size(xs, 2) || throw(DimensionMismatch("Samples must have size $(size(d))"))
+    return sum(x -> logpdf(d, x), xs)
 end
 
-function Metrics.marginal_loglikelihood(d::Distribution{Matrixvariate, Continuous}, y::AbstractMatrix{<:Real})
-    means = vec(mean(d))
-    vars = vec(var(d))
-    y_true = vec(y)
-
-    return 0.5 * mean(log.(2π .* vars)) .+ 0.5 * mean((y_true .- means).^2 ./ vars)
+function StatsBase.loglikelihood(d::MatrixDistribution, Xs::AbstractVector{<:AbstractMatrix})
+    all(==(size(d)), size.(Xs)) || throw(DimensionMismatch("All samples must have size $(size(d))"))
+    return sum(X -> logpdf(d, X), Xs)
 end
+
+Metrics.joint_gaussian_loglikelihood(d::Gaussian, xs) = loglikelihood(d, xs)
 
 """
     hourly_distributions(g::Gaussian)
