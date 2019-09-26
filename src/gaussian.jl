@@ -86,7 +86,9 @@ end
 
 Statistics.mean(g::Gaussian) = g.μ
 Statistics.cov(g::Gaussian) = g.Σ
-Statistics.var(g::Gaussian) = reshape(diag(cov(g)), size(mean(g), 2), size(mean(g), 1))'
+function Statistics.var(g::Gaussian)
+    return permutedims(reshape(diag(cov(g)), size(mean(g), 2), size(mean(g), 1)))
+end
 
 """
     dim(dist::Gaussian) -> Int
