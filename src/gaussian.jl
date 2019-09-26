@@ -190,28 +190,35 @@ Statistics.rand(dist::Gaussian, n::Int) = sample(dist, n)
 
 Distributions.MvNormal(d::Gaussian) = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
 
-# `xs` distinguish uni-, multi- and matrix-variate cases.
-# We need to define all of them because Gaussian subtypes MatrixDistribution
-# but can actually be Univariate or Multivariate.
-function StatsBase.loglikelihood(d::Gaussian, xs::AbstractVector)
-    return sum(x -> logpdf(d, x), xs)
-end
-
-function StatsBase.loglikelihood(d::MatrixDistribution, xs::AbstractMatrix)
+# `xs` distinguish multi- and matrix-variate cases.
+# Even though Gaussian subtypes MatrixDistribution it can actually be Multivariate.
+function StatsBase.loglikelihood(d::Gaussian, xs::AbstractMatrix)
     length(d) == size(xs, 2) || throw(DimensionMismatch("Samples must have size $(size(d))"))
     return sum(x -> logpdf(d, x), xs)
 end
 
-function StatsBase.loglikelihood(d::MatrixDistribution, Xs::AbstractVector{<:AbstractMatrix})
+function StatsBase.loglikelihood(d::Gaussian, Xs::AbstractVector{<:AbstractMatrix})
     all(==(size(d)), size.(Xs)) || throw(DimensionMismatch("All samples must have size $(size(d))"))
     return sum(X -> logpdf(d, X), Xs)
 end
 
-Metrics.joint_gaussian_loglikelihood(d::Gaussian, xs) = loglikelihood(d, xs)
 function Metrics.marginal_gaussian_loglikelihood(d::Gaussian, xs)
-    d_ = Gaussian(g.μ, diag(g.Σ))
+    d_ = Gaussian(d.μ, diag(d.Σ))
     return loglikelihood(d_, xs)
 end
+
+Metrics.joint_gaussian_loglikelihood(d::Gaussian, xs) = loglikelihood(d, xs)
+
+function marginal_mean_logloss(d::Gaussian, x::AbstractVector)
+    d_ = Gaussian(d.μ, Diagonal(d.Σ))
+    return joint_gaussian_loglikelihood(d_, x)
+end
+
+function joint_mean_logloss(d::Gaussian, x::AbstractMatrix)
+    size(d) == size(x) || throw(DimensionMismatch("Sample must have size $(size(d))"))
+    return -logpdf(d, x) / length(x)
+end
+
 
 """
     hourly_distributions(g::Gaussian)
