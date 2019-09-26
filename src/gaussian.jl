@@ -206,6 +206,10 @@ function StatsBase.loglikelihood(d::MatrixDistribution, Xs::AbstractVector{<:Abs
 end
 
 Metrics.joint_gaussian_loglikelihood(d::Gaussian, xs) = loglikelihood(d, xs)
+function Metrics.marginal_gaussian_loglikelihood(d::Gaussian, xs)
+    d_ = Gaussian(g.μ, diag(g.Σ))
+    return loglikelihood(d_, xs)
+end
 
 """
     hourly_distributions(g::Gaussian)
