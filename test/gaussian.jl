@@ -41,19 +41,14 @@
     @test var(g) ≈ ones(5, 2) atol = _ATOL_
     @test size(rand(g, 5)) == (5, 2, 5)
 
+    mu = zeros(3, 5)
     Σ = BlockDiagonal(fill(Eye(5), 3))
-    g1 = Gaussian(zeros(3, 5), Σ, cholesky(Σ))
-    g2 = Gaussian(zeros(3, 5), BlockDiagonal(fill(Eye(5), 3)))
-    g3 = Gaussian(zeros(3, 5), Eye(15))
-    g4 = Gaussian(zeros(3, 5), BlockDiagonal([Eye(10), Eye(5)]))
-
-    @test joint_loglikelihood(g1, ones(3, 5)) ≈ joint_loglikelihood(g2, ones(3, 5)) atol = _ATOL_
-    @test joint_loglikelihood(g1, ones(3, 5)) ≈ joint_loglikelihood(g3, ones(3, 5)) atol = _ATOL_
-    @test joint_loglikelihood(g1, ones(3, 5)) ≈ joint_loglikelihood(g4, ones(3, 5)) atol = _ATOL_
-
-    @test marginal_loglikelihood(g1, ones(3, 5)) ≈ marginal_loglikelihood(g2, ones(3, 5)) atol = _ATOL_
-    @test marginal_loglikelihood(g1, ones(3, 5)) ≈ marginal_loglikelihood(g3, ones(3, 5)) atol = _ATOL_
-    @test marginal_loglikelihood(g1, ones(3, 5)) ≈ marginal_loglikelihood(g4, ones(3, 5)) atol = _ATOL_
+    g1 = Gaussian(mu, Σ, cholesky(Σ))
+    g2 = Gaussian(mu, BlockDiagonal(fill(Eye(5), 3)))
+    g3 = Gaussian(mu, Eye(15))
+    g4 = Gaussian(mu, BlockDiagonal([Eye(10), Eye(5)]))
+    g5 = Gaussian(Zeros(3, 5), Eye(15))
+    # TODO: tests of loglikelihood based functions
 
     # Test Adjoint constructors
     g = Gaussian(rand(3, 2), rand(6, 6)')
