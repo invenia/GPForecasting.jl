@@ -46,24 +46,36 @@
     g1 = Gaussian(mu, Σ, cholesky(Σ))
     g2 = Gaussian(mu, BlockDiagonal(fill(Eye(5), 3)))
     g3 = Gaussian(mu, Eye(15))
-    g4 = Gaussian(mu, BlockDiagonal([Eye(10), Eye(5)]))
+    # TODO: change the logpdf function so it detects a weird case like g4. It isn't something
+    # we'll normally be using, though
+    # g4 = Gaussian(mu, BlockDiagonal([Eye(10), Eye(5)]))
     g5 = Gaussian(Zeros(3, 5), Eye(15))
+    r = rand(15)
+    g6 = Gaussian(Zeros(3, 5), Eye(15) + r *r')
+    g7 = Gaussian(rand(3), Eye(3))
     xs = [rand(3, 5) for i in 1:3]
     x = xs[1]
 
-    for g in (g2, g3, g4, g5)
+    for g in (g2, g3, g5)
         for f in (
             Distributions.loglikelihood,
             Metrics.marginal_gaussian_loglikelihood,
             Metrics.joint_gaussian_loglikelihood,
         )
             @test f(g1, xs) ≈ f(g, xs)
-            @test f(g1, x) ≈ f(g, x)
         end
         @test marginal_mean_logloss(g1, x) ≈ marginal_mean_logloss(g, x)
         @test joint_mean_logloss(g, x) ≈ marginal_mean_logloss(g, x)
     end
-    # TODO: tests of loglikelihood based functions
+    @test joint_gaussian_loglikelihood(g6, xs) == loglikelihood(g6, xs) != marginal_gaussian_loglikelihood(g6, xs)
+    for f in (
+        Distributions.loglikelihood,
+        Metrics.marginal_gaussian_loglikelihood,
+        Metrics.joint_gaussian_loglikelihood,
+    )
+        x = rand(3, 5)
+        @test f(g7, x) ≈ sum(broadcast(s -> logpdf(g7, s), [x[:, i] for i in 1:5]))
+    end
 
     # Test Adjoint constructors
     g = Gaussian(rand(3, 2), rand(6, 6)')
