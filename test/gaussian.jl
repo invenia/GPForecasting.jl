@@ -48,6 +48,21 @@
     g3 = Gaussian(mu, Eye(15))
     g4 = Gaussian(mu, BlockDiagonal([Eye(10), Eye(5)]))
     g5 = Gaussian(Zeros(3, 5), Eye(15))
+    xs = [rand(3, 5) for i in 1:3]
+    x = xs[1]
+
+    for g in (g2, g3, g4, g5)
+        for f in (
+            Distributions.loglikelihood,
+            Metrics.marginal_gaussian_loglikelihood,
+            Metrics.joint_gaussian_loglikelihood,
+        )
+            @test f(g1, xs) ≈ f(g, xs)
+            @test f(g1, x) ≈ f(g, x)
+        end
+        @test marginal_mean_logloss(g1, x) ≈ marginal_mean_logloss(g, x)
+        @test joint_mean_logloss(g, x) ≈ marginal_mean_logloss(g, x)
+    end
     # TODO: tests of loglikelihood based functions
 
     # Test Adjoint constructors
