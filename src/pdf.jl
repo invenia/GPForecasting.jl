@@ -70,6 +70,38 @@ function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
     return -(log_det + length(x) * log(2π) + sum(abs2, z)) / 2
 end
 
+function Distributions.logpdf(
+    dist::Gaussian{T, G},
+    x::AbstractMatrix{<:Real},
+) where {T, G<:BlockDiagonal}
+    if d.chol !== nothing && isa(d.chol.U, BlockDiagonal)
+        return sum(
+            [
+                -logpdf(
+                    Gaussian(
+                        reshape(d.μ[i, :], 1, size(d.μ, 2)),
+                        blocks(d.Σ)[i],
+                        Cholesky(blocks(d.chol.U)[i], 'U', 0),
+                    ),
+                    reshape(y[i, :], 1, size(y, 2))
+                ) for i in 1:length(blocks(d.Σ))
+            ]
+        )
+    else
+        return sum(
+            [
+                -logpdf(
+                    Gaussian(
+                        reshape(d.μ[i, :], 1, size(d.μ, 2)),
+                        blocks(d.Σ)[i]
+                    ),
+                    reshape(y[i, :], 1, size(y, 2))
+                ) for i in 1:length(blocks(d.Σ))
+            ]
+        )
+    end
+end
+
 """
     function reglogpdf(
         reg::Function,
