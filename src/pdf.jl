@@ -71,13 +71,13 @@ function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
 end
 
 function Distributions.logpdf(
-    dist::Gaussian{T, G},
-    x::AbstractMatrix{<:Real},
-) where {T, G<:BlockDiagonal}
+    d::Gaussian{T, G},
+    y::AbstractMatrix{<:Real},
+) where {T<:Wrapped{<:AbstractArray}, G<:BlockDiagonal}
     if d.chol !== nothing && isa(d.chol.U, BlockDiagonal)
         return sum(
             [
-                -logpdf(
+                logpdf(
                     Gaussian(
                         reshape(d.μ[i, :], 1, size(d.μ, 2)),
                         blocks(d.Σ)[i],
@@ -90,7 +90,7 @@ function Distributions.logpdf(
     else
         return sum(
             [
-                -logpdf(
+                logpdf(
                     Gaussian(
                         reshape(d.μ[i, :], 1, size(d.μ, 2)),
                         blocks(d.Σ)[i]
