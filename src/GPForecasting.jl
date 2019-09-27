@@ -6,7 +6,7 @@ export BlockDiagonal, blocks, sample
 export Process, GP, condition, condition_sparse, credible_interval
 
 # gaussian.jl
-export Gaussian
+export Gaussian, marginal_mean_logloss, joint_mean_logloss
 
 # mean.jl
 export ConstantMean,
