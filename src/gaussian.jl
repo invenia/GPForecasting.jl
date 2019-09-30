@@ -202,6 +202,7 @@ function Distributions.loglikelihood(d::Gaussian, Xs::AbstractVector{<:AbstractM
     return sum(X -> logpdf(d, X), Xs)
 end
 
+# TODO: Optimise this later such that it works for large covariances
 function Metrics.marginal_gaussian_loglikelihood(d::Gaussian, xs)
     d_ = Gaussian(d.μ, Diagonal(d.Σ))
     return loglikelihood(d_, xs)
@@ -210,8 +211,8 @@ end
 Metrics.joint_gaussian_loglikelihood(d::Gaussian, xs) = loglikelihood(d, xs)
 
 function marginal_mean_logloss(d::Gaussian, x)
-    d_ = Gaussian(d.μ, Diagonal(d.Σ))
-    return joint_mean_logloss(d_, x)
+    d_ = MvNormal(vec(d.μ'), Diagonal(d.Σ))
+    return -logpdf(d_, vec(x')) / length(x)
 end
 
 function joint_mean_logloss(d::Gaussian, x)
