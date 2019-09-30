@@ -1,5 +1,3 @@
-using ModelAnalysis
-
 @testset "Gaussian" begin
     n = Gaussian([1.,2e10,3.], Eye(3))
     samp = sample(n)
@@ -43,14 +41,51 @@ using ModelAnalysis
     @test var(g) ≈ ones(5, 2) atol = _ATOL_
     @test size(rand(g, 5)) == (5, 2, 5)
 
+    mu = zeros(3, 5)
     Σ = BlockDiagonal(fill(Eye(5), 3))
-    g1 = Gaussian(zeros(3, 5), Σ, cholesky(Σ))
-    g2 = Gaussian(zeros(3, 5), BlockDiagonal(fill(Eye(5), 3)))
-    g3 = Gaussian(zeros(3, 5), Eye(15))
-    g4 = Gaussian(zeros(3, 5), BlockDiagonal([Eye(10), Eye(5)]))
-    @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g2, ones(3, 5)) atol = _ATOL_
-    @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g3, ones(3, 5)) atol = _ATOL_
-    @test mll_joint(g1, ones(3, 5)) ≈ mll_joint(g4, ones(3, 5)) atol = _ATOL_
+    diagonal_zeromean_gaussian1 = Gaussian(mu, Σ, cholesky(Σ))
+    diagonal_zeromean_gaussian2 = Gaussian(mu, BlockDiagonal(fill(Eye(5), 3)))
+    diagonal_zeromean_gaussian3 = Gaussian(mu, Eye(15))
+    # TODO: change the logpdf function so it detects a weird case like g4. It isn't something
+    # we'll normally be using, though
+    # g4 = Gaussian(mu, BlockDiagonal([Eye(10), Eye(5)]))
+    diagonal_zeromean_gaussian5 = Gaussian(Zeros(3, 5), Eye(15))
+    r = rand(15)
+    nondiagonal_gaussian = Gaussian(Zeros(3, 5), Eye(15) + r *r')
+    multivariate_gaussian = Gaussian(rand(3), Eye(3))
+    xs = [rand(3, 5) for i in 1:3]
+    x = xs[1]
+
+    for g in (
+        diagonal_zeromean_gaussian2,
+        diagonal_zeromean_gaussian3,
+        diagonal_zeromean_gaussian5
+    )
+        for f in (
+            Distributions.loglikelihood,
+            Metrics.marginal_gaussian_loglikelihood,
+            Metrics.joint_gaussian_loglikelihood,
+        )
+            @test f(diagonal_zeromean_gaussian1, xs) ≈ f(g, xs)
+        end
+        # Values here should coincide because none of the Gaussians have non-zero entries
+        # outside the diagonal of the covariance.
+        @test marginal_mean_logloss(diagonal_zeromean_gaussian1, x) ≈ marginal_mean_logloss(g, x)
+        @test joint_mean_logloss(g, x) ≈ marginal_mean_logloss(g, x)
+    end
+    @test joint_gaussian_loglikelihood(nondiagonal_gaussian, xs) ==
+        loglikelihood(nondiagonal_gaussian, xs) !=
+        marginal_gaussian_loglikelihood(nondiagonal_gaussian, xs)
+    for f in (
+        Distributions.loglikelihood,
+        Metrics.marginal_gaussian_loglikelihood,
+        Metrics.joint_gaussian_loglikelihood,
+    )
+        x = rand(3, 5)
+        @test f(multivariate_gaussian, x) ≈ sum(
+            broadcast(s -> logpdf(multivariate_gaussian, s), [x[:, i] for i in 1:5])
+        )
+    end
 
     # Test Adjoint constructors
     g = Gaussian(rand(3, 2), rand(6, 6)')

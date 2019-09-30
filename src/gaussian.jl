@@ -37,6 +37,7 @@ mutable struct Gaussian{
         Σ::Wrapped{G},
         chol::Union{Wrapped{<:Cholesky}, Nothing}=nothing,
     ) where {T <: AbstractArray, G <: AbstractArray}
+
         return new{materialize(T), materialize(G)}(materialize(μ), materialize(Σ), chol)
     end
 end
@@ -85,7 +86,9 @@ end
 
 Statistics.mean(g::Gaussian) = g.μ
 Statistics.cov(g::Gaussian) = g.Σ
-Statistics.var(g::Gaussian) = reshape(diag(cov(g)), size(mean(g), 2), size(mean(g), 1))'
+function Statistics.var(g::Gaussian)
+    return permutedims(reshape(diag(cov(g)), size(mean(g), 2), size(mean(g), 1)))
+end
 
 """
     dim(dist::Gaussian) -> Int
@@ -185,27 +188,38 @@ end
 Statistics.rand(dist::Gaussian) = sample(dist)
 Statistics.rand(dist::Gaussian, n::Int) = sample(dist, n)
 
-Distributions.MvNormal(d::Gaussian{T}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
+Distributions.MvNormal(d::Gaussian) = MvNormal(collect(vec(d.μ[:, :]')), d.Σ)
 
-# handles old version of Eye on old versions of FillArrays (with Julia 0.6)
-Distributions.MvNormal(d::Gaussian{T, <:Eye}) where {T} = MvNormal(collect(vec(d.μ[:, :]')), collect(d.Σ))
-
-function ModelAnalysis.mll_joint(d::Gaussian{T, G}, y::AbstractMatrix{<:Real}) where {T, G<:BlockDiagonal}
-    if length(blocks(d.Σ)) != size(y, 1) # Not sure why one would ever do this, but anyway
-        return -logpdf(d, y) / length(y)
-    elseif d.chol !== nothing && isa(d.chol.U, BlockDiagonal)
-        return sum([-logpdf(Gaussian(
-            reshape(d.μ[i, :], 1, size(d.μ, 2)),
-            blocks(d.Σ)[i],
-            Cholesky(blocks(d.chol.U)[i], 'U', 0),
-        ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / length(y)
-    else
-        return sum([-logpdf(Gaussian(
-            reshape(d.μ[i, :], 1, size(d.μ, 2)),
-            blocks(d.Σ)[i]
-        ), reshape(y[i, :], 1, size(y, 2))) for i in 1:length(blocks(d.Σ))]) / length(y)
-    end
+# `xs` distinguish multi- and matrix-variate cases.
+# Even though Gaussian subtypes MatrixDistribution it can actually be Multivariate.
+function Distributions.loglikelihood(d::Gaussian, xs::AbstractMatrix)
+    size(d, 1) == size(xs, 1) || throw(DimensionMismatch("All samples must be length $(size(d, 1))"))
+    return sum(i -> logpdf(d, view(xs, :, i)), axes(xs, 2))  # vector samples in columns
 end
+
+function Distributions.loglikelihood(d::Gaussian, Xs::AbstractVector{<:AbstractMatrix})
+    all(==(size(d)), size.(Xs)) || throw(DimensionMismatch("All samples must have size $(size(d))"))
+    return sum(X -> logpdf(d, X), Xs)
+end
+
+# TODO: Optimise this later such that it works for large covariances
+function Metrics.marginal_gaussian_loglikelihood(d::Gaussian, xs)
+    d_ = Gaussian(d.μ, Diagonal(d.Σ))
+    return loglikelihood(d_, xs)
+end
+
+Metrics.joint_gaussian_loglikelihood(d::Gaussian, xs) = loglikelihood(d, xs)
+
+function marginal_mean_logloss(d::Gaussian, x)
+    d_ = MvNormal(vec(d.μ'), Diagonal(d.Σ))
+    return -logpdf(d_, vec(x')) / length(x)
+end
+
+function joint_mean_logloss(d::Gaussian, x)
+    size(d) == size(x) || throw(DimensionMismatch("Sample must have size $(size(d))"))
+    return -logpdf(d, x) / length(x)
+end
+
 
 """
     hourly_distributions(g::Gaussian)
