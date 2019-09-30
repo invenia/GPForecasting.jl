@@ -64,6 +64,8 @@
         )
             @test f(g1, xs) ≈ f(g, xs)
         end
+        # Values here should coincide because none of the Gaussians have non-zero entries
+        # outside the diagonal of the covariance.
         @test marginal_mean_logloss(g1, x) ≈ marginal_mean_logloss(g, x)
         @test joint_mean_logloss(g, x) ≈ marginal_mean_logloss(g, x)
     end
