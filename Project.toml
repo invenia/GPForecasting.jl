@@ -1,7 +1,7 @@
 name = "GPForecasting"
 uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
 authors = ["Invenia Technical Computing"]
-version = "2.0.0"
+version = "2.0.1"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -24,7 +24,7 @@ DataFrames = "0.18, 0.19"
 Distributions = ">= 0.15"
 LineSearches = ">= 3.2.5"
 Memento = ">= 0.10"
-Metrics = "0.5"
+Metrics = "0.5, 0.6"
 Nabla = ">= 0.11"
 Optim = ">= 0.14.1"
 julia = "1"
