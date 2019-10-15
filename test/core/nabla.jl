@@ -1,25 +1,27 @@
 # Here we want to ensure that stuff is differentiable
 @testset "Nabla" begin
     # Check gradients of `pairwise_dist`.
+    # using `abs`, `-abs` and `.- 10` is just a cheap way of guaranteeing that the distances
+    # will never be near zero, and, thus never weird.
     for (is_x, is_y) in (((4,), (6,)), ((4, 2), (6, 2)))
-        rx, dx = randn(is_x...), randn(is_x...)
-        ry, dy = randn(is_y...), randn(is_y...)
+        rx, dx = abs.(randn(is_x...)), abs.(randn(is_x...))
+        ry, dy = -abs.(randn(is_y...)) .- 10, -abs.(randn(is_y...))
         @test check_errs(x -> pairwise_dist(x, ry), randn(is_x[1], is_y[1]), rx, dx)
         @test check_errs(y -> pairwise_dist(rx, y), randn(is_x[1], is_y[1]), ry, dy)
     end
 
     # Check gradients of `elwise_dist`.
     for (is_x, is_y) in (((4,), (4,)), ((4, 2), (4, 2)))
-        rx, dx = randn(is_x...), randn(is_x...)
-        ry, dy = randn(is_y...), randn(is_y...)
+        rx, dx = abs.(randn(is_x...)), abs.(randn(is_x...))
+        ry, dy = -abs.(randn(is_y...)) .- 10, -abs.(randn(is_y...))
         @test check_errs(x -> elwise_dist(x, ry), randn(is_x[1]), rx, dx)
         @test check_errs(y -> elwise_dist(rx, y), randn(is_x[1]), ry, dy)
     end
 
     # Check gradients of `sq_elwise_dist`.
     for (is_x, is_y) in (((4,), (4,)), ((4, 2), (4, 2)))
-        rx, dx = randn(is_x...), randn(is_x...)
-        ry, dy = randn(is_y...), randn(is_y...)
+        rx, dx = abs.(randn(is_x...)), abs.(randn(is_x...))
+        ry, dy = -abs.(randn(is_y...)) .- 10, -abs.(randn(is_y...))
         @test check_errs(x -> sq_elwise_dist(x, ry), randn(is_x[1]), rx, dx)
         @test check_errs(y -> sq_elwise_dist(rx, y), randn(is_x[1]), ry, dy)
     end
