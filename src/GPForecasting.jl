@@ -1,6 +1,6 @@
 module GPForecasting
 
-export BlockDiagonal, blocks, sample
+export sample
 
 # gp.jl
 export Process, GP, condition, condition_sparse, credible_interval
@@ -79,6 +79,7 @@ export Bounded, DynamicBound, Fixed, Named, Parameter, Positive, isconstrained
 #NN.jl
 export GPFNN, NNLayer, BatchNormLayer, relu, noisy_relu, leaky_relu, softplus, sigmoid
 
+using BlockDiagonals
 using DataFrames
 using Distances
 using Distributions
@@ -102,6 +103,7 @@ const Wrapped{T} = Union{T, Node{T}}
 __init__() = Memento.register(LOGGER)  # Register the Logger
 
 @deprecate(∿, ↻, true)
+include("deprecated.jl")
 
 """
     Process
