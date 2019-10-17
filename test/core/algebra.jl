@@ -1,6 +1,6 @@
 @testset "Algebra" begin
 
-    @testset "BlockDiagonal" begin
+    @testset "deprecated: BlockDiagonal" begin
         b1 = BlockDiagonal([rand(3, 3), rand(4, 4), rand(5, 5)])
         b2 = BlockDiagonal([rand(3, 2), rand(4, 4), rand(5, 3)])
         A = rand(size(b1)...)
@@ -96,7 +96,7 @@
             )) atol = _ATOL_
     end
 
-    @testset "Cholesky decomposition of block diagonal matrices" begin
+    @testset "deprecated: Cholesky decomposition of block diagonal matrices" begin
         X = [  4  12 -16
               12  37 -43
              -16 -43  98]
@@ -105,7 +105,7 @@
               0.0 0.0  3.0]
         B = BlockDiagonal([X, X])
         C = cholesky(B)
-        @test C isa Cholesky{Float64,BlockDiagonal{Float64}}
+        @test C isa Cholesky{Float64, <:BlockDiagonal{Float64}}
         @test C.U ≈ BlockDiagonal([U, U])
         @test C.L ≈ BlockDiagonal([U', U'])
         @test C.UL ≈ C.U
