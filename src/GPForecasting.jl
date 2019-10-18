@@ -79,7 +79,10 @@ export Bounded, DynamicBound, Fixed, Named, Parameter, Positive, isconstrained
 #NN.jl
 export GPFNN, NNLayer, BatchNormLayer, relu, noisy_relu, leaky_relu, softplus, sigmoid
 
-using BlockDiagonals
+# reexport so as not be breaking from when BlockDiagonals was part of this package.
+export BlockDiagonal, blocks
+
+using BlockDiagonals: BlockDiagonal, blocks
 using DataFrames
 using Distances
 using Distributions
@@ -103,7 +106,6 @@ const Wrapped{T} = Union{T, Node{T}}
 __init__() = Memento.register(LOGGER)  # Register the Logger
 
 @deprecate(∿, ↻, true)
-include("deprecated.jl")
 
 """
     Process
