@@ -436,3 +436,99 @@ a regular GP, which will be made sparse.
     end
 end
 # TODO: A method that let's specify only the number of inducing points
+
+"""
+    unconstrained_Markowitz(gp::GP, x, α::Real)
+
+Perform unconstrained mean-variance Markowitz optimisation, using risk parameter `α`, for
+input `x`. Returns the optimal weigths. This assumes a single timestamp is being provided.
+"""
+@unionise function _unconstrained_Markowitz(gp::GP, x, α::Real)
+    α <= 0 && throw(ArgumentError("Risk parameter must be positive, received $α"))
+    return 1/(2α) * gp.k(x) \ gp.m(x)'
+end
+
+@unionise function _unconstrained_Markowitz(
+    gp::GP{K, M},
+    x,
+    α::Real
+) where {K <: OLMMKernel, M <: Mean, G <: Real}
+    α <= 0 && throw(ArgumentError("Risk parameter must be positive, received $α"))
+
+    H = unwrap(gp.k.H)
+    σ² = unwrap(gp.k.σ²)
+    D = unwrap(gp.k.D)
+    m = unwrap(gp.k.m)
+    D = isa(D, Float64) ? fill(D, m) : D
+    p = unwrap(gp.k.p)
+
+    # The reshape and the vcat are tricks to make Nabla work.
+    K_ = Diagonal(vcat([reshape(k(x), 1) for k in gp.k.ks]...))
+    Σ_ = H * K_ * H'
+    Σ = Σ_ + σ² * Eye(p) + H * (D .* Eye(m)) * H'
+
+    return 1/(2α) * Σ \ gp.m(x)'
+end
+
+# TODO: implement an optimised version for the LMM as well.
+
+"""
+    expected_return(gp::GP, x, α::Real, y::Vector{<:Real})
+
+Return the expected return for a forecast distribution `gp(x)` and actuals `y`, using an
+unconstrained Markowitz solution for the weights, with risk parameter `α`. Expects a single
+timestamp.
+
+    expected_return(gp::GP, x, α::Real, y::Matrix{<:Real})
+
+Return the expected return for a forecast distribution `gp(x)` and actuals `y`, using an
+unconstrained Markowitz solution for the weights, with risk parameter `α`. Expects multiple
+timestamps.
+"""
+@unionise function expected_return(gp::GP, x, α::Real, y::Vector{<:Real})
+    return dot(_unconstrained_Markowitz(gp, x, α), y)
+end
+
+@unionise function expected_return(gp::GP, x, α::Real, y::Matrix{<:Real})
+    # We don't want this breaking if we send a single timestamp as a row matrix.
+    size(y, 1) == 1 && return expected_return(gp, x, α, dropdims(y, dims=1))
+    size(x, 1) != size(y, 1) && throw(ArgumentError("x and y must have same number of rows"))
+    if isa(x, DataFrame)
+        return sum([expected_return(gp, DataFrame(x[i, :]), α, y[i, :]) for i in 1:size(x, 1)])
+    else
+        return sum([expected_return(gp, x[i, :], α, y[i, :]) for i in 1:size(x, 1)])
+    end
+end
+
+@unionise function expected_return(gp::GP, x, α::Real, y::AbstractArray{<:Real}, params)
+    ngp = GP(gp.m, set(gp.k, params))
+    return expected_return(ngp, x, α, y)
+end
+
+@unionise function expected_return(
+    gp::GP{K, M},
+    x,
+    α::Real,
+    y::AbstractArray{<:Real},
+    params,
+) where {K <: OLMMKernel, M <: Mean, G <: Real}
+    # This has the updated H, but the old U. H might (and usually will) not be of the form
+    # H = U. S.
+    ngp = GP(gp.m, set(gp.k, params))
+    isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
+    return expected_return(ngp, x, α, y)
+end
+
+"""
+    expected_return_obj(gp::GP, x, α::Real, y::AbstractArray{<:Real})
+
+Objective function that, when minimised, yields maximum expected return for a forecast
+distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution for the
+weights, with risk parameter `α`. The expected return is computed independently for each
+timestamp.
+"""
+@unionise function expected_return_obj(gp::GP, x, α::Real, y::AbstractArray{<:Real})
+    return function f(params)
+        return -expected_return(gp, x, α, y, params)
+    end
+end
