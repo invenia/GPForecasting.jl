@@ -13,6 +13,7 @@ using Random: MersenneTwister, seed!
 using Test
 
 _ATOL_ = 1e-5
+_RTOL_ = 1e-3
 
 
 # Keep Logging to a minimum

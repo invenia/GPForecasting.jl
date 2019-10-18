@@ -15,7 +15,7 @@
             algorithm=Optim.ConjugateGradient,
             alphaguess=LineSearches.InitialQuadratic(),
             linesearch=LineSearches.HagerZhang(),
-           ) ≈ [1.0, 1.0] atol = _ATOL_
+           ) ≈ [1.0, 1.0] atol = _ATOL_ rtol = _RTOL_
    end
 
     @testset "Learn" begin
@@ -36,10 +36,10 @@
         x = collect(0:0.1:2)
         ngp = learn(gp, x, y, mle_obj, opt_U=true, its=3, trace=false)
         Ug = GPForecasting.unwrap(gp.k.U)
-        @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_
+        @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_ rtol = _RTOL_
         ngp = learn(gp, x, y, mle_obj, its=3, K_U_cycles=2, trace=false)
         Ug = GPForecasting.unwrap(gp.k.U)
-        @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_
+        @test sum(Ug' * Ug) ≈ 3.0 atol = _ATOL_ rtol = _RTOL_
 
         # Test that the summary is outputted when called
         out = learn_summary(gp, x, y, mle_obj, its=3, trace=false)
@@ -52,7 +52,7 @@
         gp = GP(periodicise(EQ(), 1.0))
         Xm_i = [0.0, 1.0, 2.0]
         sgp, Xm, σ² = learn_sparse(gp, x, y, Fixed(Xm_i), Positive(0.01), its=20, trace=false)
-        @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_
+        @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_ rtol = _RTOL_
         sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Positive(0.01), its = 20, trace=false)
         @test !isapprox(GPForecasting.unwrap(Xm), Xm_i, atol=_ATOL_)
         sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Fixed(0.01), its = 20, trace=false)
@@ -62,7 +62,7 @@
         gp = GP(OLMMKernel(2, 2, 0.01, 0.01, [1 0; 0 1], [periodicise(EQ(), 1.0), periodicise(EQ(), 1.0)]))
         Xm_i = [0.0, 1.0, 2.0]
         sgp, Xm, σ² = learn_sparse(gp, x, y, Fixed(Xm_i), Positive(0.01), its=20, trace=false)
-        @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_
+        @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_ rtol = _RTOL_
         sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Positive(0.01), its = 20, trace=false)
         @test !isapprox(GPForecasting.unwrap(Xm), Xm_i, atol=_ATOL_)
         sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Fixed(0.01), its = 20, trace=false)
@@ -74,7 +74,7 @@
         Xm_i = [0.0, 1.0, 2.0]
         Xm_i = [Xm_i reverse(Xm_i)]
         sgp, Xm, σ² = learn_sparse(gp, x, y, Fixed(Xm_i), Positive(0.01), its=20, trace=false)
-        @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_
+        @test GPForecasting.unwrap(Xm) ≈ Xm_i atol=_ATOL_ rtol = _RTOL_
         sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Positive(0.01), its = 20, trace=false)
         @test !isapprox(GPForecasting.unwrap(Xm), Xm_i, atol=_ATOL_)
         sgp, Xm, σ² = learn_sparse(gp, x, y, Xm_i, Fixed(0.01), its = 20, trace=false)

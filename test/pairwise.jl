@@ -1,7 +1,7 @@
 @testset "Pairwise" begin
     z = [1.0 2.0; 3.0 4.0]
 
-    @test pairwise_dist(z, z) ≈ [0.0 2.8284271247461903; 2.8284271247461903 0.0] atol = _ATOL_
+    @test pairwise_dist(z, z) ≈ [0.0 2.8284271247461903; 2.8284271247461903 0.0] atol = _ATOL_ rtol = _RTOL_
 
     seed!(314159265)
     x = rand(10,3)
@@ -10,7 +10,7 @@
     v = rand(5)
     t = rand(1)[1]
 
-    @test pairwise_dist(x, y).^2 ≈ sq_pairwise_dist(x, y)
+    @test pairwise_dist(x, y).^2 ≈ sq_pairwise_dist(x, y) atol = _ATOL_ rtol = _RTOL_
 
     @testset "sq_pairwise_dist" begin
         rng = MersenneTwister(1)
@@ -21,6 +21,7 @@
             sq_pairwise_dist(x, y),
             sq_pairwise_dist(reshape(x, n, 1), reshape(y, n, 1));
             atol=_ATOL_,
+            rtol=_RTOL_,
         )
     end
     @testset "Sensitivities" begin
