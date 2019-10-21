@@ -473,17 +473,14 @@ end
 # TODO: implement an optimised version for the LMM as well.
 
 """
-    expected_return(gp::GP, x, α::Real, y::Vector{<:Real})
+    expected_return(gp::GP, x, α::Real, y)
 
 Return the expected return for a forecast distribution `gp(x)` and actuals `y`, using an
-unconstrained Markowitz solution for the weights, with risk parameter `α`. Expects a single
-timestamp.
+unconstrained Markowitz solution for the weights, with risk parameter `α`.
 
-    expected_return(gp::GP, x, α::Real, y::Matrix{<:Real})
+If `x` represents a single timestamp, `y` should be a vector. If `x` represents several
+timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
 
-Return the expected return for a forecast distribution `gp(x)` and actuals `y`, using an
-unconstrained Markowitz solution for the weights, with risk parameter `α`. Expects multiple
-timestamps.
 """
 @unionise function expected_return(gp::GP, x, α::Real, y::Vector{<:Real})
     return dot(_unconstrained_Markowitz(gp, x, α), y)
