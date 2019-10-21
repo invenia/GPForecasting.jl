@@ -440,11 +440,11 @@ end
 """
     unconstrained_markowitz(gp::GP, x, α::Real)
 
-Perform unconstrained mean-variance Markowitz optimisation, using risk parameter `α`, for
+Perform unconstrained mean-variance Markowitz optimisation, using risk aversion parameter `α`, for
 input `x`. Returns the optimal weigths. This assumes a single timestamp is being provided.
 """
 @unionise function _unconstrained_markowitz(gp::GP, x, α::Real)
-    α <= 0 && throw(ArgumentError("Risk parameter must be positive, received $α"))
+    α <= 0 && throw(ArgumentError("Risk aversion parameter must be positive, received $α"))
     return 1/(2α) * gp.k(x) \ gp.m(x)'
 end
 
@@ -453,7 +453,7 @@ end
     x,
     α::Real
 ) where {K <: OLMMKernel, M <: Mean}
-    α <= 0 && throw(ArgumentError("Risk parameter must be positive, received $α"))
+    α <= 0 && throw(ArgumentError("Risk aversion parameter must be positive, received $α"))
 
     H = unwrap(gp.k.H)
     σ² = unwrap(gp.k.σ²)
@@ -476,7 +476,7 @@ end
     Metrics.expected_return(gp::GP, x, α::Real, y)
 
 Return the expected return for a forecast distribution `gp(x)` and actuals `y`, using an
-unconstrained Markowitz solution for the weights, with risk parameter `α`.
+unconstrained Markowitz solution for the weights, with risk aversion parameter `α`.
 
 If `x` represents a single timestamp, `y` should be a vector. If `x` represents several
 timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
@@ -522,7 +522,7 @@ end
 
 Objective function that, when minimised, yields maximum expected return for a forecast
 distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution for the
-weights, with risk parameter `α`. The expected return is computed independently for each
+weights, with risk aversion parameter `α`. The expected return is computed independently for each
 timestamp.
 """
 @unionise function expected_return_obj(gp::GP, x, α::Real, y::AbstractArray{<:Real})
