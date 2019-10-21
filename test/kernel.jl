@@ -22,7 +22,7 @@
             @test diag(k([1., 2., 3.])) ≈ var(k, [1., 2., 3.]) atol = _ATOL_ rtol = _RTOL_
             @test hourly_cov(k, [1., 2., 3.]) ≈ Diagonal(var(k, [1., 2., 3.])) atol = _ATOL_ rtol = _RTOL_
             @test !isMulti(k)
-            @test isposdef(k([1., 2., 3.]) + GPForecasting._EPSILON_ * I)
+            @test isposdef(k([1., 2., 3.]) + GPForecasting._EPSILON_^2 * I)
             @test isa(k(1, 1), AbstractMatrix)
             @test isa(k([1], [1]), AbstractMatrix)
             @test isa(k(1, [1, 2]), AbstractMatrix)
