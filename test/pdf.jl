@@ -94,8 +94,8 @@ end
 @testset "Expected return" begin
     gp = GP(EQ())
     gp2 = GP(1, EQ())
-    @test expected_return(gp, [1], 5, [10]) <= expected_return(gp2, [1], 5, [10])
-    @test expected_return(gp, rand(3), 5, 10 .* ones(3, 1)) <= expected_return(gp2, rand(3), 5, 10 .* ones(3, 1))
+    @test GPForecasting.expected_return(gp, [1], 5, [10]) <= GPForecasting.expected_return(gp2, [1], 5, [10])
+    @test GPForecasting.expected_return(gp, rand(3), 5, 10 .* ones(3, 1)) <= GPForecasting.expected_return(gp2, rand(3), 5, 10 .* ones(3, 1))
     m = 2; p = 3; σ² = 0.1; lat_noise = 0.1
     U, S, V = svd(rand(p, p))
     H = U * Diagonal(sqrt.(S))[:, 1:m]
@@ -114,7 +114,7 @@ end
            Positive(S_sqrt),
            [k for i in 1:m]
       ))
-      f = expected_return_obj(gp, rand(5), 5, rand(5, 3))
+      f = GPForecasting.expected_return_obj(gp, rand(5), 5, rand(5, 3))
       @test sum(∇(f)(gp[:])[1]) == 0
       k = (1.0 * (EQ() ▷  1.0) + 2.0) ← :input
       gp = GP(OLMMKernel(
@@ -129,6 +129,6 @@ end
              [k for i in 1:m]
         ))
         df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input, :input2])
-        f = expected_return_obj(gp, df, 5, rand(5, 3))
+        f = GPForecasting.expected_return_obj(gp, df, 5, rand(3, 3))
         @test sum(∇(f)(gp[:])[1]) == 0
 end
