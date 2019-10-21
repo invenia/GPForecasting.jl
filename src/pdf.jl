@@ -438,17 +438,17 @@ end
 # TODO: A method that let's specify only the number of inducing points
 
 """
-    unconstrained_Markowitz(gp::GP, x, α::Real)
+    unconstrained_markowitz(gp::GP, x, α::Real)
 
 Perform unconstrained mean-variance Markowitz optimisation, using risk parameter `α`, for
 input `x`. Returns the optimal weigths. This assumes a single timestamp is being provided.
 """
-@unionise function _unconstrained_Markowitz(gp::GP, x, α::Real)
+@unionise function _unconstrained_markowitz(gp::GP, x, α::Real)
     α <= 0 && throw(ArgumentError("Risk parameter must be positive, received $α"))
     return 1/(2α) * gp.k(x) \ gp.m(x)'
 end
 
-@unionise function _unconstrained_Markowitz(
+@unionise function _unconstrained_markowitz(
     gp::GP{K, M},
     x,
     α::Real
@@ -483,7 +483,7 @@ timestamps, `y` should be a matrix with the number of rows equal to the number o
 
 """
 @unionise function expected_return(gp::GP, x, α::Real, y::Vector{<:Real})
-    return dot(_unconstrained_Markowitz(gp, x, α), y)
+    return dot(_unconstrained_markowitz(gp, x, α), y)
 end
 
 @unionise function expected_return(gp::GP, x, α::Real, y::Matrix{<:Real})
