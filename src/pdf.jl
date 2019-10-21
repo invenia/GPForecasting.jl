@@ -506,12 +506,12 @@ end
 end
 
 @unionise function expected_return(
-    gp::GP{K, M},
+    gp::GP{<:OLMMKernel},
     x,
     α::Real,
     y::AbstractArray{<:Real},
     params,
-) where {K <: OLMMKernel, M <: Mean, G <: Real}
+)
     # This has the updated H, but the old U. H might (and usually will) not be of the form
     # H = U. S.
     ngp = GP(gp.m, set(gp.k, params))
