@@ -452,7 +452,7 @@ end
     gp::GP{K, M},
     x,
     α::Real
-) where {K <: OLMMKernel, M <: Mean, G <: Real}
+) where {K <: OLMMKernel, M <: Mean}
     α <= 0 && throw(ArgumentError("Risk parameter must be positive, received $α"))
 
     H = unwrap(gp.k.H)
