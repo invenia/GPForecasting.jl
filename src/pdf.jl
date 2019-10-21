@@ -473,7 +473,7 @@ end
 # TODO: implement an optimised version for the LMM as well.
 
 """
-    expected_return(gp::GP, x, α::Real, y)
+    Metrics.expected_return(gp::GP, x, α::Real, y)
 
 Return the expected return for a forecast distribution `gp(x)` and actuals `y`, using an
 unconstrained Markowitz solution for the weights, with risk parameter `α`.
@@ -482,27 +482,28 @@ If `x` represents a single timestamp, `y` should be a vector. If `x` represents 
 timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
 
 """
-@unionise function expected_return(gp::GP, x, α::Real, y::Vector{<:Real})
+@unionise function Metrics.expected_return(gp::GP, x, α::Real, y::Vector{<:Real})
+    # Reimplementing here to avoid Nabla issues.
     return dot(_unconstrained_markowitz(gp, x, α), y)
 end
 
-@unionise function expected_return(gp::GP, x, α::Real, y::Matrix{<:Real})
+@unionise function Metrics.expected_return(gp::GP, x, α::Real, y::Matrix{<:Real})
     # We don't want this breaking if we send a single timestamp as a row matrix.
-    size(y, 1) == 1 && return expected_return(gp, x, α, dropdims(y, dims=1))
+    size(y, 1) == 1 && return Metrics.expected_return(gp, x, α, dropdims(y, dims=1))
     size(x, 1) != size(y, 1) && throw(ArgumentError("x and y must have same number of rows"))
     if isa(x, DataFrame)
-        return sum([expected_return(gp, DataFrame(x[i, :]), α, y[i, :]) for i in 1:size(x, 1)])
+        return sum([Metrics.expected_return(gp, DataFrame(x[i, :]), α, y[i, :]) for i in 1:size(x, 1)])
     else
-        return sum([expected_return(gp, x[i, :], α, y[i, :]) for i in 1:size(x, 1)])
+        return sum([Metrics.expected_return(gp, x[i, :], α, y[i, :]) for i in 1:size(x, 1)])
     end
 end
 
-@unionise function expected_return(gp::GP, x, α::Real, y::AbstractArray{<:Real}, params)
+@unionise function Metrics.expected_return(gp::GP, x, α::Real, y::AbstractArray{<:Real}, params)
     ngp = GP(gp.m, set(gp.k, params))
-    return expected_return(ngp, x, α, y)
+    return Metrics.expected_return(ngp, x, α, y)
 end
 
-@unionise function expected_return(
+@unionise function Metrics.expected_return(
     gp::GP{<:OLMMKernel},
     x,
     α::Real,
@@ -513,7 +514,7 @@ end
     # H = U. S.
     ngp = GP(gp.m, set(gp.k, params))
     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
-    return expected_return(ngp, x, α, y)
+    return Metrics.expected_return(ngp, x, α, y)
 end
 
 """
@@ -526,6 +527,6 @@ timestamp.
 """
 @unionise function expected_return_obj(gp::GP, x, α::Real, y::AbstractArray{<:Real})
     return function f(params)
-        return -expected_return(gp, x, α, y, params)
+        return -Metrics.expected_return(gp, x, α, y, params)
     end
 end
