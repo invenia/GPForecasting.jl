@@ -569,3 +569,110 @@ timestamp.
         return -expected_posterior_return(gp, xc, xt, α, yc, yt, params)
     end
 end
+
+"""
+    expected_return_balanced(gp::GP, x, α::Real, y, λ::Real)
+
+Return the expected return for a forecast distribution `gp(x)` and actuals `y`, using an
+unconstrained Markowitz solution for the weights, with risk aversion parameter `α` and
+penalising the result by `λ` times the net volume.
+
+If `x` represents a single timestamp, `y` should be a vector. If `x` represents several
+timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
+
+"""
+@unionise function expected_return_balanced(gp::GP, x, α::Real, y::Vector{<:Real}, λ::Real)
+    vols = _unconstrained_markowitz(gp, x, α)
+    return dot(vols, y) - λ * abs(sum(vols))
+end
+
+@unionise function expected_return_balanced(gp::GP, x, α::Real, y::Matrix{<:Real}, λ::Real)
+    # We don't want this breaking if we send a single timestamp as a row matrix.
+    size(y, 1) == 1 && return Metrics.expected_return(gp, x, α, dropdims(y, dims=1))
+    size(x, 1) != size(y, 1) && throw(ArgumentError("x and y must have same number of rows"))
+    if isa(x, DataFrame)
+        return sum(
+            [
+                expected_return_balanced(gp, DataFrame(x[i, :]), α, y[i, :], λ)
+                for i in 1:size(x, 1)
+            ]
+        )
+    else
+        return sum(
+            [expected_return_balanced(gp, x[i, :], α, y[i, :], λ) for i in 1:size(x, 1)]
+        )
+    end
+end
+
+"""
+    expected_posterior_return_balanced(
+        gp::GP,
+        xc,
+        xt,
+        α::Real,
+        yc::AbstractArray{<:Real},
+        yt::AbstractArray{<:Real},
+        λ::Real,
+        params,
+    )
+
+Compute expected_return_balanced of the `gp` conditioned on `xc` and `yc` over the pair
+(`xt`, `yt`). It is important to have (`xc`, `yc`) disjoint with (`xt`, `yt`) because the
+posterior usually closely reproduces the conditioned data.
+"""
+@unionise function expected_posterior_return_balanced(
+    gp::GP,
+    xc,
+    xt,
+    α::Real,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+    λ::Real,
+    params,
+)
+    ngp = GP(gp.m, set(gp.k, params))
+    # Build posterior
+    pos = condition(ngp, xc, yc)
+    return expected_return_balanced(pos, xt, α, yt, λ)
+end
+
+@unionise function expected_posterior_return_balanced(
+    gp::GP{<:OLMMKernel},
+    xc,
+    xt,
+    α::Real,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+    λ::Real,
+    params,
+)
+    # This has the updated H, but the old U. H might (and usually will) not be of the form
+    # H = U. S.
+    ngp = GP(gp.m, set(gp.k, params))
+    isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
+    # Build posterior
+    pos = condition(ngp, xc, yc)
+    return expected_return_balanced(pos, xt, α, yt, λ)
+end
+
+"""
+    expected_posterior_return_balanced_obj(gp::GP, x, α::Real, y::AbstractArray{<:Real})
+
+Objective function that, when minimised, yields maximum expected return for a forecast
+distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution for the
+weights, with risk aversion parameter `α`. The expected return is computed independently for each
+timestamp.
+"""
+@unionise function expected_posterior_return_balanced_obj( # Verbose as hell.
+    gp::GP,
+    xc,
+    xt,
+    α::Real,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+    λ::Real,
+)
+    return function f(params)
+        return -expected_posterior_return_balanced(gp, xc, xt, α, yc, yt, λ, params)
+    end
+end
