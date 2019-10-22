@@ -448,11 +448,7 @@ input `x`. Returns the optimal weigths. This assumes a single timestamp is being
     return 1/(2α) * gp.k(x) \ gp.m(x)'
 end
 
-@unionise function _unconstrained_markowitz(
-    gp::GP{K, M},
-    x,
-    α::Real
-) where {K <: OLMMKernel, M <: Mean}
+@unionise function _unconstrained_markowitz(gp::GP{<:OLMMKernel}, x, α::Real)
     α <= 0 && throw(ArgumentError("Risk aversion parameter must be positive, received $α"))
 
     H = unwrap(gp.k.H)
