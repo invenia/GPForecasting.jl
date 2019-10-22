@@ -22,8 +22,9 @@ export ConstantMean,
 export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
 
 # pdf.jl
-export expected_return,
-    expected_return_obj,
+export expected_posterior_return,
+    expected_posterior_return_obj,
+    expected_return,
     logpdf,
     map_obj,
     mle_obj,

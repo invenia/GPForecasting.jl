@@ -463,6 +463,9 @@ end
     p = unwrap(gp.k.p)
 
     # The reshape and the vcat are tricks to make Nabla work.
+    # @show typeof(gp.k.ks[1](x))
+    # @show typeof([reshape(k(x), 1) for k in gp.k.ks])
+    # @show typeof(vcat([reshape(k(x), 1) for k in gp.k.ks]...))
     K_ = Diagonal(vcat([reshape(k(x), 1) for k in gp.k.ks]...))
     Σ_ = H * K_ * H'
     Σ = Σ_ + σ² * Eye(p) + H * (D .* Eye(m)) * H'
@@ -498,35 +501,71 @@ end
     end
 end
 
-@unionise function Metrics.expected_return(gp::GP, x, α::Real, y::AbstractArray{<:Real}, params)
+"""
+    expected_posterior_return(
+        gp::GP,
+        xc,
+        xt,
+        α::Real,
+        yc::AbstractArray{<:Real},
+        yt::AbstractArray{<:Real},
+        params
+    )
+
+Compute expected return of the `gp` conditioned on `xc` and `yc` over the pair (`xt`, `yt`).
+It is important to have (`xc`, `yc`) disjoint with (`xt`, `yt`) because the posterior usually
+closely reproduces the conditioned data.
+"""
+@unionise function expected_posterior_return(
+    gp::GP,
+    xc,
+    xt,
+    α::Real,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+    params,
+)
     ngp = GP(gp.m, set(gp.k, params))
-    return Metrics.expected_return(ngp, x, α, y)
+    # Build posterior
+    pos = condition(ngp, xc, yc)
+    return Metrics.expected_return(pos, xt, α, yt)
 end
 
-@unionise function Metrics.expected_return(
+@unionise function expected_posterior_return(
     gp::GP{<:OLMMKernel},
-    x,
+    xc,
+    xt,
     α::Real,
-    y::AbstractArray{<:Real},
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
     params,
 )
     # This has the updated H, but the old U. H might (and usually will) not be of the form
     # H = U. S.
     ngp = GP(gp.m, set(gp.k, params))
     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
-    return Metrics.expected_return(ngp, x, α, y)
+    # Build posterior
+    pos = condition(ngp, xc, yc)
+    return Metrics.expected_return(pos, xt, α, yt)
 end
 
 """
-    expected_return_obj(gp::GP, x, α::Real, y::AbstractArray{<:Real})
+    expected_posterior_return_obj(gp::GP, x, α::Real, y::AbstractArray{<:Real})
 
 Objective function that, when minimised, yields maximum expected return for a forecast
 distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution for the
 weights, with risk aversion parameter `α`. The expected return is computed independently for each
 timestamp.
 """
-@unionise function expected_return_obj(gp::GP, x, α::Real, y::AbstractArray{<:Real})
+@unionise function expected_posterior_return_obj(
+    gp::GP,
+    xc,
+    xt,
+    α::Real,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+)
     return function f(params)
-        return -Metrics.expected_return(gp, x, α, y, params)
+        return -expected_posterior_return(gp, xc, xt, α, yc, yt, params)
     end
 end
