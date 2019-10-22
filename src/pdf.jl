@@ -469,7 +469,7 @@ end
 # TODO: implement an optimised version for the LMM as well.
 
 """
-    Metrics.expected_return(gp::GP, x, α::Real, y)
+    expected_return(gp::GP, x, α::Real, y)
 
 Return the expected return for a forecast distribution `gp(x)` and actuals `y`, using an
 unconstrained Markowitz solution for the weights, with risk aversion parameter `α`.
