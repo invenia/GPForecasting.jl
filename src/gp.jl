@@ -56,7 +56,7 @@ is the posterior process corresponding to the prior updated with the observation
 function condition(gp::GP, x, y::AbstractArray{<:Real})
     # This call to Hermitian should not be necessary, but numerical noise has been making
     # the cholesky fail. TODO: investigate the source of the noise. It only happens if we
-    # learn `H` in the OLMM, but all the constraints are respected. 
+    # learn `H` in the OLMM, but all the constraints are respected.
     K = Hermitian(gp.k(x))
     U = cholesky(K + _EPSILON_ * Eye(K)).U
     m = PosteriorMean(gp.k, gp.m, x, U, y)
@@ -156,15 +156,26 @@ function condition(
     D = unwrap(gp.k.D)
     S_sqrt = unwrap(gp.k.S_sqrt)
     isa(gp.k.ks, Kernel) && !isa(D, Vector) && S_sqrt ≈ ones(m) && return optcondition(gp, x, y)
-    D = isa(D, Float64) ? fill(D, m) : D
+    # D = isa(D, Float64) ? fill(D, m) : D
+    # More Nabla stuff
+    D = size(D) == () ? D * ones(m) : D
     yp = y * P'
     # condition gp.k.ks on y
     Ks = []
-    for (k, s, d) in zip(gp.k.ks, S_sqrt, D)
-        kx = k(x)
-        push!(Ks, kx + (σ²/s^2 + d) * Eye(kx))
+    # Cannot iterate here because Nabla
+    for i in 1:length(gp.k.ks)
+        kx = gp.k.ks[i](x)
+        # This is clumsy, but it is the most robust way of getting the right size that has
+        # no corner cases, and we can't call Eye(kx) because Nabla
+        n = size(kx, 1)
+        K = kx + (σ²/S_sqrt[i]^2 + D[i]) * Eye(n)
+        push!(Ks, K)
     end
-    Us = [cholesky(Hermitian(K + _EPSILON_^2 * Eye(K))).U for K in Ks]
+    # for (k, s, d) in zip(gp.k.ks, S_sqrt, D)
+    #     kx = k(x)
+    #     push!(Ks, kx + (σ²/s^2 + d) * Eye(kx))
+    # end
+    Us = [cholesky(Symmetric(K + _EPSILON_^2 * Eye(size(K, 1)))).U for K in Ks]
     ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
     ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
     # create the posterior mean
