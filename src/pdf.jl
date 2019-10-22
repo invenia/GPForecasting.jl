@@ -647,7 +647,7 @@ end
     params,
 )
     # This has the updated H, but the old U. H might (and usually will) not be of the form
-    # H = U. S.
+    # H = U * S
     ngp = GP(gp.m, set(gp.k, params))
     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
     # Build posterior
