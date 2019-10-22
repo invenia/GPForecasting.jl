@@ -114,8 +114,15 @@ end
            Positive(S_sqrt),
            [k for i in 1:m]
       ))
-      f = expected_return_obj(gp, rand(5), 5, rand(5, 3))
-      @test sum(∇(f)(gp[:])[1]) == 0
+      y = rand(5, 3)
+      x = rand(5)
+      f = expected_return_obj(gp, x, 5, y)
+      @test all(∇(f)(gp[:])[1] .== 0.0)
+      pos = condition(gp, x, y)
+      f = expected_return_obj(pos, x, 5, y)
+      grad = ∇(f)(pos[:])[1]
+      # Manual gradient step
+      @test f(pos[:] - 1e-6 * grad) < f(pos[:])
       k = (1.0 * (EQ() ▷  1.0) + 2.0) ← :input
       gp = GP(OLMMKernel(
              Fixed(m),
