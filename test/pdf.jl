@@ -114,15 +114,14 @@ end
            Positive(S_sqrt),
            [k for i in 1:m]
       ))
-      y = rand(5, 3)
-      x = rand(5)
-      f = expected_return_obj(gp, x, 5, y)
-      @test all(∇(f)(gp[:])[1] .== 0.0)
-      pos = condition(gp, x, y)
-      f = expected_return_obj(pos, x, 5, y)
-      grad = ∇(f)(pos[:])[1]
+      yc = rand(5, 3)
+      xc = rand(5)
+      yt = rand(4, 3)
+      xt = rand(4)
+      f = expected_posterior_return_obj(gp, xc, xt, 5, yc, yt)
+      grad = ∇(f)(gp[:])[1]
       # Manual gradient step
-      @test f(pos[:] - 1e-6 * grad) < f(pos[:])
+      @test f(gp[:] - 1e-6 * grad) < f(gp[:])
       k = (1.0 * (EQ() ▷  1.0) + 2.0) ← :input
       gp = GP(OLMMKernel(
              Fixed(m),
@@ -135,7 +134,10 @@ end
              Positive(S_sqrt),
              [k for i in 1:m]
         ))
-        df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input, :input2])
-        f = expected_return_obj(gp, df, 5, rand(3, 3))
-        @test sum(∇(f)(gp[:])[1]) == 0
+        dfc = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input, :input2])
+        dft = DataFrame([[1.1,2.1,3.1], [1.,1.,1.]], [:input, :input2])
+        f = expected_posterior_return_obj(gp, dfc, dft, 5, rand(3, 3), rand(3, 3))
+        grad = ∇(f)(gp[:])[1]
+        # Manual gradient step
+        @test f(gp[:] - 1e-6 * grad) < f(gp[:])
 end
