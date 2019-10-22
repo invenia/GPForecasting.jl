@@ -459,9 +459,6 @@ end
     p = unwrap(gp.k.p)
 
     # The reshape and the vcat are tricks to make Nabla work.
-    # @show typeof(gp.k.ks[1](x))
-    # @show typeof([reshape(k(x), 1) for k in gp.k.ks])
-    # @show typeof(vcat([reshape(k(x), 1) for k in gp.k.ks]...))
     K_ = Diagonal(vcat([reshape(k(x), 1) for k in gp.k.ks]...))
     Σ_ = H * K_ * H'
     Σ = Σ_ + σ² * Eye(p) + H * (D .* Eye(m)) * H'
