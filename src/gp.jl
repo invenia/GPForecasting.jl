@@ -156,7 +156,6 @@ function condition(
     D = unwrap(gp.k.D)
     S_sqrt = unwrap(gp.k.S_sqrt)
     isa(gp.k.ks, Kernel) && !isa(D, Vector) && S_sqrt ≈ ones(m) && return optcondition(gp, x, y)
-    # D = isa(D, Float64) ? fill(D, m) : D
     # More Nabla stuff
     D = size(D) == () ? D * ones(m) : D
     yp = y * P'
