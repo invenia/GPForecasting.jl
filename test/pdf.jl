@@ -150,4 +150,5 @@ end
         grad = ∇(f)(gp[:])[1]
         # Manual gradient step
         @test f(gp[:] - 1e-6 * grad) < f(gp[:])
+        @test g(gp[:] - 1e-6 * grad2) < g(gp[:])
 end
