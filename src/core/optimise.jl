@@ -120,9 +120,7 @@ for `algorithm`.
 """
 function learn(
     gp::GP,
-    x,
-    y::AbstractArray{<:Real},
-    obj::Function=mle_obj;
+    obj::Function;
     Θ_init::Array=[],
     its=200,
     trace=true,
@@ -133,7 +131,7 @@ function learn(
 )
     Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
     Θ_opt = minimise(
-        obj(gp, x, y),
+        obj,
         Θ_init,
         its=its,
         trace=trace,
@@ -146,6 +144,32 @@ function learn(
     # Again, assuming we are only optimising kernels
     # Got to overload if we want parameters in the means as well
     return GP(gp.m, set(gp.k, Θ_opt))
+end
+
+function learn(
+    gp::GP,
+    x,
+    y::AbstractArray{<:Real},
+    obj::Function=mle_obj;
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+    kwargs...
+)
+    return learn(
+        gp,
+        obj(gp, x, y);
+        Θ_init=Θ_init,
+        its=its,
+        trace=trace,
+        algorithm=algorithm,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+        kwargs...
+    )
 end
 
 """
@@ -209,16 +233,44 @@ function learn(
     linesearch=LineSearches.BackTracking(),
     kwargs...
 )
+    return learn(
+        gp,
+        p -> obj(p, x, y);
+        greedy_f=(p -> greedy_U(p, x, y)),
+        Θ_init=Θ_init,
+        its=its,
+        trace=trace,
+        algorithm=algorithm,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+        kwargs...
+    )
+end
+
+function learn(
+    gp::GP{OLMMKernel, <:Mean},
+    obj::Function;
+    greedy_f=(p -> throw(ArgumentError("Must specify `greedy_f`."))),
+    opt_U=false,
+    K_U_cycles::Int=0,
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+    kwargs...
+)
     ngp = deepcopy(gp)
     if opt_U
-        U = greedy_U(gp.k, x, y)
+        U = greedy_f(gp.k)
         H, P = build_H_and_P(U, unwrap(gp.k.S_sqrt))
         ngp.k.U, ngp.k.H, ngp.k.P = Fixed(U), typeof(ngp.k.H)(H), Fixed(P)
     end
     Θ_init = isempty(Θ_init) ? ngp.k[:] : Θ_init
     if K_U_cycles == 0
         Θ_opt = minimise(
-            obj(ngp, x, y),
+            obj(ngp),
             Θ_init,
             its=its,
             trace=trace,
@@ -235,7 +287,7 @@ function learn(
     end
     for i in 1:K_U_cycles
         Θ_opt = minimise(
-            obj(ngp, x, y),
+            obj(ngp),
             Θ_init,
             its=its,
             trace=trace,
@@ -245,7 +297,7 @@ function learn(
             kwargs...
         )
         ngp.k = set(ngp.k, Θ_opt)
-        U = greedy_U(ngp.k, x, y)
+        U = greedy_f(ngp.k)
         H, P = build_H_and_P(U, unwrap(ngp.k.S_sqrt))
         ngp.k.U, ngp.k.H, ngp.k.P = Fixed(U), Fixed(H), Fixed(P)
         Θ_init = Θ_opt
@@ -254,7 +306,7 @@ function learn(
 end
 
 """
-    _constrain_H!(gp::GP{<:OLMMKernel})
+    constrain_H!(gp::GP{<:OLMMKernel})
 
 An internal function that modifies the given `GP` object with updated `H`, `U`, and `P`
 matrices.
