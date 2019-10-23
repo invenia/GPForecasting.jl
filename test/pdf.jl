@@ -94,10 +94,14 @@ end
 @testset "Expected return" begin
     gp = GP(EQ())
     gp2 = GP(1, EQ())
-    @test norm_expected_return(gp, [1], [10]) <= norm_expected_return(gp2, [1], [10])
-    @test norm_expected_return(gp, rand(3), 10 .* ones(3, 1)) <= norm_expected_return(gp2, rand(3), 10 .* ones(3, 1))
-    @test norm_expected_return(gp, [1], [10]) == norm_expected_return_balanced(gp, [1], [10])
-    @test norm_expected_return_balanced(gp2, [1], [10]) <= norm_expected_return(gp2, [1], [10])
+    x = [1]
+    y = [10]
+    @test norm_expected_return(gp, x, y) <= norm_expected_return(gp2, x, y)
+    @test norm_expected_return(gp, x, y) == norm_expected_return_balanced(gp, x, y)
+    @test norm_expected_return_balanced(gp2, x, y) <= norm_expected_return(gp2, x, y)
+    x = rand(3)
+    y = 10 .* ones(3, 1)
+    @test norm_expected_return(gp, x, y) <= norm_expected_return(gp2, x, y)
     m = 2; p = 3; σ² = 0.1; lat_noise = 0.1
     U, S, V = svd(rand(p, p))
     H = U * Diagonal(sqrt.(S))[:, 1:m]
