@@ -247,6 +247,73 @@ function learn(
     )
 end
 
+const TypeA = typeof(norm_expected_posterior_return_balanced_obj)
+const TypeB = typeof(norm_expected_posterior_return_obj)
+
+function learn(
+    gp::GP{OLMMKernel, <:Mean},
+    xc,
+    yc::AbstractMatrix{<:Real},
+    obj::Union{TypeA, TypeB};
+    α=1,
+    λ=100,
+    opt_U=false,
+    K_U_cycles::Int=0,
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+    kwargs...
+)
+    throw(ArgumentError(
+        """
+        In order to use either `norm_expected_posterior_return_balanced_obj` or
+        `norm_expected_posterior_return_obj`, it is required to specify two sets of data.
+        See the docstring of those functions for more information.
+        """
+    ))
+end
+
+function learn(
+    gp::GP{OLMMKernel, <:Mean},
+    xc,
+    xt,
+    yc::AbstractMatrix{<:Real},
+    yt::AbstractMatrix{<:Real},
+    obj::Union{TypeA, TypeB};
+    α=1,
+    λ=100,
+    opt_U=false,
+    K_U_cycles::Int=0,
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+    kwargs...
+)
+    closed_obj = if isa(obj, TypeA)
+        p -> obj(p, xc, xt, yc, yt; α=α, λ=λ)
+    else
+        p -> obj(p, xc, xt, yc, yt; α=α)
+    end
+    return learn(
+        gp,
+        closed_obj;
+        greedy_f=(p -> greedy_U(p, vcat(xc, xt), vcat(yc, yt))),
+        Θ_init=Θ_init,
+        its=its,
+        trace=trace,
+        algorithm=algorithm,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+        kwargs...
+    )
+end
+
 function learn(
     gp::GP{OLMMKernel, <:Mean},
     obj::Function;
