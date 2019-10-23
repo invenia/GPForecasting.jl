@@ -440,8 +440,14 @@ end
 """
     unconstrained_markowitz(gp::GP, x; α::Real=1)
 
-Perform unconstrained mean-variance Markowitz optimisation, using risk aversion parameter `α`, for
-input `x`. Returns the optimal weigths. This assumes a single timestamp is being provided.
+Perform unconstrained mean-variance Markowitz optimisation, using risk aversion parameter
+`α`, for input `x`. Returns the optimal weigths. This assumes a single timestamp is being
+provided.
+
+This is a simplified version of our Markowitz PO since it does not include the balance
+constraint (total net volume equal 0), the maximum volume constraint (total absolute
+volume less than M) or the maximum nodal volume constraint (total absolute volume on any
+node less than r*M).
 """
 @unionise function _unconstrained_markowitz(gp::GP, x; α::Real=1)
     α <= 0 && throw(ArgumentError("Risk aversion parameter must be positive, received $α"))
@@ -578,14 +584,14 @@ end
 
 Return the normalised expected return for a forecast distribution `gp(x)` and actuals `y`,
 using an unconstrained Markowitz solution for the weights, with risk aversion parameter `α`
-and penalising the result by `λ` times the net volume.
+and penalising the result by `λ` times the net volume. The penalty term encourages balanced
+volumes (see `GPForecasting._unconstrained_markowitz`).
 
 The normalisation means that the weight vector has unit norm, i.e., this is insensitive to
 uniform scalings of the volumes.
 
 If `x` represents a single timestamp, `y` should be a vector. If `x` represents several
 timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
-
 """
 @unionise function norm_expected_return_balanced(
     gp::GP,
