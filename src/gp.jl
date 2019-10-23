@@ -161,7 +161,7 @@ function condition(
     yp = y * P'
     # condition gp.k.ks on y
     Ks = []
-    # Cannot iterate here because Nabla
+    # Nabla's Branch and Leaf are not Iterable, so can't do for (k, s, d) in zip(gp.k.ks, S_sqrt, D)
     for i in 1:length(gp.k.ks)
         kx = gp.k.ks[i](x)
         # This is clumsy, but it is the most robust way of getting the right size that has
@@ -170,10 +170,6 @@ function condition(
         K = kx + (σ²/S_sqrt[i]^2 + D[i]) * Eye(n)
         push!(Ks, K)
     end
-    # for (k, s, d) in zip(gp.k.ks, S_sqrt, D)
-    #     kx = k(x)
-    #     push!(Ks, kx + (σ²/s^2 + d) * Eye(kx))
-    # end
     Us = [cholesky(Symmetric(K + _EPSILON_^2 * Eye(size(K, 1)))).U for K in Ks]
     ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
     ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
