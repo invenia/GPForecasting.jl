@@ -94,10 +94,10 @@ end
 @testset "Expected return" begin
     gp = GP(EQ())
     gp2 = GP(1, EQ())
-    @test expected_return(gp, [1], 5, [10]) <= expected_return(gp2, [1], 5, [10])
-    @test expected_return(gp, rand(3), 5, 10 .* ones(3, 1)) <= expected_return(gp2, rand(3), 5, 10 .* ones(3, 1))
-    @test expected_return(gp, [1], 5, [10]) == expected_return_balanced(gp, [1], 5, [10], 100)
-    @test expected_return_balanced(gp2, [1], 5, [10], 10) <= expected_return(gp2, [1], 5, [10])
+    @test norm_expected_return(gp, [1], 5, [10]) <= norm_expected_return(gp2, [1], 5, [10])
+    @test norm_expected_return(gp, rand(3), 5, 10 .* ones(3, 1)) <= norm_expected_return(gp2, rand(3), 5, 10 .* ones(3, 1))
+    @test norm_expected_return(gp, [1], 5, [10]) == norm_expected_return_balanced(gp, [1], 5, [10], 100)
+    @test norm_expected_return_balanced(gp2, [1], 5, [10], 10) <= norm_expected_return(gp2, [1], 5, [10])
     m = 2; p = 3; σ² = 0.1; lat_noise = 0.1
     U, S, V = svd(rand(p, p))
     H = U * Diagonal(sqrt.(S))[:, 1:m]
@@ -120,8 +120,8 @@ end
       xc = rand(5)
       yt = rand(4, 3)
       xt = rand(4)
-      f = expected_posterior_return_obj(gp, xc, xt, 5, yc, yt)
-      g = expected_posterior_return_balanced_obj(gp, xc, xt, 5, yc, yt, 10)
+      f = norm_expected_posterior_return_obj(gp, xc, xt, 5, yc, yt)
+      g = norm_expected_posterior_return_balanced_obj(gp, xc, xt, 5, yc, yt, 10)
       @test f(gp[:]) <= g(gp[:])
       grad = ∇(f)(gp[:])[1]
       grad2 = ∇(g)(gp[:])[1]
@@ -142,7 +142,7 @@ end
         ))
         dfc = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input, :input2])
         dft = DataFrame([[1.1,2.1,3.1], [1.,1.,1.]], [:input, :input2])
-        f = expected_posterior_return_obj(gp, dfc, dft, 5, rand(3, 3), rand(3, 3))
+        f = norm_expected_posterior_return_obj(gp, dfc, dft, 5, rand(3, 3), rand(3, 3))
         grad = ∇(f)(gp[:])[1]
         # Manual gradient step
         @test f(gp[:] - 1e-6 * grad) < f(gp[:])

@@ -22,12 +22,12 @@ export ConstantMean,
 export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
 
 # pdf.jl
-export expected_posterior_return,
-    expected_posterior_return_balanced,
-    expected_posterior_return_balanced_obj,
-    expected_posterior_return_obj,
-    expected_return,
-    expected_return_balanced,
+export norm_expected_posterior_return,
+    norm_expected_posterior_return_balanced,
+    norm_expected_posterior_return_balanced_obj,
+    norm_expected_posterior_return_obj,
+    norm_expected_return,
+    norm_expected_return_balanced,
     logpdf,
     map_obj,
     mle_obj,
