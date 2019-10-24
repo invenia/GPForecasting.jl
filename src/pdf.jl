@@ -473,6 +473,7 @@ end
 end
 
 # TODO: implement an optimised version for the LMM as well.
+# https://gitlab.invenia.ca/research/GPForecasting.jl/issues/55
 
 """
     norm_expected_return(gp::GP, x, y; α::Real=1)
