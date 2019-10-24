@@ -602,8 +602,9 @@ timestamps, `y` should be a matrix with the number of rows equal to the number o
     λ::Real=100,
 )
     vols = _unconstrained_markowitz(gp, x, α=α)
-    return dot(vols ./ sqrt(dot(vols, vols) + 1e-15), y) -
-        λ * abs(sum(vols ./ sqrt(dot(vols, vols) + 1e-15)))
+    profit = dot(vols ./ sqrt(dot(vols, vols) + 1e-15), y)
+    regulariser = λ * abs(sum(vols ./ sqrt(dot(vols, vols) + 1e-15)))
+    return profit - regulariser
 end
 
 @unionise function norm_expected_return_balanced(
