@@ -83,7 +83,7 @@ function stack(m::Vector)
     s2 = size(m[1])
     jlim = size(m[1], 2)
     s = (jlim, s1 * s2[1])
-    out = hcat(m...)'[:] # Can't use vec here because Nabla
+    out = hcat(m...)'[:]  # Can't use vec here because Nabla
     if s[1] > 1
         out = reshape(out, s...)'
     end
