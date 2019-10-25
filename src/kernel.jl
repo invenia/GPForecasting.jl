@@ -632,7 +632,7 @@ isMulti(k::ProductKernel) = isMulti(k.k1) || isMulti(k.k2)
 Kernel built by defining a period `period` for kernel `k`.
 """
 mutable struct PeriodicKernel <: Kernel
-    T  # `T` is common nomenclature for period, and makes the code a little nicer
+    T::Parameter  # `T` is common nomenclature for period, and makes the code a little nicer
     k::Kernel
 end
 
@@ -657,8 +657,8 @@ Base.show(io::IO, k::PeriodicKernel) = print(io, "(", k.k, " ↻ ", k.T, ")")
 isMulti(k::PeriodicKernel) = isMulti(k.k)
 
 """
-    k::Kernel ↻ l::Real -> PeriodicKernel
-    periodicise(k::Kernel, l::Real) -> PeriodicKernel
+    k::Kernel ↻ l -> PeriodicKernel
+    periodicise(k::Kernel, l) -> PeriodicKernel
 
 Turn kernel `k` into a [`PeriodicKernel`](@ref) of period `l`.
 """
