@@ -247,8 +247,8 @@ function learn(
     )
 end
 
-const TypeA = typeof(norm_expected_posterior_return_balanced_obj)
-const TypeB = typeof(norm_expected_posterior_return_obj)
+const TypeA = typeof(normalised_expected_posterior_return_balanced_obj)
+const TypeB = typeof(normalised_expected_posterior_return_obj)
 
 function learn(
     gp::GP{OLMMKernel, <:Mean},
@@ -269,8 +269,8 @@ function learn(
 )
     throw(ArgumentError(
         """
-        In order to use either `norm_expected_posterior_return_balanced_obj` or
-        `norm_expected_posterior_return_obj`, it is required to specify two sets of data.
+        In order to use either `normalised_expected_posterior_return_balanced_obj` or
+        `normalised_expected_posterior_return_obj`, it is required to specify two sets of data.
         See the docstring of those functions for more information.
         """
     ))
