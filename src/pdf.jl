@@ -700,7 +700,8 @@ end
 
 Objective function that, when minimised, yields maximum expected return for a forecast
 distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution for the
-weights, with risk aversion parameter `α`. The expected return is computed independently for
+weights, with risk aversion parameter `α` and a regulariser on the absolute total weights
+with normalisation constant `λ`. The expected return is computed independently for
 each timestamp.
 """
 @unionise function normalised_expected_posterior_return_balanced_obj( # Verbose as hell.
