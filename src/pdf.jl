@@ -648,7 +648,7 @@ end
         λ::Real=100,
     )
 
-Compute norm_expected_return_balanced of the `gp` conditioned on `xc` and `yc` over the pair
+Compute [`norm_expected_return_balanced`](@ref) of the `gp` conditioned on `xc` and `yc` over the pair
 (`xt`, `yt`). It is important to have (`xc`, `yc`) disjoint with (`xt`, `yt`) because the
 posterior usually closely reproduces the conditioned data.
 """
