@@ -704,7 +704,7 @@ weights, with risk aversion parameter `α` and a regulariser on the absolute tot
 with normalisation constant `λ`. The expected return is computed independently for
 each timestamp.
 """
-@unionise function normalised_expected_posterior_return_balanced_obj( # Verbose as hell.
+@unionise function normalised_expected_posterior_return_balanced_obj(
     gp::GP,
     xc,
     xt,
@@ -717,3 +717,6 @@ each timestamp.
         return -normalised_expected_posterior_return_balanced(gp, xc, xt, yc, yt, params; α=α, λ=λ)
     end
 end
+
+const balanced_return_obj = normalised_expected_posterior_return_balanced_obj
+const return_obj = normalised_expected_posterior_return_obj

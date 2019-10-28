@@ -22,7 +22,8 @@ export ConstantMean,
 export LMMPosMean, MultiMean, MultiOutputMean, OLMMPosMean
 
 # pdf.jl
-export norm_expected_posterior_return,
+export balanced_return_obj,
+    norm_expected_posterior_return,
     norm_expected_posterior_return_balanced,
     norm_expected_posterior_return_balanced_obj,
     norm_expected_posterior_return_obj,
@@ -32,6 +33,7 @@ export norm_expected_posterior_return,
     map_obj,
     mle_obj,
     reglogpdf,
+    return_obj,
     titsiasobj
 
 # kernel.jl
