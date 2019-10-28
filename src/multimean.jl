@@ -79,13 +79,12 @@ function (m::OLMMPosMean)(x)
 end
 
 function stack(m::Vector)
-    s1 = length(m)
-    s2 = size(m[1])
-    jlim = size(m[1], 2)
-    s = (jlim, s1 * s2[1])
+    size1 = length(m)
+    size2 = size(m[1], 1)
+    size3 = size(m[1], 2)
     out = hcat(m...)'[:]  # Can't use vec here because Nabla
-    if s[1] > 1
-        out = reshape(out, s...)'
+    if size3 > 1
+        out = permutedims(reshape(out, size3, size1 * size2))
     end
     return out
 end
