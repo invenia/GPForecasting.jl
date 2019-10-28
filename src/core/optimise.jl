@@ -317,7 +317,7 @@ end
 function learn(
     gp::GP{OLMMKernel, <:Mean},
     obj::Function;
-    greedy_f=(p -> throw(ArgumentError("Must specify `greedy_f`."))),
+    greedy_f,
     opt_U=false,
     K_U_cycles::Int=0,
     Θ_init::Array=[],
