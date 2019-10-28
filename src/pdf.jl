@@ -476,7 +476,7 @@ end
 # https://gitlab.invenia.ca/research/GPForecasting.jl/issues/55
 
 """
-    norm_expected_return(gp::GP, x, y; α::Real=1)
+    normalised_expected_return(gp::GP, x, y; α::Real=1)
 
 Return the normalised expected return for a forecast distribution `gp(x)` and actuals `y`,
 using an unconstrained Markowitz solution for the weights, with risk aversion parameter `α`.
@@ -488,31 +488,31 @@ If `x` represents a single timestamp, `y` should be a vector. If `x` represents 
 timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
 
 """
-@unionise function norm_expected_return(gp::GP, x, y::Vector{<:Real}; α::Real=1)
+@unionise function normalised_expected_return(gp::GP, x, y::Vector{<:Real}; α::Real=1)
     vols = _unconstrained_markowitz(gp, x, α=α)
     return dot(vols ./ sqrt(dot(vols, vols) + 1e-15), y)
 end
 
-@unionise function norm_expected_return(gp::GP, x, y::Matrix{<:Real}; α::Real=1)
+@unionise function normalised_expected_return(gp::GP, x, y::Matrix{<:Real}; α::Real=1)
     # We don't want this breaking if we send a single timestamp as a row matrix.
-    size(y, 1) == 1 && return norm_expected_return(gp, x, dropdims(y, dims=1), α=α)
+    size(y, 1) == 1 && return normalised_expected_return(gp, x, dropdims(y, dims=1), α=α)
     size(x, 1) != size(y, 1) && throw(ArgumentError("x and y must have same number of rows"))
     if isa(x, DataFrame)
         return sum(
             [
-                norm_expected_return(gp, DataFrame(x[i, :]), y[i, :], α=α)
+                normalised_expected_return(gp, DataFrame(x[i, :]), y[i, :], α=α)
                 for i in 1:size(x, 1)
             ]
         )
     else
         return sum(
-            [norm_expected_return(gp, x[i, :], y[i, :], α=α) for i in 1:size(x, 1)]
+            [normalised_expected_return(gp, x[i, :], y[i, :], α=α) for i in 1:size(x, 1)]
         )
     end
 end
 
 """
-    norm_expected_posterior_return(
+    normalised_expected_posterior_return(
         gp::GP,
         xc,
         xt,
@@ -526,7 +526,7 @@ Compute expected return of the `gp` conditioned on `xc` and `yc` over the pair (
 It is important to have (`xc`, `yc`) disjoint with (`xt`, `yt`) because the posterior usually
 closely reproduces the conditioned data.
 """
-@unionise function norm_expected_posterior_return(
+@unionise function normalised_expected_posterior_return(
     gp::GP,
     xc,
     xt,
@@ -538,10 +538,10 @@ closely reproduces the conditioned data.
     ngp = GP(gp.m, set(gp.k, params))
     # Build posterior
     pos = condition(ngp, xc, yc)
-    return norm_expected_return(pos, xt, yt, α=α)
+    return normalised_expected_return(pos, xt, yt, α=α)
 end
 
-@unionise function norm_expected_posterior_return(
+@unionise function normalised_expected_posterior_return(
     gp::GP{<:OLMMKernel},
     xc,
     xt,
@@ -556,18 +556,18 @@ end
     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
     # Build posterior
     pos = condition(ngp, xc, yc)
-    return norm_expected_return(pos, xt, yt, α=α)
+    return normalised_expected_return(pos, xt, yt, α=α)
 end
 
 """
-    norm_expected_posterior_return_obj(gp::GP, x, y::AbstractArray{<:Real}; α::Real=1)
+    normalised_expected_posterior_return_obj(gp::GP, x, y::AbstractArray{<:Real}; α::Real=1)
 
 Objective function that, when minimised, yields maximum expected return for a forecast
 distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution for the
 weights, with risk aversion parameter `α`. The expected return is computed independently for each
 timestamp.
 """
-@unionise function norm_expected_posterior_return_obj(
+@unionise function normalised_expected_posterior_return_obj(
     gp::GP,
     xc,
     xt,
@@ -576,12 +576,12 @@ timestamp.
     α::Real=1,
 )
     return function f(params)
-        return -norm_expected_posterior_return(gp, xc, xt, yc, yt, params; α=α)
+        return -normalised_expected_posterior_return(gp, xc, xt, yc, yt, params; α=α)
     end
 end
 
 """
-    norm_expected_return_balanced(gp::GP, x, y; α::Real=1, λ::Real=100)
+    normalised_expected_return_balanced(gp::GP, x, y; α::Real=1, λ::Real=100)
 
 Return the normalised expected return for a forecast distribution `gp(x)` and actuals `y`,
 using an unconstrained Markowitz solution for the weights, with risk aversion parameter `α`
@@ -594,7 +594,7 @@ uniform scalings of the volumes.
 If `x` represents a single timestamp, `y` should be a vector. If `x` represents several
 timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
 """
-@unionise function norm_expected_return_balanced(
+@unionise function normalised_expected_return_balanced(
     gp::GP,
     x,
     y::Vector{<:Real};
@@ -607,7 +607,7 @@ timestamps, `y` should be a matrix with the number of rows equal to the number o
     return profit - regulariser
 end
 
-@unionise function norm_expected_return_balanced(
+@unionise function normalised_expected_return_balanced(
     gp::GP,
     x,
     y::Matrix{<:Real};
@@ -616,20 +616,20 @@ end
 )
     # We don't want this breaking if we send a single timestamp as a row matrix.
     if size(y, 1) == 1
-        return norm_expected_return_balanced(gp, x, dropdims(y, dims=1), α=α, λ=λ)
+        return normalised_expected_return_balanced(gp, x, dropdims(y, dims=1), α=α, λ=λ)
     end
     size(x, 1) != size(y, 1) && throw(ArgumentError("x and y must have same number of rows"))
     if isa(x, DataFrame)
         return sum(
             [
-                norm_expected_return_balanced(gp, DataFrame(x[i, :]), y[i, :], α=α, λ=λ)
+                normalised_expected_return_balanced(gp, DataFrame(x[i, :]), y[i, :], α=α, λ=λ)
                 for i in 1:size(x, 1)
             ]
         )
     else
         return sum(
             [
-                norm_expected_return_balanced(gp, x[i, :], y[i, :], α=α, λ=λ)
+                normalised_expected_return_balanced(gp, x[i, :], y[i, :], α=α, λ=λ)
                 for i in 1:size(x, 1)
             ]
         )
@@ -637,7 +637,7 @@ end
 end
 
 """
-    norm_expected_posterior_return_balanced(
+    normalised_expected_posterior_return_balanced(
         gp::GP,
         xc,
         xt,
@@ -648,11 +648,11 @@ end
         λ::Real=100,
     )
 
-Compute [`norm_expected_return_balanced`](@ref) of the `gp` conditioned on `xc` and `yc` over the pair
+Compute [`normalised_expected_return_balanced`](@ref) of the `gp` conditioned on `xc` and `yc` over the pair
 (`xt`, `yt`). It is important to have (`xc`, `yc`) disjoint with (`xt`, `yt`) because the
 posterior usually closely reproduces the conditioned data.
 """
-@unionise function norm_expected_posterior_return_balanced(
+@unionise function normalised_expected_posterior_return_balanced(
     gp::GP,
     xc,
     xt,
@@ -665,10 +665,10 @@ posterior usually closely reproduces the conditioned data.
     ngp = GP(gp.m, set(gp.k, params))
     # Build posterior
     pos = condition(ngp, xc, yc)
-    return norm_expected_return_balanced(pos, xt, yt, α=α, λ=λ)
+    return normalised_expected_return_balanced(pos, xt, yt, α=α, λ=λ)
 end
 
-@unionise function norm_expected_posterior_return_balanced(
+@unionise function normalised_expected_posterior_return_balanced(
     gp::GP{<:OLMMKernel},
     xc,
     xt,
@@ -684,11 +684,11 @@ end
     isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
     # Build posterior
     pos = condition(ngp, xc, yc)
-    return norm_expected_return_balanced(pos, xt, yt, α=α, λ=λ)
+    return normalised_expected_return_balanced(pos, xt, yt, α=α, λ=λ)
 end
 
 """
-    norm_expected_posterior_return_balanced_obj(
+    normalised_expected_posterior_return_balanced_obj(
         gp::GP,
         xc,
         xt,
@@ -703,7 +703,7 @@ distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution 
 weights, with risk aversion parameter `α`. The expected return is computed independently for
 each timestamp.
 """
-@unionise function norm_expected_posterior_return_balanced_obj( # Verbose as hell.
+@unionise function normalised_expected_posterior_return_balanced_obj( # Verbose as hell.
     gp::GP,
     xc,
     xt,
@@ -713,6 +713,6 @@ each timestamp.
     λ::Real=100,
 )
     return function f(params)
-        return -norm_expected_posterior_return_balanced(gp, xc, xt, yc, yt, params; α=α, λ=λ)
+        return -normalised_expected_posterior_return_balanced(gp, xc, xt, yc, yt, params; α=α, λ=λ)
     end
 end
