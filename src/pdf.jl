@@ -447,7 +447,7 @@ provided.
 This is a simplified version of our Markowitz PO since it does not include the balance
 constraint (total net volume equal 0), the maximum volume constraint (total absolute
 volume less than M) or the maximum nodal volume constraint (total absolute volume on any
-node less than r*M).
+node less than r*M), for some given values r and M.
 """
 @unionise function _unconstrained_markowitz(gp::GP, x; α::Real=1)
     α <= 0 && throw(ArgumentError("Risk aversion parameter must be positive, received $α"))
