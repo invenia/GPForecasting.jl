@@ -247,14 +247,14 @@ function learn(
     )
 end
 
-const TypeA = typeof(normalised_expected_posterior_return_balanced_obj)
-const TypeB = typeof(normalised_expected_posterior_return_obj)
+const Balanced_obj = typeof(normalised_expected_posterior_return_balanced_obj)
+const Return_obj = typeof(normalised_expected_posterior_return_obj)
 
 function learn(
     gp::GP{OLMMKernel, <:Mean},
     xc,
     yc::AbstractMatrix{<:Real},
-    obj::Union{TypeA, TypeB};
+    obj::Union{Balanced_obj, Return_obj};
     α=1,
     λ=100,
     opt_U=false,
@@ -282,7 +282,7 @@ function learn(
     xt,
     yc::AbstractMatrix{<:Real},
     yt::AbstractMatrix{<:Real},
-    obj::Union{TypeA, TypeB};
+    obj::Union{Balanced_obj, Return_obj};
     α=1,
     λ=100,
     opt_U=false,
@@ -295,7 +295,7 @@ function learn(
     linesearch=LineSearches.BackTracking(),
     kwargs...
 )
-    closed_obj = if isa(obj, TypeA)
+    closed_obj = if isa(obj, Balanced_obj)
         p -> obj(p, xc, xt, yc, yt; α=α, λ=λ)
     else
         p -> obj(p, xc, xt, yc, yt; α=α)
