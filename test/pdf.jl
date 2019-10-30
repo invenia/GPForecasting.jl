@@ -90,3 +90,65 @@
         @test v1 >= v2
     end
 end
+
+@testset "Expected return" begin
+    gp = GP(EQ())
+    gp2 = GP(1, EQ())
+    x = [1]
+    y = [10]
+    @test normalised_expected_return(gp, x, y) <= normalised_expected_return(gp2, x, y)
+    @test normalised_expected_return(gp, x, y) == normalised_expected_return_balanced(gp, x, y)
+    @test normalised_expected_return_balanced(gp2, x, y) <= normalised_expected_return(gp2, x, y)
+    x = rand(3)
+    y = 10 .* ones(3, 1)
+    @test normalised_expected_return(gp, x, y) <= normalised_expected_return(gp2, x, y)
+    m = 2; p = 3; σ² = 0.1; lat_noise = 0.1
+    U, S, V = svd(rand(p, p))
+    H = U * Diagonal(sqrt.(S))[:, 1:m]
+    S_sqrt = sqrt.(diag(H' * H))
+    U = H * Diagonal(S_sqrt.^(-1.0))
+    _, P = GPForecasting.build_H_and_P(U, S_sqrt)
+    k = 1.0 * (EQ() ▷  1.0) + 2.0
+    gp = GP(OLMMKernel(
+           Fixed(m),
+           Fixed(p),
+           Positive(σ²),
+           Positive(lat_noise),
+           H,
+           Fixed(P),
+           Fixed(U),
+           Positive(S_sqrt),
+           [k for i in 1:m]
+      ))
+      yc = rand(5, 3)
+      xc = rand(5)
+      yt = rand(4, 3)
+      xt = rand(4)
+      f = normalised_expected_posterior_return_obj(gp, xc, xt, yc, yt)
+      g = normalised_expected_posterior_return_balanced_obj(gp, xc, xt, yc, yt)
+      @test f(gp[:]) <= g(gp[:])
+      grad = ∇(f)(gp[:])[1]
+      grad2 = ∇(g)(gp[:])[1]
+      @test grad != grad2
+      # Manual gradient step
+      @test f(gp[:] - 1e-6 * grad) < f(gp[:])
+      k = (1.0 * (EQ() ▷  1.0) + 2.0) ← :input
+      gp = GP(OLMMKernel(
+             Fixed(m),
+             Fixed(p),
+             Positive(σ²),
+             Positive(lat_noise),
+             H,
+             Fixed(P),
+             Fixed(U),
+             Positive(S_sqrt),
+             [k for i in 1:m]
+        ))
+        dfc = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input, :input2])
+        dft = DataFrame([[1.1,2.1,3.1], [1.,1.,1.]], [:input, :input2])
+        f = normalised_expected_posterior_return_obj(gp, dfc, dft, rand(3, 3), rand(3, 3))
+        grad = ∇(f)(gp[:])[1]
+        # Manual gradient step
+        @test f(gp[:] - 1e-6 * grad) < f(gp[:])
+        @test g(gp[:] - 1e-6 * grad2) < g(gp[:])
+end

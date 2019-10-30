@@ -78,23 +78,18 @@ function (m::OLMMPosMean)(x)
     return hcat(μs...) * H'
 end
 
-function stack(m::Vector) # This ugly, should be replaced soon
-   s1 = length(m)
-   s2 = size(m[1])
-   jlim = isa(m[1], Vector) ? 1 : s2[2]
-   s = (s1 * s2[1], jlim)
-   out = Array{Float64}(undef, s...)
-   for j in 1:jlim # i,j loop over data points
-       for i in 1:s2[1]
-           for k in 1:s1
-               out[s1[1] * (i - 1) + k, (j - 1) + 1] = m[k][i, j]
-           end
-       end
-   end
-   return size(out, 2) == 1 ? reshape(out, length(out)) : out
+function stack(m::Vector)
+    size1 = length(m)
+    size2 = size(m[1], 1)
+    size3 = size(m[1], 2)
+    out = hcat(m...)'[:]  # Can't use vec here because Nabla
+    if size3 > 1
+        out = permutedims(reshape(out, size3, size1 * size2))
+    end
+    return out
 end
 
-function unstack(m::Vector{Float64}, p::Int)
+@unionise function unstack(m::Vector{Float64}, p::Int)
     p == 1 && return m
     l = length(m)
     mod(l, p) != 0 && throw(DimensionMismatch("Can't unstack using these dimensions!"))

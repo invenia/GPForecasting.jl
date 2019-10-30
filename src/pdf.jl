@@ -436,3 +436,287 @@ a regular GP, which will be made sparse.
     end
 end
 # TODO: A method that let's specify only the number of inducing points
+
+"""
+    unconstrained_markowitz(gp::GP, x; α::Real=1)
+
+Perform unconstrained mean-variance Markowitz optimisation, using risk aversion parameter
+`α`, for input `x`. Returns the optimal weigths. This assumes a single timestamp is being
+provided.
+
+This is a simplified version of our Markowitz PO since it does not include the balance
+constraint (total net volume equal 0), the maximum volume constraint (total absolute
+volume less than M) or the maximum nodal volume constraint (total absolute volume on any
+node less than r*M), for some given values r and M.
+"""
+@unionise function _unconstrained_markowitz(gp::GP, x; α::Real=1)
+    α <= 0 && throw(ArgumentError("Risk aversion parameter must be positive, received $α"))
+    return 1/(2α) * gp.k(x) \ gp.m(x)'
+end
+
+@unionise function _unconstrained_markowitz(gp::GP{<:OLMMKernel}, x; α::Real=1)
+    α <= 0 && throw(ArgumentError("Risk aversion parameter must be positive, received $α"))
+
+    H = unwrap(gp.k.H)
+    σ² = unwrap(gp.k.σ²)
+    D = unwrap(gp.k.D)
+    m = unwrap(gp.k.m)
+    D = isa(D, Float64) ? fill(D, m) : D
+    p = unwrap(gp.k.p)
+
+    # The reshape and the vcat are tricks to make Nabla work.
+    K_ = Diagonal(vcat([reshape(k(x), 1) for k in gp.k.ks]...))
+    Σ_ = H * K_ * H'
+    Σ = Σ_ + σ² * Eye(p) + H * (D .* Eye(m)) * H'
+
+    return 1/(2α) * Σ \ gp.m(x)'
+end
+
+# TODO: implement an optimised version for the LMM as well.
+# https://gitlab.invenia.ca/research/GPForecasting.jl/issues/55
+
+"""
+    normalised_expected_return(gp::GP, x, y; α::Real=1)
+
+Return the normalised expected return for a forecast distribution `gp(x)` and actuals `y`,
+using an unconstrained Markowitz solution for the weights, with risk aversion parameter `α`.
+
+The normalisation means that the weight vector has unit norm, i.e., this is insensitive to
+uniform scalings of the volumes.
+
+If `x` represents a single timestamp, `y` should be a vector. If `x` represents several
+timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
+
+"""
+@unionise function normalised_expected_return(gp::GP, x, y::Vector{<:Real}; α::Real=1)
+    vols = _unconstrained_markowitz(gp, x, α=α)
+    return dot(vols ./ sqrt(dot(vols, vols) + 1e-15), y)
+end
+
+@unionise function normalised_expected_return(gp::GP, x, y::Matrix{<:Real}; α::Real=1)
+    # We don't want this breaking if we send a single timestamp as a row matrix.
+    size(y, 1) == 1 && return normalised_expected_return(gp, x, dropdims(y, dims=1), α=α)
+    size(x, 1) != size(y, 1) && throw(ArgumentError("x and y must have same number of rows"))
+    if isa(x, DataFrame)
+        return sum(
+            [
+                normalised_expected_return(gp, DataFrame(x[i, :]), y[i, :], α=α)
+                for i in 1:size(x, 1)
+            ]
+        )
+    else
+        return sum(
+            [normalised_expected_return(gp, x[i, :], y[i, :], α=α) for i in 1:size(x, 1)]
+        )
+    end
+end
+
+"""
+    normalised_expected_posterior_return(
+        gp::GP,
+        xc,
+        xt,
+        yc::AbstractArray{<:Real},
+        yt::AbstractArray{<:Real},
+        params;
+        α::Real=1,
+    )
+
+Compute expected return of the `gp` conditioned on `xc` and `yc` over the pair (`xt`, `yt`).
+It is important to have (`xc`, `yc`) disjoint with (`xt`, `yt`) because the posterior usually
+closely reproduces the conditioned data.
+"""
+@unionise function normalised_expected_posterior_return(
+    gp::GP,
+    xc,
+    xt,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+    params;
+    α::Real=1,
+)
+    ngp = GP(gp.m, set(gp.k, params))
+    # Build posterior
+    pos = condition(ngp, xc, yc)
+    return normalised_expected_return(pos, xt, yt, α=α)
+end
+
+@unionise function normalised_expected_posterior_return(
+    gp::GP{<:OLMMKernel},
+    xc,
+    xt,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+    params;
+    α::Real=1,
+)
+    # This has the updated H, but the old U. H might (and usually will) not be of the form
+    # H = U. S.
+    ngp = GP(gp.m, set(gp.k, params))
+    isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
+    # Build posterior
+    pos = condition(ngp, xc, yc)
+    return normalised_expected_return(pos, xt, yt, α=α)
+end
+
+"""
+    normalised_expected_posterior_return_obj(gp::GP, x, y::AbstractArray{<:Real}; α::Real=1)
+
+Objective function that, when minimised, yields maximum expected return for a forecast
+distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution for the
+weights, with risk aversion parameter `α`. The expected return is computed independently for each
+timestamp.
+"""
+@unionise function normalised_expected_posterior_return_obj(
+    gp::GP,
+    xc,
+    xt,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real};
+    α::Real=1,
+)
+    return function f(params)
+        return -normalised_expected_posterior_return(gp, xc, xt, yc, yt, params; α=α)
+    end
+end
+
+"""
+    normalised_expected_return_balanced(gp::GP, x, y; α::Real=1, λ::Real=100)
+
+Return the normalised expected return for a forecast distribution `gp(x)` and actuals `y`,
+using an unconstrained Markowitz solution for the weights, with risk aversion parameter `α`
+and penalising the result by `λ` times the net volume. The penalty term encourages balanced
+volumes (see `GPForecasting._unconstrained_markowitz`).
+
+The normalisation means that the weight vector has unit norm, i.e., this is insensitive to
+uniform scalings of the volumes.
+
+If `x` represents a single timestamp, `y` should be a vector. If `x` represents several
+timestamps, `y` should be a matrix with the number of rows equal to the number of timestamps.
+"""
+@unionise function normalised_expected_return_balanced(
+    gp::GP,
+    x,
+    y::Vector{<:Real};
+    α::Real=1,
+    λ::Real=100,
+)
+    vols = _unconstrained_markowitz(gp, x, α=α)
+    profit = dot(vols ./ sqrt(dot(vols, vols) + 1e-15), y)
+    regulariser = λ * abs(sum(vols ./ sqrt(dot(vols, vols) + 1e-15)))
+    return profit - regulariser
+end
+
+@unionise function normalised_expected_return_balanced(
+    gp::GP,
+    x,
+    y::Matrix{<:Real};
+    α::Real=1,
+    λ::Real=100,
+)
+    # We don't want this breaking if we send a single timestamp as a row matrix.
+    if size(y, 1) == 1
+        return normalised_expected_return_balanced(gp, x, dropdims(y, dims=1), α=α, λ=λ)
+    end
+    size(x, 1) != size(y, 1) && throw(ArgumentError("x and y must have same number of rows"))
+    if isa(x, DataFrame)
+        return sum(
+            [
+                normalised_expected_return_balanced(gp, DataFrame(x[i, :]), y[i, :], α=α, λ=λ)
+                for i in 1:size(x, 1)
+            ]
+        )
+    else
+        return sum(
+            [
+                normalised_expected_return_balanced(gp, x[i, :], y[i, :], α=α, λ=λ)
+                for i in 1:size(x, 1)
+            ]
+        )
+    end
+end
+
+"""
+    normalised_expected_posterior_return_balanced(
+        gp::GP,
+        xc,
+        xt,
+        yc::AbstractArray{<:Real},
+        yt::AbstractArray{<:Real},
+        params;
+        α::Real=1,
+        λ::Real=100,
+    )
+
+Compute [`normalised_expected_return_balanced`](@ref) of the `gp` conditioned on `xc` and `yc` over the pair
+(`xt`, `yt`). It is important to have (`xc`, `yc`) disjoint with (`xt`, `yt`) because the
+posterior usually closely reproduces the conditioned data.
+"""
+@unionise function normalised_expected_posterior_return_balanced(
+    gp::GP,
+    xc,
+    xt,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+    params;
+    α::Real=1,
+    λ::Real=100,
+)
+    ngp = GP(gp.m, set(gp.k, params))
+    # Build posterior
+    pos = condition(ngp, xc, yc)
+    return normalised_expected_return_balanced(pos, xt, yt, α=α, λ=λ)
+end
+
+@unionise function normalised_expected_posterior_return_balanced(
+    gp::GP{<:OLMMKernel},
+    xc,
+    xt,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real},
+    params;
+    α::Real=1,
+    λ::Real=100,
+)
+    # This has the updated H, but the old U. H might (and usually will) not be of the form
+    # H = U * S
+    ngp = GP(gp.m, set(gp.k, params))
+    isa(ngp.k.H, Fixed) || _constrain_H!(ngp)
+    # Build posterior
+    pos = condition(ngp, xc, yc)
+    return normalised_expected_return_balanced(pos, xt, yt, α=α, λ=λ)
+end
+
+"""
+    normalised_expected_posterior_return_balanced_obj(
+        gp::GP,
+        xc,
+        xt,
+        yc::AbstractArray{<:Real},
+        yt::AbstractArray{<:Real};
+        α::Real=1,
+        λ::Real=100,
+    )
+
+Objective function that, when minimised, yields maximum expected return for a forecast
+distribution `gp(x)` and actuals `y`, using an unconstrained Markowitz solution for the
+weights, with risk aversion parameter `α` and a regulariser on the absolute total weights
+with normalisation constant `λ`. The expected return is computed independently for
+each timestamp.
+"""
+@unionise function normalised_expected_posterior_return_balanced_obj(
+    gp::GP,
+    xc,
+    xt,
+    yc::AbstractArray{<:Real},
+    yt::AbstractArray{<:Real};
+    α::Real=1,
+    λ::Real=100,
+)
+    return function f(params)
+        return -normalised_expected_posterior_return_balanced(gp, xc, xt, yc, yt, params; α=α, λ=λ)
+    end
+end
+
+const balanced_return_obj = normalised_expected_posterior_return_balanced_obj
+const return_obj = normalised_expected_posterior_return_obj
