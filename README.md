@@ -4,8 +4,16 @@
 [![Build Status](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/master/build.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
 [![Coverage](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/master/coverage.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
 
-## Notes for development
-Some notes that may be helpful for those looking to develop this package can be found [here](docs/GPFnotes.md).
+## Extra documentation
+Besides the usual package documentation, we have some extras docs that may be useful.
+
+**F.A.Q.:** very high level F.A.Q. that tries to cover general question relating GPs and
+our system as a whole. Can be found [here](docs/FAQ.md)
+
+**Development notes:** may be helpful for those looking to develop this package. Can be found [here](docs/GPFnotes.md).
+
+**Model notes:** may be helpful for those looking to get a high level understanding of the
+models contained in this package. Can be found [here](docs/Modelnotes.md).
 
 ## Data format
 
@@ -45,7 +53,7 @@ julia> k = 0.7 * periodicise(EQ() ▷ 0.1, 2.0) # define kernel
 julia> gp = GP(k) # create GP
 GPForecasting.GP{GPForecasting.ScaledKernel,GPForecasting.ScaledMean}((0.0 * 𝟏), (0.7 * ((EQ() ▷ 0.1) ∿ 2.0)))
 
-julia> gp = learn(gp, x, y, objective, trace=false) # optimise parameters
+julia> gp = learn(gp, x, y, mle_obj, trace=false) # optimise parameters
 GPForecasting.GP{GPForecasting.ScaledKernel,GPForecasting.ScaledMean}((0.0 * 𝟏), (0.27164985770150735 * ((EQ() ▷ 0.007373677766344863) ∿ 2.0952737850483216)))
 
 julia> pos = condition(gp, x, y) # condition on observations
