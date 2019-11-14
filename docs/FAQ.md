@@ -45,13 +45,13 @@ GPs may be a bit more opaque than the EmpiricalForecaster for people who have no
 
 ## How complex are GPs as a statistical model?
 
-While the theory behind these models may seem opaque to people from different fields, [GPs are not particularly complex models. Rather, they are recognised for their simplicity](https://www.cs.toronto.edu/~hinton/csc2515/notes/gp_slides_fall08.pdf). As the name suggests they heavily rely on the Gaussian distribution, which we know a lot about, and allows us to simplify “fitting a model” down to the much simpler task of “do some Matrix algebra”. The machine learning literature is replete with considerably more complex models, such as CNNs, RNNs, GANs, VAEs, etc.
+While the theory behind these models may seem opaque to people from different fields, [GPs are not particularly complex models. Rather, they are recognised for their simplicity](https://www.cs.toronto.edu/~hinton/csc2515/notes/gp_slides_fall08.pdf). As the name suggests they heavily rely on the Gaussian distribution, which we know a lot about, and allows us to simplify “fitting a model” down to the much simpler task of “do some Matrix algebra”. Moreover, [GPs can be linked with methods as ubiquitous as (kernelised) linear regression](https://www.inf.ed.ac.uk/teaching/courses/mlpr/2019/notes/w5b_gaussian_process_kernels.html#bayesian-linear-regression-as-a-gp). The machine learning literature is replete with considerably more complex models, such as CNNs, RNNs, GANs, VAEs, etc.
 
 Usually, the more complex the model the harder it is to tune properly and make it work satisfactorily. Given the complexity of the data we deal with, the simplicity of the model represents a strength.
 
 ## What are the risks of overfitting?
 
-Any statistical model can overfit under unfavourable conditions, and GPs are no different. However, the Bayesian nature of the model should make it much more robust to the data than, for example, Neural Networks. Moreover, in our specific construction, we restrict the degrees of freedom of the model by enforcing a low-rank structure on it, which increases its robustness towards overfitting.
+Any statistical model can overfit under unfavourable conditions, and GPs are no different. However, [the Bayesian nature of the model should make it much more robust to the data](https://medium.com/neuralspace/how-bayesian-methods-embody-occams-razor-43f3d0253137) than, for example, Neural Networks. Moreover, in our specific construction, we restrict the degrees of freedom of the model by enforcing a low-rank structure on it, which increases its robustness towards overfitting.
 
 Moreover, our GP model has exact, closed-form, inference. That means we eliminate several sources of computational complexity and numerical instability that would be present in other models.
 
