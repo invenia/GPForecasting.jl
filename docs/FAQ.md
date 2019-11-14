@@ -1,14 +1,14 @@
 # GPForecasting F.A.Q.
 
 
-- [What is the problem we are using a GP to solve?](#what-is-the-problem-we-are-using-a-gp-to-solve?)
-- [How are our GP models different from the EmpiricalForecaster?](#how-are-our-gp-models-different-from-the-empiricalforecaster?)
-- [Why would we like to use GPs?](#why-are-we-using-gps?)
-- [What are the disadvantages of using GPs](#what-are-the-disadvantages-of-using-gps?)
-- [How complex are GPs as a statistical model?](#how-complex-are-gps-as-a-statistical-model?)
-- [What are the risks of overfitting?](#what-are-the-risks-of-overfitting?)
-- [How long does the model take to run?](#why-does-it-need-more-memory-than-the-empiricalforecaster?)
-- [Why does it need more memory to run?](#how-long-does-the-model-take-to-run?)
+- [What is the problem we are using a GP to solve?](#what-is-the-problem-we-are-using-a-gp-to-solve)
+- [How are our GP models different from the EmpiricalForecaster?](#how-are-our-gp-models-different-from-the-empiricalforecaster)
+- [Why would we like to use GPs?](#why-are-we-using-gps)
+- [What are the disadvantages of using GPs](#what-are-the-disadvantages-of-using-gps)
+- [How complex are GPs as a statistical model?](#how-complex-are-gps-as-a-statistical-model)
+- [What are the risks of overfitting?](#what-are-the-risks-of-overfitting)
+- [How long does the model take to run?](#why-does-it-need-more-memory-than-the-empiricalforecaster)
+- [Why does it need more memory to run?](#how-long-does-the-model-take-to-run)
 
 ## What is the problem we are using a GP to solve?
 
