@@ -6,6 +6,7 @@
     @test size(samp) == (3, 3)
     @test all(samp[1, :] .< samp[2, :])
     @test isa(logpdf(n, [1., 2., 3.]), Real)
+    @test isa(logpdf(n, [[1., 2., 3.], [2., 2., 2.]]), Real)
     @test_throws DimensionMismatch logpdf(n, [1., 2., 3., 4.])
 
     mvg = Gaussian(Float64[1 2; 3 4; 5 6], Eye(6))

@@ -33,14 +33,26 @@
 
     # Test multiplication by zero
     μ8 = 0.0 * μ1
+    sμ = ScaledMean(0.0, μ1)
     μ9 = μ8 * μ1
 
     # Test Zero Mean Properties
     @test isa(μ8, ZeroMean)
+    @test !isa(sμ, ZeroMean)
     @test isa(μ8 * μ1, ZeroMean)
+    @test isa(μ1 * μ8, ZeroMean)
+    @test isa(μ8 * μ9, ZeroMean)
+    @test isa(μ9 * μ8, ZeroMean)
+    @test isa(μ8 * μ8, ZeroMean)
+    @test isa(μ8 + μ8, ZeroMean)
+    @test isa(sμ * μ1, ZeroMean)
+    @test !isa(sμ + μ1, ZeroMean)
+    @test isa(μ1 * sμ, ZeroMean)
+    @test !isa(μ1 + sμ, ZeroMean)
     @test μ8 + μ1 == μ1
     @test μ1 + μ8 == μ1
     @test 3μ8 == μ8
+    @test μ8 * 3 == μ8
     @test (3 + μ8)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_ rtol = _RTOL_
     @test (μ8 + 3)(x) ≈ ConstantMean(3.)(x) atol = _ATOL_ rtol = _RTOL_
     @test isa(sprint(show, μ8), String)

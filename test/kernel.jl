@@ -14,6 +14,7 @@
             RootLog(),
             DiagonalKernel(),
             ZeroKernel(),
+            periodicise(EQ(), 5),
         ]
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_ rtol = _RTOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_ rtol = _RTOL_
@@ -101,14 +102,24 @@
         @test GPForecasting.unwrap((6 * k).scale) == 30
         @test GPForecasting.is_not_noisy(k)
         kk = 0 * EQ()
-        @test kk + k == k + kk == k
+        sk = ScaledKernel(Fixed(0.0), EQ())
+        @test kk + k == k + kk == k == sk + k == k + sk
         @test isa(k * kk, ZeroKernel)
         @test isa(kk * k, ZeroKernel)
+        @test isa(k * sk, ZeroKernel)
+        @test isa(sk * k, ZeroKernel)
         @test GPForecasting.is_not_noisy(kk)
         kkk = EQ()
         @test kkk + kk == kk + kkk == kkk
         @test isa(kkk * kk, ZeroKernel)
         @test isa(kk * kkk, ZeroKernel)
+        @test isa(kkk * sk, ZeroKernel)
+        @test isa(sk * kkk, ZeroKernel)
+        @test isa(kk + kk, ZeroKernel)
+        @test isa(kk * kk, ZeroKernel)
+        @test isa(5 * kk, ZeroKernel)
+        @test isa(zero(EQ()), ZeroKernel)
+        @test isa(zero(Kernel), ZeroKernel)
     end
 
     @testset "Parameter" begin
@@ -159,7 +170,7 @@
         sqk1 = k ← :input1
         sqk2 = k ← :input2
         sqk12 = (k ← :input1) * (k ← :input2)
-        sqk3 = k ← :input3
+        sqk3 = GPForecasting.takes_in(k, Fixed(:input3))
         @test GPForecasting.is_not_noisy(sqk1)
         @test !isMulti(sqk1)
         @test !(sqk1(df) ≈ sqk2(df))
@@ -167,6 +178,8 @@
         @test isa(sprint(show, k), String)
         @test isa(var(sqk1, df), Vector)
         @test sqk12(df) ≈ sqk3(df) atol = _ATOL_ rtol = _RTOL_
+        @test sqk12(df[1, :]) ≈ sqk3(DataFrame(df[1, :])) atol = _ATOL_ rtol = _RTOL_
+        @test sqk3(df[1, :], df) ≈ sqk3(df, df[1, :])' atol = _ATOL_ rtol = _RTOL_
     end
 
     @testset "Sum and Products" begin
@@ -230,6 +243,9 @@
         oy = Observed(y)
         py = Latent(y)
         px = Latent(x)
+        @test size(ox) == size(x)
+        @test ox[1] isa Observed
+        @test ox.val ≈ x
         mx = [Latent([1,2,3]), Observed([11, 22]), Latent([15])]
 
         nk = GPForecasting.NoiseKernel(EQ(), 12*DiagonalKernel()) # Giant noise to make it easy to spot
