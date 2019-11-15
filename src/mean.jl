@@ -76,16 +76,16 @@ end
 
 Base.:*(k1::Mean, k2::Mean) = ProductMean(k1, k2)
 function Base.:*(k1::Mean, k2::ScaledMean)
-    return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? Mean(0) : ProductMean(k1, k2)
+    return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? zero(Mean) : ProductMean(k1, k2)
 end
 function Base.:*(k1::ScaledMean, k2::Mean)
-    return unwrap(k1.scale) ≈ zero(unwrap(k1.scale)) ? Mean(0) : ProductMean(k1, k2)
+    return unwrap(k1.scale) ≈ zero(unwrap(k1.scale)) ? zero(Mean) : ProductMean(k1, k2)
 end
 function Base.:*(k1::ScaledMean, k2::ScaledMean)
     if unwrap(k1.scale) ≈ zero(unwrap(k1.scale))
-        return Mean(0)
+        return zero(Mean)
     elseif unwrap(k2.scale) ≈ zero(unwrap(k2.scale))
-        return Mean(0)
+        return zero(Mean)
     else
         return ProductMean(k1, k2)
     end
