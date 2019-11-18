@@ -598,16 +598,16 @@ end
 
 Base.:*(k1::Kernel, k2::Kernel) = ProductKernel(k1, k2)
 function Base.:*(k1::Kernel, k2::ScaledKernel)
-    return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? Kernel(0) : ProductKernel(k1, k2)
+    return unwrap(k2.scale) ≈ zero(unwrap(k2.scale)) ? zero(Kernel) : ProductKernel(k1, k2)
 end
 function Base.:*(k1::ScaledKernel, k2::Kernel)
-    return unwrap(k1.scale) ≈ zero(unwrap(k1.scale)) ? Kernel(0) : ProductKernel(k1, k2)
+    return unwrap(k1.scale) ≈ zero(unwrap(k1.scale)) ? zero(Kernel) : ProductKernel(k1, k2)
 end
 function Base.:*(k1::ScaledKernel, k2::ScaledKernel)
     if unwrap(k1.scale) ≈ zero(unwrap(k1.scale))
-        return Kernel(0)
+        return zero(Kernel)
     elseif unwrap(k2.scale) ≈ zero(unwrap(k2.scale))
-        return Kernel(0)
+        return zero(Kernel)
     else
         return ProductKernel(k1, k2)
     end

@@ -24,6 +24,7 @@
     reg(gp, x, y) = sum(abs.(gp.k.H))
     @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_ rtol = _RTOL_
     @test mle_obj(gp, x, y)(gp.k[:]) + reg(gp, x, y) ≈ map_obj(reg, gp, x, y)(gp.k[:]) atol = _ATOL_ rtol = _RTOL_
+    @test  map_obj(reg, gp, x, y)(gp.k[:]) ≈ map_obj(reg)(gp, x, y)(gp.k[:]) atol = _ATOL_ rtol = _RTOL_
 
     @testset "Titsias" begin
         # 1D

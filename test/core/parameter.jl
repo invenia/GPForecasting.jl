@@ -2,10 +2,12 @@
     @test GPForecasting.pack([1, 2, 3]) == [1, 2, 3]
     @test GPForecasting.unpack(Matrix(undef, 2, 2), [1, 2, 3, 4]) == [1 3; 2 4]
     @test GPForecasting.set([1], [1, 2, 3]) == [1, 2, 3]
+    @test GPForecasting.set(1, 2) == 2
 
     fx = Fixed(5.5)
 
     @test fx ≈ fx
+    @test isconstrained(fx)
     @test GPForecasting.unwrap(fx) ≈ 5.5 atol = _ATOL_ rtol = _RTOL_
     @test GPForecasting.pack(fx) == Float64[]
     @test GPForecasting.unpack(fx, [0]) ≈ fx
@@ -27,6 +29,9 @@
     p = Positive(5.5)
 
     @test p ≈ p
+    @test !(p ≈ fx)
+    @test !(5 ≈ fx)
+    @test !(fx ≈ 5)
     @test GPForecasting.unwrap(p) ≈ 5.5 atol = _ATOL_ rtol = _RTOL_
     @test GPForecasting.pack(p) == Float64[log(5.5 - p.ε)]
     @test GPForecasting.unpack(p, [log(5.5 - p.ε)]) ≈ p
@@ -48,6 +53,7 @@
     n = Named(5.5, "secret")
 
     @test n ≈ n
+    @test !isconstrained(n)
     @test GPForecasting.unwrap(n) ≈ 5.5 atol = _ATOL_ rtol = _RTOL_
     @test GPForecasting.pack(n) == Float64[5.5]
     @test GPForecasting.unpack(n, [5.5]) ≈ n
@@ -58,6 +64,7 @@
     b = Bounded(0., -10., 10.)
 
     @test b ≈ b
+    @test isconstrained(b)
     @test GPForecasting.unwrap(b) ≈ 0. atol = _ATOL_ rtol = _RTOL_
     @test GPForecasting.name(b) === nothing
     @test GPForecasting.set(b, 5.) ≈ Bounded(5., -10., 10.)
@@ -83,4 +90,8 @@
     @test GPForecasting.name(bv) === nothing
     @test GPForecasting.set(bv, [5.0, 2.0]) ≈ Bounded([5.0, 2.0], lb, ub)
     @test isa(sprint(show, bv), String)
+
+    df = DataFrame([[1.0, 2.0, 3.0], [1.0, 1.0, 1.0]], [:input, :input2])
+    @test Nabla.oned_container(df) isa DataFrame
+    @test Nabla.randned_container(df) isa DataFrame
 end
