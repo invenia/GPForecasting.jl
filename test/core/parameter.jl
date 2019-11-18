@@ -91,7 +91,7 @@
     @test GPForecasting.set(bv, [5.0, 2.0]) ≈ Bounded([5.0, 2.0], lb, ub)
     @test isa(sprint(show, bv), String)
 
-    df = DataFrame([[1.,2.,3.], [1.,1.,1.]], [:input, :input2])
+    df = DataFrame([[1.0, 2.0, 3.0], [1.0, 1.0, 1.0]], [:input, :input2])
     @test Nabla.oned_container(df) isa DataFrame
     @test Nabla.randned_container(df) isa DataFrame
 end
