@@ -600,7 +600,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         s_H == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `H`.")
         s_P == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `P`.")
         s_U == (0, 0) && warn(LOGGER, "Initialising OLMMKernel with placeholder `U`.")
-        !isa(unwrap(S_sqrt), Vector) && throw(
+        length(size(unwrap(S_sqrt))) != 1 && throw(
             ArgumentError("`S_sqrt` must be a `Vector` with the norms of the columns of `H`.")
         )
         l_S_sqrt == 0 && warn(LOGGER, "Initialising OLMMKernel with placeholder `S_sqrt`.")
