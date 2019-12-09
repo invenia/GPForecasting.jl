@@ -670,7 +670,8 @@ const ↻ = periodicise
     SpecifiedQuantityKernel(col::Fixed, k::Kernel) -> SpecifiedQuantityKernel
 	k::Kernel ← col::Fixed -> SpecifiedQuantityKernel
 
-A kernel `k` that acts on the column `col` of a dataframe. Allows for input selection.
+A kernel `k` that acts on the column `col` of a dataframe or on the key `col` of a
+dictionary. Allows for input selection.
 
 See also: [`takes_in`](@ref)
 """
@@ -684,11 +685,16 @@ end
 	takes_in(k::Kernel, col::Union{Symbol, Fixed}) -> SpecifiedQuantityKernel
 
 Specify that kernel `k` is a [`SpecifiedQuantityKernel`](@ref) which takes in data from the
-`DataFrame` column `col`.
+`DataFrame` column `col` or from the `Dict` key `col`.
 """
 takes_in(k::Kernel, col::Symbol) = SpecifiedQuantityKernel(Fixed(col), k)
 takes_in(k::Kernel, col::Fixed) = SpecifiedQuantityKernel(col, k)
 const ← = takes_in
+
+@unionise function (k::SpecifiedQuantityKernel)(x::Dict, y::Dict)
+    k.k(x[unwrap(k.col)], y[unwrap(k.col)])
+end
+@unionise (k::SpecifiedQuantityKernel)(x::Dict) = k(x, x)
 
 @unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
     return k(DataFrame(x), DataFrame(y))

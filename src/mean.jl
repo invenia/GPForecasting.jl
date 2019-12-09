@@ -127,6 +127,14 @@ Zero Mean. Returns zero.
 """
 struct ZeroMean <: Mean; end
 (::ZeroMean)(x) = zeros(size(x, 1))
+function (::ZeroMean)(x::Dict)
+    if any([size(first(x).second, 1) != size(y, 1) for y in values(x)])
+        throw(ArgumentError(
+            "All inputs contained in the dictionary must have same first dimension."
+        ))
+    end
+    return zeros(size(first(x).second, 1))
+end
 (::ZeroMean)(x::Vector{Input}) = zeros(size(vcat([c.val for c in x]...), 1))
 
 Base.:+(k::Mean, z::ZeroMean) = k
