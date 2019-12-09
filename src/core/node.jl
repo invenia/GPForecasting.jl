@@ -2,6 +2,13 @@ getfields(x) = (getfield(x, i) for i in 1:nfields(x))
 
 abstract type AbstractNode end
 
+"""
+    Process <: AbstractNode
+
+Abstract supertype for all stochastic processes.
+"""
+abstract type Process <: AbstractNode end
+
 # make nodes act as a scalar in broadcasting
 Base.broadcastable(tn::AbstractNode) = Ref(tn)
 
