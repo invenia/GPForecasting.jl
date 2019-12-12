@@ -828,6 +828,79 @@ end
 isMulti(k::OLMMKernel) = unwrap(k.p) > 1
 Base.size(k::OLMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
 
+# Groupped OLMM kernel
+"""
+    GOLMMKernel <: MultiOutputKernel
+
+Alternative kernel for the Orthogonal Linear Mixing Model, based on grouppings
+    computed using output embeddings.
+
+* Fields:
+
+- `group_kernel`: Kernel that correlates outputs
+- `group_embeddings`: Group embeddings used by kernel above.
+- `olmm_kernel`: OLMM kernel computed using the above
+
+* Constructors:
+
+    OLMMKernel(m, p, sigma_sq, d, k::Vector{Kernel}, g_kern::Kernel, group_embs)
+    OLMMKernel(group_kernel::Kernel, group_embs, olmm_kernel::OLMMKernel)
+"""
+mutable struct GOLMMKernel <: MultiOutputKernel
+    group_kernel::Kernel; # kernel that correlates outputs based on `group_embeddings`
+    group_embeddings; # a vector of numbers that identify group of each output
+    olmm_kernel::OLMMKernel; # OLMM kernel constructed using the above
+
+    function GOLMMKernel(
+        m, # number of latent independent GPs
+        p, # number of outputs
+        sigma_sq, # observation noise
+        d, # latent noise
+        ks, # kernels for latent independent GPs
+        g_kern, # kernel that correlates outputs based on `group_embs_init`
+        group_embs_init # values of group embbeddings
+        )
+        olmm_kernel = make_olmm_kernel_using_groups(m, p, sigma_sq, d, ks, g_kern, group_embs_init);
+
+        return new(g_kern, group_embs_init, olmm_kernel)
+    end
+
+    function GOLMMKernel(
+        g_kern, # kernel that correlates outputs based on `ge`
+        ge, # group embeddings
+        olmm_k # current OLMM kernel
+    )
+        p = unwrap(olmm_k.p);
+        m = unwrap(olmm_k.m);
+        sigma_sq = unwrap(olmm_k.σ²);
+        D = unwrap(olmm_k.D);
+        ks = olmm_k.ks;
+
+        olmm_kernel = make_olmm_kernel_using_groups(m, p, sigma_sq, D, ks, g_kern, ge);
+
+        return new(g_kern, ge, olmm_kernel);
+    end
+end
+
+function make_olmm_kernel_using_groups(m, p, sigma_sq, d, ks, g_kern, group_embs_init)
+    C = g_kern(group_embs_init) + Diagonal(fill(1e-6, p))
+    U, S, _ = svd(C);
+
+    H, P = GPForecasting.build_H_and_P(U[:, 1:m], sqrt.(S)[1:m]);
+
+    return OLMMKernel(Fixed(m), Fixed(p), sigma_sq, d, H, Fixed(P), Fixed(U[:, 1:m]), Fixed(sqrt.(S)[1:m]), ks);
+end
+
+isMulti(k::GOLMMKernel) = isMulti(k.olmm_kernel)
+
+function (k::GOLMMKernel)(x, y)
+    return k.olmm_kernel(x, y);
+end
+
+function (k::GOLMMKernel)(x)
+    return k(x, x);
+end
+
 # Matrix-Kernel multiplications
 Base.:*(m::Matrix, k::Kernel) = MultiKernel(m .* k)
 Base.:*(k::Kernel, m::Matrix) = m * k

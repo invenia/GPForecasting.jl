@@ -73,7 +73,8 @@ export LMMKernel,
     MultiOutputKernel,
     NaiveLMMKernel,
     NoiseKernel,
-    OLMMKernel
+    OLMMKernel,
+    GOLMMKernel
     # verynaiveLMMKernel
 
 # core/pairwise

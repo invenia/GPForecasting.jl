@@ -266,6 +266,14 @@ end
     return lpdf
 end
 
+@unionise function Distributions.logpdf(
+    gp::GP{K, M},
+    x,
+    y::AbstractMatrix{<:Real}
+) where {K <: GOLMMKernel, M <: Mean}
+    Distributions.logpdf(GP(gp.m, gp.k.olmm_kernel), x, y)
+end
+
 @unionise function Distributions.logpdf(gp::GP, x, y::AbstractArray{<:Real})
     return logpdf(gp(x), y)
 end
