@@ -1,7 +1,7 @@
 name = "GPForecasting"
 uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
 authors = ["Invenia Technical Computing"]
-version = "2.3.0"
+version = "2.4.0"
 
 [deps]
 BlockDiagonals = "0a1fb500-61f7-11e9-3c65-f5ef3456f9f0"
