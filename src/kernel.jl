@@ -697,6 +697,10 @@ const ← = takes_in
 end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractMatrix) = k(x, x)
 
+function elwise(k::SpecifiedQuantityKernel, x::AbstractMatrix)
+    return [k(x[i, :]')[1] for i in 1:size(x, 1)] # Gotta keep the shape 
+end
+
 @unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
     return k(DataFrame(x), DataFrame(y))
 end
