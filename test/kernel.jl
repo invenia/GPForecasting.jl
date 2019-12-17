@@ -441,6 +441,28 @@
         )
     end
 
+    @testset "GOLMMKernel sampling, learning and inference" begin
+        # sample some data from a GOLMM
+        p, m = 4, 2;
+        ks = [stretch(EQ(), 3.0), stretch(EQ(), 7.0)];
+        group_embs = [1.0, 4.5, 1.1, 4.6];
+        group_k = EQ();
+
+        k_golmm = GOLMMKernel(m, p, 0.01, 0.001, ks, group_k, group_embs);
+        gp = GP(k_golmm);
+
+        ts = collect(0.0:0.05:20.0);
+        ys = sample(gp(ts));
+
+        # create a new GOLMM and fit it to data
+        k_olmm_init = GOLMMKernel(m, p, Fixed(0.01), Fixed(0.001), ks, EQ(), [1., 2., 3., 4.]);
+        gp = GP(k_olmm_init);
+        gp = learn(gp, ts, ys, mle_obj, its=50);
+
+        # perform inference
+        posterior_gp = condition(gp, ts, ys);
+    end
+
     @testset "ManifoldKernel" begin
         k = EQ()
 
