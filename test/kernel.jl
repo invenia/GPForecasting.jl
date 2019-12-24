@@ -445,22 +445,20 @@
         # sample some data from a GOLMM
         p, m = 4, 2;
         ks = [stretch(EQ(), 3.0), stretch(EQ(), 7.0)];
-        group_embs = [1.0, 4.5, 1.1, 4.6];
+        group_embs = [1.0, 1.01, 1.1, 5.];
         group_k = EQ();
 
-        k_golmm = GOLMMKernel(m, p, 0.01, 0.001, ks, group_k, group_embs);
+        k_golmm = GOLMMKernel(m, p, 1e-6, 1e-6, ks, group_k, group_embs);
         gp = GP(k_golmm);
 
         ts = collect(0.0:0.05:20.0);
         ys = sample(gp(ts));
 
-        # create a new GOLMM and fit it to data
-        k_olmm_init = GOLMMKernel(m, p, Fixed(0.01), Fixed(0.001), ks, EQ(), [1., 2., 3., 4.]);
-        gp = GP(k_olmm_init);
-        gp = learn(gp, ts, ys, mle_obj, its=50);
+        @test all(abs.(ys[:, 1] - ys[:, 3]) .< 1e-2)
+        @test all(abs.(ys[:, 1] - ys[:, 3]) < abs.(ys[:, 1] - ys[:, 4]))
 
-        # perform inference
         posterior_gp = condition(gp, ts, ys);
+        @test isa(posterior_gp, GP)
     end
 
     @testset "ManifoldKernel" begin
