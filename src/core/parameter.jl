@@ -110,7 +110,6 @@ others(p::Parameter) = collect(Iterators.rest(getfields(p), 1))
 reconstruct(p::Parameter, parameter, others) = typeof(p)(parameter, others...)
 unwrap(p::Parameter) = unwrap(parameter(p))
 name(p::Parameter) = name(parameter(p))
-Base.show(io::IO, p::Parameter) = show(io, parameter(p))
 function Base.show(io::IO, p::Parameter)
     return get(io, :compact, false) ? show(io, parameter(p)) : Base.show_default(io, p)
 end
