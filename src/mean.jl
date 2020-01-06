@@ -243,7 +243,7 @@ function _titsposmean(m::TitsiasPosteriorMean, x)
 end
 function (m::TitsiasPosteriorMean)(x)
     if is_not_noisy(m.k)
-        @warn(
+        notice(LOGGER,
             """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
