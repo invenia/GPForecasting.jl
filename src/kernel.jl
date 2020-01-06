@@ -162,7 +162,7 @@ function (k::TitsiasPosteriorKernel)(x::Latent)
     return _titsposkern(k, xx)
 end
 function (k::TitsiasPosteriorKernel)(x)
-    @warn(
+    notice(LOGGER,
         """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
@@ -197,7 +197,7 @@ function elwise(k::TitsiasPosteriorKernel, x::Latent)
     return _titselwise(k, xx)
 end
 function elwise(k::TitsiasPosteriorKernel, x)
-    @warn(
+    notice(LOGGER,
         """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
@@ -229,7 +229,7 @@ function (k::TitsiasPosteriorKernel)(x::Observed, y::Observed)
     return _titsposkern(k::TitsiasPosteriorKernel, xx, yy) + noise
 end
 function (k::TitsiasPosteriorKernel)(x, y)
-    @warn(
+    notice(LOGGER,
         """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
@@ -266,7 +266,7 @@ function elwise(k::TitsiasPosteriorKernel, x::Observed, y::Observed)
     return _titselwise(k, xx, yy) .+ unwrap(k.σ²)
 end
 function elwise(k::TitsiasPosteriorKernel, x, y)
-    @warn(
+    notice(LOGGER,
         """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
@@ -894,7 +894,7 @@ mutable struct HazardKernel <: Kernel
     scale
 
     function HazardKernel(bias=Fixed(0.0), scale=Fixed(-1.0))
-        unwrap(bias) >= 1.0 && @warn(
+        unwrap(bias) >= 1.0 && warn(LOGGER,
             """
             A HazardKernel with bias larger than or equal to 1.0 can yield unexpected
             results. Value received: $(unwrap(bias)).
