@@ -44,7 +44,7 @@ function Base.:+(k1::ScaledMean, k2::ScaledMean)
         return SumMean(k1, k2)
     end
 end
-Base.show(io::IO, ::MIME"text/plain", k::ScaledMean) = print(io, "(", k.scale, " * ", k.m, ")")
+Base.show(io::IO, k::ScaledMean) = print(io, "(", k.scale, " * ", k.m, ")")
 
 """
     SumMean <: Mean
@@ -61,7 +61,7 @@ Base.:+(k1::Mean, k2::Mean) = SumMean(k1, k2)
 
 (k::SumMean)(x) = k.m1(x) .+ k.m2(x)
 
-Base.show(io::IO, ::MIME"text/plain", k::SumMean) = print(io, "(", k.m1, " + ", k.m2, ")")
+Base.show(io::IO, k::SumMean) = print(io, "(", k.m1, " + ", k.m2, ")")
 
 """
     ProductMean <: Mean
@@ -93,7 +93,7 @@ end
 
 (k::ProductMean)(x) = k.m1(x) .* k.m2(x)
 
-Base.show(io::IO, ::MIME"text/plain", k::ProductMean) = print(io, "(", k.m1, " * ", k.m2, ")")
+Base.show(io::IO, k::ProductMean) = print(io, "(", k.m1, " * ", k.m2, ")")
 
 """
     ConstantMean <: Mean
@@ -114,7 +114,7 @@ Base.:+(x, k::Mean) = (+)(k::Mean, x)
 
 Base.convert(::Type{Mean}, x::Real) = x ≈ 0.0 ? ZeroMean() : Fixed(x) * ConstantMean()
 
-Base.show(io::IO, ::MIME"text/plain", ::ConstantMean) = print(io, "𝟏")
+Base.show(io::IO, ::ConstantMean) = print(io, "𝟏")
 
 # TODO: remove this, because all constructors should be such that `T(args...) isa T`
 # replace with e.g. rename `constant_mean` and `@deprecate ConstantMean(x) constant_mean(x)`
@@ -143,7 +143,7 @@ Base.:*(k::ScaledMean, z::ZeroMean) = z * k
 Base.:*(x, z::ZeroMean) = z
 Base.:*(z::ZeroMean, x) = x * z
 
-Base.show(io::IO, ::MIME"text/plain", ::ZeroMean) = print(io, "𝟎")
+Base.show(io::IO, ::ZeroMean) = print(io, "𝟎")
 
 Base.zero(::Mean) = ZeroMean()
 Base.zero(::Type{GPForecasting.Mean}) = ZeroMean()
@@ -185,7 +185,7 @@ struct PosteriorMean <: Mean
     PosteriorMean(k, m, x, U, y) = new(k, m, Fixed(x), Fixed(U), Fixed(y))
 end
 
-Base.show(io::IO, ::MIME"text/plain", k::PosteriorMean) = print(io, "Posterior(", k.k, k.m, ")")
+Base.show(io::IO, k::PosteriorMean) = print(io, "Posterior(", k.k, k.m, ")")
 
 function (m::PosteriorMean)(x)
     xd = unwrap(m.x)
@@ -243,7 +243,7 @@ function _titsposmean(m::TitsiasPosteriorMean, x)
 end
 function (m::TitsiasPosteriorMean)(x)
     if is_not_noisy(m.k)
-        @warn(
+        notice(LOGGER,
             """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the

@@ -96,7 +96,7 @@ mutable struct PosteriorKernel <: Kernel
     U
     PosteriorKernel(k, x, U) = new(k, Fixed(x), Fixed(U))
 end
-Base.show(io::IO, ::MIME"text/plain", k::PosteriorKernel) = print(io, "Posterior(", k.k, ")")
+Base.show(io::IO, k::PosteriorKernel) = print(io, "Posterior(", k.k, ")")
 isMulti(k::PosteriorKernel) = isMulti(k.k)
 function (k::PosteriorKernel)(x)
     U = unwrap(k.U)
@@ -162,7 +162,7 @@ function (k::TitsiasPosteriorKernel)(x::Latent)
     return _titsposkern(k, xx)
 end
 function (k::TitsiasPosteriorKernel)(x)
-    @warn(
+    notice(LOGGER,
         """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
@@ -197,7 +197,7 @@ function elwise(k::TitsiasPosteriorKernel, x::Latent)
     return _titselwise(k, xx)
 end
 function elwise(k::TitsiasPosteriorKernel, x)
-    @warn(
+    notice(LOGGER,
         """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
@@ -229,7 +229,7 @@ function (k::TitsiasPosteriorKernel)(x::Observed, y::Observed)
     return _titsposkern(k::TitsiasPosteriorKernel, xx, yy) + noise
 end
 function (k::TitsiasPosteriorKernel)(x, y)
-    @warn(
+    notice(LOGGER,
         """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
@@ -266,7 +266,7 @@ function elwise(k::TitsiasPosteriorKernel, x::Observed, y::Observed)
     return _titselwise(k, xx, yy) .+ unwrap(k.σ²)
 end
 function elwise(k::TitsiasPosteriorKernel, x, y)
-    @warn(
+    notice(LOGGER,
         """
             Working on the extended input space. Output will be two dimensional,
             corresponding to the noisy and denoised predictions. To compute only the
@@ -341,7 +341,7 @@ function (k::SimilarHourKernel)(x::ArrayOrReal, y::ArrayOrReal)
     end
 end
 (k::SimilarHourKernel)(x::ArrayOrReal) = k(x, x)
-function Base.show(io::IO, ::MIME"text/plain", k::SimilarHourKernel)
+function Base.show(io::IO, k::SimilarHourKernel)
     cs = unwrap(k.coeffs)
     print(io, cs[1], "*δ(0)")
     for i in 1:(unwrap(k.hdeltas) - 1)
@@ -499,7 +499,7 @@ end
 elwise(k::ScaledKernel, x, y) = unwrap(k.scale) .* elwise(k.k, x, y)
 elwise(k::ScaledKernel, x) = elwise(k, x, x)
 
-Base.show(io::IO, ::MIME"text/plain", k::ScaledKernel) = print(io, "(", k.scale, " * ", k.k, ")")
+Base.show(io::IO, k::ScaledKernel) = print(io, "(", k.scale, " * ", k.k, ")")
 
 """
     StretchedKernel(l, k::Kernel) -> StretchedKernel
@@ -559,7 +559,7 @@ end
 elwise(k::StretchedKernel, x) = elwise(k, x, x)
 
 # This is a simplification.; in some case stretch(k, l) != StretchedKernel(l, k).
-Base.show(io::IO, ::MIME"text/plain", k::StretchedKernel) = print(io, "(", k.k, " ▷ ", k.stretch, ")")
+Base.show(io::IO, k::StretchedKernel) = print(io, "(", k.k, " ▷ ", k.stretch, ")")
 
 """
     SumKernel <: Kernel
@@ -582,7 +582,7 @@ elwise(k::SumKernel, x) = elwise(k, x, x)
 
 # This leads to prettier-printing in most cases, but it is a simplification;
 # in some cases `k1 + k2 != SumKernel(k1, k2)` e.g. when `k1 = ZeroKernel()`
-Base.show(io::IO, ::MIME"text/plain", k::SumKernel) = print(io, "(", k.k1, " + ", k.k2, ")")
+Base.show(io::IO, k::SumKernel) = print(io, "(", k.k1, " + ", k.k2, ")")
 isMulti(k::SumKernel) = isMulti(k.k1) || isMulti(k.k2)
 
 """
@@ -621,7 +621,7 @@ elwise(k::ProductKernel, x) = elwise(k, x, x)
 
 # This leads to prettier-printing in most cases, but it is a simplification;
 # in some cases `k1 * k2 != ProductKernel(k1, k2)` e.g. when `k1 = ZeroKernel()`
-Base.show(io::IO, ::MIME"text/plain", k::ProductKernel) = print(io, "(", k.k1, " * ", k.k2, ")")
+Base.show(io::IO, k::ProductKernel) = print(io, "(", k.k1, " * ", k.k2, ")")
 
 isMulti(k::ProductKernel) = isMulti(k.k1) || isMulti(k.k2)
 
@@ -762,7 +762,7 @@ function Base.:+(k::Kernel, x)
 end
 Base.:+(x, k::Kernel) = (+)(k::Kernel, x)
 Base.convert(::Type{Kernel}, x::Real) = x ≈ 0.0 ? ZeroKernel() : Fixed(x) * ConstantKernel()
-Base.show(io::IO, ::MIME"text/plain", k::ConstantKernel) = print(io, "𝟏")
+Base.show(io::IO, k::ConstantKernel) = print(io, "𝟏")
 
 """
     ZeroKernel <: Kernel
@@ -789,7 +789,7 @@ Base.:*(z::ZeroKernel, k::ScaledKernel) = z
 Base.:*(k::ScaledKernel, z::ZeroKernel) = z * k
 Base.:*(x, z::ZeroKernel) = z
 Base.:*(z::ZeroKernel, x) = x * z
-Base.show(io::IO, ::MIME"text/plain", z::ZeroKernel) = print(io, "𝟎")
+Base.show(io::IO, z::ZeroKernel) = print(io, "𝟎")
 
 """
     DiagonalKernel <: Kernel
@@ -835,7 +835,7 @@ elwise(k::DiagonalKernel, x::Number, y) = elwise(k, [x], y)
 elwise(k::DiagonalKernel, x, y::Number) = elwise(k, x, [y])
 elwise(k::DiagonalKernel, x::Number, y::Number) = elwise(k, [x], [y])
 elwise(k::DiagonalKernel, x) = ones(size(x, 1))
-Base.show(io::IO, ::MIME"text/plain", k::DiagonalKernel) = print(io, "δₓ")
+Base.show(io::IO, k::DiagonalKernel) = print(io, "δₓ")
 
 """
     DotKernel <: Kernel
@@ -863,7 +863,7 @@ elwise(k::DotKernel, x::Number, y) = elwise(k, [x], y)
 elwise(k::DotKernel, x, y::Number) = elwise(k, x, [y])
 elwise(k::DotKernel, x::Number, y::Number) = elwise(k, [x], [y])
 @unionise elwise(k::DotKernel, x::AbstractArray{<:Real}) = elwise(k, x, x)
-function Base.show(io::IO, ::MIME"text/plain", k::DotKernel)
+function Base.show(io::IO, k::DotKernel)
     if k.offset ≈ Fixed(0.0)
         print(io, "<., .>")
     else
@@ -894,7 +894,7 @@ mutable struct HazardKernel <: Kernel
     scale
 
     function HazardKernel(bias=Fixed(0.0), scale=Fixed(-1.0))
-        unwrap(bias) >= 1.0 && @warn(
+        unwrap(bias) >= 1.0 && warn(LOGGER,
             """
             A HazardKernel with bias larger than or equal to 1.0 can yield unexpected
             results. Value received: $(unwrap(bias)).
@@ -1012,4 +1012,4 @@ end
 SparseKernel(k::Kernel, Xm, σ²) = SparseKernel(k, Xm, Fixed(size(unwrap(Xm), 1)), σ²)
 (k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
 (k::SparseKernel)() = k.k(unwrap(k.Xm))
-Base.show(io::IO, ::MIME"text/plain", k::SparseKernel) = print(io, "Sparse(", k.k, ")")
+Base.show(io::IO, k::SparseKernel) = print(io, "Sparse(", k.k, ")")

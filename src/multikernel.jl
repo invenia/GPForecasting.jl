@@ -343,8 +343,8 @@ mutable struct LMMKernel <: MultiOutputKernel
         s_H = size(unwrap(H))
         n_k = length(ks)
 
-        s_H == (0, 0) && warn(LOGGER, "Initialising LMMKernel with placeholder `H`.")
-        n_k == 0 && warn(LOGGER, "Initialising LMMKernel with placeholder `ks`.")
+        s_H == (0, 0) && info(LOGGER, "Initialising LMMKernel with placeholder `H`.")
+        n_k == 0 && info(LOGGER, "Initialising LMMKernel with placeholder `ks`.")
 
         (s_H != (0, 0) && s_H != (n_p, n_m)) && throw(
             ArgumentError("Expected `H` of size ($n_p, $n_m), got $s_H.")
@@ -603,8 +603,8 @@ mutable struct OLMMKernel <: MultiOutputKernel
         length(size(unwrap(S_sqrt))) != 1 && throw(
             ArgumentError("`S_sqrt` must be a `Vector` with the norms of the columns of `H`.")
         )
-        l_S_sqrt == 0 && warn(LOGGER, "Initialising OLMMKernel with placeholder `S_sqrt`.")
-        n_k == 0 && warn("Initialising OLMMKernel with placeholder `ks`.")
+        l_S_sqrt == 0 && info(LOGGER, "Initialising OLMMKernel with placeholder `S_sqrt`.")
+        n_k == 0 && info("Initialising OLMMKernel with placeholder `ks`.")
 
         (n_k != 0 && n_k != 1 && n_k != n_m) && throw(
             ArgumentError("""
@@ -698,7 +698,7 @@ function OLMMKernel( # Initialise with U and S
     ks::Union{<:Kernel, Vector{<:Kernel}}
 )
     (size(U, 2) != size(S_sqrt, 1) || size(S_sqrt, 1) != m) &&
-        warn(LOGGER, "U and S_sqrt must be truncated to m.")
+        notice(LOGGER, "U and S_sqrt must be truncated to m.")
     H, P = build_H_and_P(U, S_sqrt)
     return OLMMKernel(
         Fixed(m),
