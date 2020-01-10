@@ -600,7 +600,7 @@ mutable struct OLMMKernel <: MultiOutputKernel
         s_H == (0, 0) && info(LOGGER, "Initialising OLMMKernel with placeholder `H`.")
         s_P == (0, 0) && info(LOGGER, "Initialising OLMMKernel with placeholder `P`.")
         s_U == (0, 0) && info(LOGGER, "Initialising OLMMKernel with placeholder `U`.")
-        length(size(unwrap(S_sqrt))) != 1 && throw(
+        !isa(unwrap(S_sqrt), Vector) && throw(
             ArgumentError("`S_sqrt` must be a `Vector` with the norms of the columns of `H`.")
         )
         l_S_sqrt == 0 && info(LOGGER, "Initialising OLMMKernel with placeholder `S_sqrt`.")
@@ -901,7 +901,7 @@ function make_olmm_kernel_using_groups(m, p, sigma_sq, d, ks, g_kern, group_embs
     # use the U and S to compute H
     H, P = GPForecasting.build_H_and_P(U[:, 1:m], sqrt.(S)[1:m]);
 
-    return OLMMKernel(Fixed(m), Fixed(p), sigma_sq, d, H, Fixed(P), Fixed(U[:, 1:m]), Fixed(sqrt.(S)[1:m]), ks);
+    return _unsafe_OLMMKernel(Fixed(m), Fixed(p), sigma_sq, d, H, Fixed(P), Fixed(U[:, 1:m]), Fixed(sqrt.(S)[1:m]), ks);
 end
 
 isMulti(k::GOLMMKernel) = isMulti(k.olmm_kernel)
