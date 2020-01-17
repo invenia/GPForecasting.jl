@@ -911,7 +911,7 @@ function (k::GOLMMKernel)(x, y)
 end
 
 function (k::GOLMMKernel)(x)
-    return k(x, x);
+    return k(x, x)
 end
 
 # Matrix-Kernel multiplications
