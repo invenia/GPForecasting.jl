@@ -907,7 +907,7 @@ end
 isMulti(k::GOLMMKernel) = isMulti(k.olmm_kernel)
 
 function (k::GOLMMKernel)(x, y)
-    return k.olmm_kernel(x, y);
+    return k.olmm_kernel(x, y)
 end
 
 function (k::GOLMMKernel)(x)
