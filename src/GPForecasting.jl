@@ -67,14 +67,14 @@ export ▷,
     stretch
 
 # multikernel.jl
-export LMMKernel,
+export GOLMMKernel,
+    LMMKernel,
     LMMPosKernel,
     MultiKernel,
     MultiOutputKernel,
     NaiveLMMKernel,
     NoiseKernel,
-    OLMMKernel,
-    GOLMMKernel
+    OLMMKernel
     # verynaiveLMMKernel
 
 # core/pairwise
