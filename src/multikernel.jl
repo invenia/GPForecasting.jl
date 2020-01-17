@@ -888,7 +888,7 @@ end
 """
     make_olmm_kernel_using_groups(m, p, sigma_sq, d, ks, group_kernel, group_embeddings)
 
-Returns an OLMMKernel, with H computed using group embeddings and group kernel
+Return an OLMMKernel, with H computed using group embeddings and group kernel.
 """
 function make_olmm_kernel_using_groups(m, p, sigma_sq, d, ks, g_kern, group_embs_init)
 
