@@ -903,7 +903,7 @@ Return an OLMMKernel, with H computed using group embeddings and group kernel.
 function make_olmm_kernel_using_groups(m, p, σ², d, ks, g_kern, group_embs_init)
 
     # construct a p x p Gram matrix using group kernel on group embeddings
-    C = g_kern(group_embs_init) + Diagonal(fill(_EPSILON_, p))
+    C = g_kern(group_embs_init) + _EPSILON_ * Eye(p);
 
     # perform its SVD to compute U and S (analogous to PCA)
     U, S, _ = svd(C)
