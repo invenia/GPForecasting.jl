@@ -471,7 +471,7 @@
         )
 
         gp = GP(k_golmm_init)
-        gp = learn(gp, ts, ys, mle_obj, its=50)
+        gp = learn(gp, ts, ys, mle_obj, its=50, trace=false)
 
         # test that group embeddings have been updated
         @test all(abs.(group_embs_init - gp.k.group_embeddings) .> 0.01)
