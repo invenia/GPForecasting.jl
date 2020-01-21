@@ -848,7 +848,7 @@ Alternative kernel for the Orthogonal Linear Mixing Model, based on groupings
 """
 mutable struct GOLMMKernel <: MultiOutputKernel
     group_kernel::Kernel; # kernel that correlates outputs based on `group_embeddings`
-    group_embeddings; # a vector of numbers that identify group of each output
+    group_embeddings::Vector{<:Real} # a vector of numbers that identify group of each output
     olmm_kernel::OLMMKernel; # OLMM kernel constructed using the above
 
     function GOLMMKernel(
