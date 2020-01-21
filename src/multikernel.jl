@@ -845,7 +845,7 @@ computed using output embeddings.
     GOLMMKernel(group_kernel::Kernel, group_embs, olmm_kernel::OLMMKernel)
 """
 mutable struct GOLMMKernel <: MultiOutputKernel
-    group_kernel::Kernel; # kernel that correlates outputs based on `group_embeddings`
+    group_kernel::Kernel
     group_embeddings::Union{Vector{<:Real}, Branch{<:Vector{<:Real}}}
     olmm_kernel::OLMMKernel
 
