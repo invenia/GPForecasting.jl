@@ -904,7 +904,7 @@ end
 """
     olmm_kernel_using_groups(m, p, σ², d, ks, group_kernel, group_embeddings)
 
-Return an OLMMKernel, with H computed using group embeddings and group kernel.
+Return an [`OLMMKernel`](@ref), with H computed using group embeddings and group kernel.
 """
 function olmm_kernel_using_groups(m, p, σ², d, ks, group_kernel, group_embeddings)
 
