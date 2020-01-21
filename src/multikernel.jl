@@ -930,9 +930,7 @@ function (k::GOLMMKernel)(x, y)
     return k.olmm_kernel(x, y)
 end
 
-function (k::GOLMMKernel)(x)
-    return k(x, x)
-end
+(k::GOLMMKernel)(x) = k(x, x)
 
 # Matrix-Kernel multiplications
 Base.:*(m::Matrix, k::Kernel) = MultiKernel(m .* k)
