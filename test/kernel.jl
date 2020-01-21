@@ -445,7 +445,7 @@
         ### sample some data from a GOLMM
         p, m = 4, 2
         ks = [stretch(EQ(), 3.0), stretch(EQ(), 7.0)]
-        group_embs = [1.0, 1.01, 1.1, 5.]
+        group_embs = [1.0, 1.01, 1.1, 5.0]
         group_k = stretch(EQ(), 2.0)
 
         k_golmm = GOLMMKernel(m, p, 1e-6, 1e-6, ks, group_k, group_embs)
