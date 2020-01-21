@@ -67,7 +67,8 @@ export ▷,
     stretch
 
 # multikernel.jl
-export LMMKernel,
+export GOLMMKernel,
+    LMMKernel,
     LMMPosKernel,
     MultiKernel,
     MultiOutputKernel,

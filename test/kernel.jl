@@ -441,6 +441,56 @@
         )
     end
 
+    @testset "GOLMMKernel sampling, learning and inference" begin
+
+        ### sample some data from a GOLMM
+        p, m = 4, 2
+        ks = [stretch(EQ(), 3.0), stretch(EQ(), 7.0)]
+        group_embs = [1.0, 1.01, 1.1, 5.0]
+        group_k = stretch(EQ(), 2.0)
+
+        k_golmm = GOLMMKernel(m, p, 1e-6, 1e-6, ks, group_k, group_embs)
+        gp = GP(k_golmm)
+
+        tmin, tmax, step = 0.0, 20.0, 0.05
+        ts = collect(tmin:step:tmax)
+        ys = sample(gp(ts))
+
+        @test size(ys) == (Int((tmax - tmin) / step + 1), p)
+        #@test all(abs.(ys[:, 1] - ys[:, 3]) .< 1e-2)
+        #@test all(abs.(ys[:, 1] - ys[:, 3]) .< abs.(ys[:, 1] - ys[:, 4]))
+
+        ### create a new GOLMM and fit it to the data
+        @testset "Learning" begin
+            group_embs_init = [1., 2., 3., 4.]
+            eq_ls_init = 1.0
+            k_golmm_init = GOLMMKernel(
+                m,
+                p,
+                Positive(0.01),
+                Positive(0.001),
+                ks,
+                stretch(EQ(), eq_ls_init),
+                group_embs_init,
+            )
+
+            gp = GP(k_golmm_init)
+            gp = learn(gp, ts, ys, mle_obj, its=50, trace=false)
+
+            # test that group embeddings have been updated
+            @test all(abs.(group_embs_init - gp.k.group_embeddings) .> 0.01)
+
+            # test that group kernel has been updated
+            @test abs(eq_ls_init - GPForecasting.unwrap(gp.k.group_kernel.stretch)) > 0.01
+        end
+
+        ### try to do inference, make sure it does not break
+        @testset "Inference" begin
+            posterior_gp = condition(gp, ts, ys);
+            @test isa(posterior_gp, GP)
+        end
+    end
+
     @testset "ManifoldKernel" begin
         k = EQ()
 
