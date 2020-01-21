@@ -837,9 +837,9 @@ Alternative kernel for the Orthogonal Linear Mixing Model, based on groupings
 
 * Fields:
 
-- `group_kernel`: Kernel that correlates outputs
-- `group_embeddings`: Group embeddings used by kernel above.
-- `olmm_kernel`: OLMM kernel computed using the above
+- `group_kernel::Kernel`: Kernel that correlates outputs
+- `group_embeddings::Vector{<:Real}`: Group embeddings used by kernel above.
+- `olmm_kernel::OLMMKernel`: OLMM kernel computed using the above
 
 * Constructors:
 
