@@ -1,4 +1,6 @@
 ## GOLMM Kernel
+The kernel was initially proposed to impose some regularisation on the mixing matrix to support a richer (and possibly higher rank) latent function structure. A richer structure might be desirable where there is e.g. heterogeneity across tasks and some kind of sub-populations present, but without some structure on H is prone to overfitting.
+
 The final form of the “multi-kernel” captures grouping structure between nodes in a separable kernel by incorporating grouping structure in the mixing matrix.
 
 For each of the output time-series $`i \in \{1 \ldots p \}`$, let us introduce a learnable _group embedding_ $`h_i \in \reals^\ell`$ (where $`\ell \geq 1`$). These embeddings can be thought of as coordinates of that time-series in some space where similar series are located close by.
