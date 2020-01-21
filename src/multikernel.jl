@@ -838,7 +838,7 @@ computed using output embeddings.
 # Fields
 - `group_kernel::Kernel`: Kernel that correlates outputs based on `group_embeddings`.
 - `group_embeddings::Vector{<:Real}`: Group embeddings used by the `group_kernel`.
-- `olmm_kernel::OLMMKernel`: OLMM kernel computed using the above
+- `olmm_kernel::OLMMKernel`: OLMM kernel computed using the above.
 
 # Constructors
     GOLMMKernel(m, p, σ², d, k::Vector{<:Kernel}, group_kernel::Kernel, group_embeddings)
