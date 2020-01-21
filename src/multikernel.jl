@@ -833,7 +833,7 @@ Base.size(k::OLMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) 
     GOLMMKernel <: MultiOutputKernel
 
 Alternative kernel for the Orthogonal Linear Mixing Model, based on groupings
-    computed using output embeddings.
+computed using output embeddings.
 
 * Fields:
 
