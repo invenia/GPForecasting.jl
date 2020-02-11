@@ -161,6 +161,7 @@
     end
 
     @testset "Specified Quantity" begin
+        # Using DataFrames/
         k = EQ()
         df = DataFrame(
             input1=[1.0, 2.0, 3.0],
@@ -180,6 +181,16 @@
         @test sqk12(df) ≈ sqk3(df) atol = _ATOL_ rtol = _RTOL_
         @test sqk12(df[1, :]) ≈ sqk3(DataFrame(df[1, :])) atol = _ATOL_ rtol = _RTOL_
         @test sqk3(df[1, :], df) ≈ sqk3(df, df[1, :])' atol = _ATOL_ rtol = _RTOL_
+
+        # Using matrices.
+        k1 = EQ()
+        k2 = EQ() ▷ [1.0, 1.0]
+        x = rand(4, 3)
+        sqk1 = k1 ← 1
+        sqk2 = k2 ← 1:2:3
+        @test k1(x[:, 1]) ≈ sqk1(x) atol = _ATOL_ rtol = _RTOL_
+        @test k2(x[:, [1, 3]]) ≈ sqk2(x) atol = _ATOL_ rtol = _RTOL_
+        @test elwise(k1, x[:, 1]) ≈ elwise(sqk1, x) atol = _ATOL_ rtol = _RTOL_
     end
 
     @testset "Sum and Products" begin
