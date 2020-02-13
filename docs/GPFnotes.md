@@ -177,7 +177,7 @@ of the kernels (as an `AbstractArray`).
 `Observed`. It only works with kernels of the type `NoiseKernel`. Without getting into GP-related details, the reason for this is that we can
 either assume that our data was measured exactly or that it is contaminated with observation
 noise. This assumption changes the way we treat the data, thus, in case someone wants to
-use both assumptions for different parts of the data, these types are used. For example it might be advisable to assume that the training _outputs_ were measured with noise, but that we want to predict the noiseless outputs. In this case, the training _inputs_ should be marked as `Observed` and the prediction _inputs_ should be marked as `Latent`. The rest will automatically be taken care of by the model. For a more detailed discussion on this, see [here](https://gitlab.invenia.ca/research/GPForecasting.jl/blob/master/docs/src/EIS.md).
+use both assumptions for different parts of the data, these types are used. For example it might be advisable to assume that the training _outputs_ were measured with noise, but that we want to predict the noiseless outputs. In this case, the training _inputs_ should be marked as `Observed` and the prediction _inputs_ should be marked as `Latent`. The rest will automatically be taken care of by the model. For a more detailed discussion on this, see [here](https://gitlab.invenia.ca/invenia/GPForecasting.jl/blob/master/docs/src/EIS.md).
 It is also worth noting that `Vector{Input}` is a valid input type, in case one wants to mix `Latent` and `Observed` points.
 
 Since these last two types are only broken down into `AbstractArray` at the last point of the calculation (when the inputs are passed to either `NoiseKernel` or to `SpecifiedQuantityKernel` for the last time), the entire pipeline preceding this step has to be clear from type annotations in the input variables (which includes `learn`, `condition`, `credible_interval`, `(gp::GP)(x)`, `logpdf` etc.).
@@ -212,11 +212,11 @@ Any other implementation that respects these three points should work smoothly w
 
 ## Kernels
 
-A user-friendly explanation of our kernel system can be found [here](https://gitlab.invenia.ca/research/GPForecasting.jl/blob/master/docs/src/Kernels.md).
+A user-friendly explanation of our kernel system can be found [here](https://gitlab.invenia.ca/invenia/GPForecasting.jl/blob/master/docs/src/Kernels.md).
 
 A few things to keep in mind here are:
 
-- Inputs can have several different types up until they hit the last one of the special wrapping kernels. These special kernels are `SpecifiedQuantityKernel`, which deals with inputs of type `DataFrame`, and `NoiseKernel`, which deals with either untyped inputs ([see here](https://gitlab.invenia.ca/research/GPForecasting.jl/blob/master/docs/src/EIS.md)) or with inputs of type `<:Input` (or vectors thereof).
+- Inputs can have several different types up until they hit the last one of the special wrapping kernels. These special kernels are `SpecifiedQuantityKernel`, which deals with inputs of type `DataFrame`, and `NoiseKernel`, which deals with either untyped inputs ([see here](https://gitlab.invenia.ca/invenia/GPForecasting.jl/blob/master/docs/src/EIS.md)) or with inputs of type `<:Input` (or vectors thereof).
 
 - Kernels that can wrap other kernels (and are not included in the point above), are agnostic towards the input type they receive.
 

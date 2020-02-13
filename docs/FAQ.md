@@ -59,7 +59,7 @@ In the worst case scenario in which our GPs completely overfit the training data
 
 ## Why does it need more memory than the EmpiricalForecaster?
 
-GPs are naturally memory-hungry, due to the need to invert large matrices. However, our main memory consumption comes from the computation graph Nabla.jl builds during the automatic differentiation of the code. This should be heavily decreased when we adopt Zygote.jl. It is important to keep in mind the distinction between the intrinsic memory requirements of GP-based models and those stemming from a given Automatic Differentiation (AD) framework. Profiling in Julia is not the easiest task, so a detailed analysis of this is not currently available, however, there are some superficial discussions [here](https://gitlab.invenia.ca/research/GPForecasting.jl/issues/31#note_70280) and [here](https://drive.google.com/open?id=1AdUq88jj7lDB_iJgK22dwVJVNVClxIRw).
+GPs are naturally memory-hungry, due to the need to invert large matrices. However, our main memory consumption comes from the computation graph Nabla.jl builds during the automatic differentiation of the code. This should be heavily decreased when we adopt Zygote.jl. It is important to keep in mind the distinction between the intrinsic memory requirements of GP-based models and those stemming from a given Automatic Differentiation (AD) framework. Profiling in Julia is not the easiest task, so a detailed analysis of this is not currently available, however, there are some superficial discussions [here](https://gitlab.invenia.ca/invenia/GPForecasting.jl/issues/31#note_70280) and [here](https://drive.google.com/open?id=1AdUq88jj7lDB_iJgK22dwVJVNVClxIRw).
 
 ## How long does the model take to run?
 
