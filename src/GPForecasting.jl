@@ -52,6 +52,7 @@ export ▷,
     ManifoldKernel,
     PeriodicKernel,
     PosteriorKernel,
+    ProductKernel,
     RQ,
     RootLog,
     ScaledKernel,
@@ -120,14 +121,6 @@ __init__() = Memento.register(LOGGER)  # Register the Logger
 
 @deprecate(∿, ↻, true)
 
-"""
-    Process
-
-Abstract supertype for all stochastic processes.
-"""
-abstract type Process end
-
-# must be included after defining `Process` and before subtyping `AbstractNode`
 include("core/node.jl")
 include("core/optimisedalgebra.jl")
 using .OptimisedAlgebra
