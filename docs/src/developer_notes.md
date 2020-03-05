@@ -1,4 +1,4 @@
-# Notes on GPForecasting
+# Developer Notes
 
 ## Package overview
 
@@ -114,45 +114,45 @@ and to have block-diagonal covariances. e.g.:
 ```julia
 julia> mean(gaus)
 3×4 Array{Float64,2}:
- 0.0675907  0.578672  0.171955  0.785059
- 0.575175   0.120597  0.497807  0.505286
- 0.128333   0.467817  0.765087  0.313468
- ```
+0.0675907  0.578672  0.171955  0.785059
+0.575175   0.120597  0.497807  0.505286
+0.128333   0.467817  0.765087  0.313468
+```
 
- Above it is easy to identify that we have 4 outputs and three timestamps (see [data conventions](#data-conventions)). If we had used
- `MvNormal` the output would be a single vector with the values stacked in one of the
- dimensions (depending on the convention adopted), which would be confusing.
+Above it is easy to identify that we have 4 outputs and three timestamps (see [data conventions](#data-conventions)). If we had used
+`MvNormal` the output would be a single vector with the values stacked in one of the
+dimensions (depending on the convention adopted), which would be confusing.
 
- More importantly, our system currently works with hourly covariances. Thus instead of
- dealing with multiple `MvNormal` objects, one can simple use a single `Gaussian` that has a
- `BlockDiagonal` object as covariance matrix. e.g.:
+More importantly, our system currently works with hourly covariances. Thus instead of
+dealing with multiple `MvNormal` objects, one can simple use a single `Gaussian` that has a
+`BlockDiagonal` object as covariance matrix. e.g.:
 
- ```julia
- julia> cov(gaus)
- 12×12 BlockDiagonal{Float64}:
-  0.900439  0.287433  0.13773   0.609312  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
-  0.287433  0.743767  0.866447  0.514384  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
-  0.13773   0.866447  0.348216  0.636676  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
-  0.609312  0.514384  0.636676  0.780919  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
-  0.0       0.0       0.0       0.0       0.790037  0.635031  0.485622  0.415936  0.0        0.0       0.0       0.0
-  0.0       0.0       0.0       0.0       0.635031  0.278585  0.289237  0.45353   0.0        0.0       0.0       0.0
-  0.0       0.0       0.0       0.0       0.485622  0.289237  0.994616  0.478179  0.0        0.0       0.0       0.0
-  0.0       0.0       0.0       0.0       0.415936  0.45353   0.478179  0.666537  0.0        0.0       0.0       0.0
-  0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0748129  0.479144  0.264661  0.728568
-  0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.479144   0.391352  0.820499  0.509728
-  0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.264661   0.820499  0.278033  0.934949
-  0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.728568   0.509728  0.934949  0.272985
- ```
+```julia
+julia> cov(gaus)
+12×12 BlockDiagonal{Float64}:
+ 0.900439  0.287433  0.13773   0.609312  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
+ 0.287433  0.743767  0.866447  0.514384  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
+ 0.13773   0.866447  0.348216  0.636676  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
+ 0.609312  0.514384  0.636676  0.780919  0.0       0.0       0.0       0.0       0.0        0.0       0.0       0.0
+ 0.0       0.0       0.0       0.0       0.790037  0.635031  0.485622  0.415936  0.0        0.0       0.0       0.0
+ 0.0       0.0       0.0       0.0       0.635031  0.278585  0.289237  0.45353   0.0        0.0       0.0       0.0
+ 0.0       0.0       0.0       0.0       0.485622  0.289237  0.994616  0.478179  0.0        0.0       0.0       0.0
+ 0.0       0.0       0.0       0.0       0.415936  0.45353   0.478179  0.666537  0.0        0.0       0.0       0.0
+ 0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0748129  0.479144  0.264661  0.728568
+ 0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.479144   0.391352  0.820499  0.509728
+ 0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.264661   0.820499  0.278033  0.934949
+ 0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.0       0.728568   0.509728  0.934949  0.272985
+```
 
- The `BlockDiagonal` type, defined in the module `OptimisedAlgebra`, is powerful in that it
- only stores the blocks in the diagonal of the matrix, not only decreasing allocations, but
- also optimising several important operations, since block diagonal matrices are usually
- easy to work with. We have defined most of the important operations with this kind of
- matrix, including `chol` and some of the specialised Kronecker products (see:
- https://gitlab.invenia.ca/research/oldGPForecasting.jl/merge_requests/81).
+The `BlockDiagonal` type, defined in the module `OptimisedAlgebra`, is powerful in that it
+only stores the blocks in the diagonal of the matrix, not only decreasing allocations, but
+also optimising several important operations, since block diagonal matrices are usually
+easy to work with. We have defined most of the important operations with this kind of
+matrix, including `chol` and some of the specialised Kronecker products (see:
+https://gitlab.invenia.ca/research/oldGPForecasting.jl/merge_requests/81).
 
- In case one wants to use `MvNormal` type, there are methods such as `MvNormal(d::Gaussian)`
- and `MvNormal(gp::GP, x)`.
+In case one wants to use `MvNormal` type, there are methods such as `MvNormal(d::Gaussian)`
+and `MvNormal(gp::GP, x)`.
 
 ## Input types
 
@@ -249,6 +249,7 @@ An important is to remember to use `@unionise` whenever making type declarations
 Some methods are not properly described, since they are not user-facing. Here's some of them:
 
 - `fuse`: this method receives a `Matrix` of matrices (i.e. a block matrix) and returns a regular `Matrix` in which the internal structure has been removed, i.e., it _fuses_ all internal matrices into a single, wrapping one. e.g.:
+
 ```julia
 julia> A = Matrix(2, 2)
 2×2 Array{Any,2}:
@@ -286,48 +287,50 @@ julia> GPForecasting.fuse(A)
  0.321447  0.806032   0.948718  0.199767  0.72349
  0.577715  0.493167   0.737222  0.190596  0.193544
  0.684073  0.399099   0.537312  0.764414  0.671202
- ```
- This function is useful because several kernels can be computed in blocks in an efficient way, due to time/space structure.
+```
 
- - `fuse_equal`: does the same as the above, however, it assumes that the internal blocks have the same size and does the reconstruction more efficiently.
+This function is useful because several kernels can be computed in blocks in an efficient way, due to time/space structure.
 
- - `stack`: the behaviour of this function is directly related to our [data conventions](#data-conventions) and to how we compute kernels. As per convention, for multi-output problems, with multiple timestamps, we write the covariance matrices by looping first over outputs, then over timestamps. To illustrate, consider the case of 2 outputs and 2 timestamps. Our covariance matrix will be of the form
- ```julia
+- `fuse_equal`: does the same as the above, however, it assumes that the internal blocks have the same size and does the reconstruction more efficiently.
+
+- `stack`: the behaviour of this function is directly related to our [data conventions](#data-conventions) and to how we compute kernels. As per convention, for multi-output problems, with multiple timestamps, we write the covariance matrices by looping first over outputs, then over timestamps. To illustrate, consider the case of 2 outputs and 2 timestamps. Our covariance matrix will be of the form
+
+```julia
  p1t1,p1t1  p1t1,p2t1  p1t1,p1t2  p1t1,p2t2
  p2t1,p1t1  p2t1,p2t1  p2t1,p1t2  p2t1,p2t2
  p1t2,p1t1  p1t2,p2t1  p1t2,p1t2  p1t2,p2t2
  p2t2,p1t1  p2t2,p2t1  p2t2,p1t2  p2t2,p2t2
- ```
+```
  where `pi` means the `ith` output and `tj` means the `jth` timestamp. However, it is frequently convenient to compute covariances per output for all timestamps at once. What `stack` does is take several blocks of the form
- ```julia
+```julia
  p1t1 ... p1tn
  .    .     .
  .     .    .
  .      .   .
  pmt1 ... pmtn
- ```
- and _stack_ them in the conventional form.
+```
+and _stack_ them in the conventional form.
 
- In a similar way that `stack` takes in matrices corresponding to covariances of individual outputs and intercalates them such that, in the result, we loop over outputs before looping over time, it can also take a vector corresponding to means of different outputs and intercalate them such that we first loop over outputs, i.e., assume the means of two outputs, for three timestamps. A vector with the individual means would be of the form:
- ```julia
+In a similar way that `stack` takes in matrices corresponding to covariances of individual outputs and intercalates them such that, in the result, we loop over outputs before looping over time, it can also take a vector corresponding to means of different outputs and intercalate them such that we first loop over outputs, i.e., assume the means of two outputs, for three timestamps. A vector with the individual means would be of the form:
+```julia
  [[p1t1, p1t2, p1t3], [p2t1, p2t2, p2t3]]
- ```
- By calling stack over that, we get
- ```julia
+```
+By calling stack over that, we get
+```julia
  [p1t1, p2t1, p1t2, p2t2, p1t3, p2t3]
- ```
+```
 
- In summary, `stack` groups results from different outputs into objects that first loop over time and then over output, as is our convention.
+In summary, `stack` groups results from different outputs into objects that first loop over time and then over output, as is our convention.
 
- - `unstack`: although `stack` puts the elements in the conventional order, it does not use our conventional shape for means. That is due to how computations are done: the covariance matrix is a `np` x `np` matrix (see [data conventions](#data-conventions)), thus, it needs an `np`-long vector such sizes compute when doing linear algebra operations. However, `unstack` takes a stacked mean and reshapes it such that it corresponds to `p` outputs. If we call `unstack` on the last example above we get
+- `unstack`: although `stack` puts the elements in the conventional order, it does not use our conventional shape for means. That is due to how computations are done: the covariance matrix is a `np` x `np` matrix (see [data conventions](#data-conventions)), thus, it needs an `np`-long vector such sizes compute when doing linear algebra operations. However, `unstack` takes a stacked mean and reshapes it such that it corresponds to `p` outputs. If we call `unstack` on the last example above we get
  ```julia
  [p1t1 p2t1; p1t2 p2t2; p1t3 p2t3]
  ```
 
- - `hourly_cov`: instead of computing the full covariance matrix, computes only the hourly blocks, i.e., the covariance between each input for when the hours are the same. Returns a `BlockDiagonal` matrix.
+- `hourly_cov`: instead of computing the full covariance matrix, computes only the hourly blocks, i.e., the covariance between each input for when the hours are the same. Returns a `BlockDiagonal` matrix.
 
- - `_eskmu_fill_diag!`: fills the diagonal of the result of `eye_sum_kron_M_ut`.
+- `_eskmu_fill_diag!`: fills the diagonal of the result of `eye_sum_kron_M_ut`.
 
- - `_eskmu_fill_triu!`: fills the upper triangle of the result of `eye_sum_kron_M_ut`.
+- `_eskmu_fill_triu!`: fills the upper triangle of the result of `eye_sum_kron_M_ut`.
 
- - `_eskmu_fill_triu_Lt!`: fills the lower triangle of the result of `eye_sum_kron_M_ut`.
+- `_eskmu_fill_triu_Lt!`: fills the lower triangle of the result of `eye_sum_kron_M_ut`.

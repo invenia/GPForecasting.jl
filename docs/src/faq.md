@@ -19,7 +19,7 @@ We make these predictions so that we can use them as part of a decision making p
 
 For example, at a given timestamp, for our 10 nodes we may return a [Gaussian distribution](https://www.inf.ed.ac.uk/teaching/courses/mlpr/2019/notes/w2e_multivariate_gaussian.html) `N(mean, cov)` with `mean` a 10-dimensional vector giving the the price we expect to see at each node, and `cov` being the [covariance](https://en.wikipedia.org/wiki/Covariance) which represents the uncertainty we have about the forecasts, including information about how we expect the price at one node to be related to the prices at the other nodes.
 
-Both the EmpiricalForecaster and GPForecasters return Gaussian distributions when the `predict` function is called, but other methods may return different types of distributions. For more details on the modelling aspect, see [these notes](Modelnotes.md).
+Both the EmpiricalForecaster and GPForecasters return Gaussian distributions when the `predict` function is called, but other methods may return different types of distributions. For more details on the modelling aspect, see the [Model Notes](@ref).
 
 ## How are our GP models different from the EmpiricalForecaster?
 
