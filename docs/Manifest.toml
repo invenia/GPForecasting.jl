@@ -1,41 +1,49 @@
+# This file is machine-generated - editing it directly is not advised
+
 [[Arpack]]
-deps = ["BinaryProvider", "Libdl", "LinearAlgebra"]
-git-tree-sha1 = "07a2c077bdd4b6d23a40342a8a108e2ee5e58ab6"
+deps = ["Arpack_jll", "Libdl", "LinearAlgebra"]
+git-tree-sha1 = "2ff92b71ba1747c5fdd541f8fc87736d82f40ec9"
 uuid = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
-version = "0.3.1"
+version = "0.4.0"
+
+[[Arpack_jll]]
+deps = ["Libdl", "OpenBLAS_jll", "Pkg"]
+git-tree-sha1 = "68a90a692ddc0eb72d69a6993ca26e2a923bf195"
+uuid = "68821587-b530-5797-8361-c406ea357684"
+version = "3.5.0+2"
 
 [[ArrayInterface]]
 deps = ["LinearAlgebra", "Requires", "SparseArrays"]
-git-tree-sha1 = "981354dab938901c2b607a213e62d9defa50b698"
+git-tree-sha1 = "81e5dd1f5374aba2badfe967fc6a132c02ab471a"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "1.2.1"
+version = "2.5.0"
+
+[[AxisArrays]]
+deps = ["Dates", "IntervalSets", "IterTools", "RangeArrays"]
+git-tree-sha1 = "04f979dd266c708f478334e0a85785eab0558740"
+uuid = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
+version = "0.4.2"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
-[[BinDeps]]
-deps = ["Compat", "Libdl", "SHA", "URIParser"]
-git-tree-sha1 = "12093ca6cdd0ee547c39b1870e0c9c3f154d9ca9"
-uuid = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
-version = "0.8.10"
-
-[[BinaryProvider]]
-deps = ["Libdl", "Logging", "SHA"]
-git-tree-sha1 = "c7361ce8a2129f20b0e05a89f7070820cfed6648"
-uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
-version = "0.5.6"
+[[BlockDiagonals]]
+deps = ["FillArrays", "LinearAlgebra"]
+git-tree-sha1 = "b0b5da41d75d16492894f159c1bb565dd6527be9"
+uuid = "0a1fb500-61f7-11e9-3c65-f5ef3456f9f0"
+version = "0.1.5"
 
 [[Calculus]]
-deps = ["Compat"]
-git-tree-sha1 = "bd8bbd105ba583a42385bd6dc4a20dad8ab3dc11"
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
-version = "0.5.0"
+version = "0.5.1"
 
 [[CategoricalArrays]]
-deps = ["Compat", "DataAPI", "Future", "JSON", "Missings", "Printf", "Reexport", "Unicode"]
-git-tree-sha1 = "5f4400b24adb1fbed17a9dcc1e8ab8aaf5b03d1f"
+deps = ["Compat", "DataAPI", "Future", "JSON", "Missings", "Printf", "Reexport", "Statistics", "Unicode"]
+git-tree-sha1 = "23d7324164c89638c18f6d7f90d972fa9c4fa9fb"
 uuid = "324d7699-5711-5eae-9e2f-1d82baa6b597"
-version = "0.6.0"
+version = "0.7.7"
 
 [[CommonSubexpressions]]
 deps = ["Test"]
@@ -45,26 +53,32 @@ version = "0.2.0"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "84aa74986c5b9b898b0d1acaf3258741ee64754f"
+git-tree-sha1 = "ed2c4abadf84c53d9e58510b5fc48912c2336fbb"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "2.1.0"
+version = "2.2.0"
+
+[[CompilerSupportLibraries_jll]]
+deps = ["Libdl", "Pkg"]
+git-tree-sha1 = "b57c5d019367c90f234a7bc7e24ff0a84971da5d"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version = "0.2.0+1"
 
 [[DataAPI]]
-git-tree-sha1 = "8903f0219d3472543fc4b2f5ebaf675a07f817c0"
+git-tree-sha1 = "674b67f344687a88310213ddfa8a2b3c76cc4252"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
-version = "1.0.1"
+version = "1.1.0"
 
 [[DataFrames]]
-deps = ["CategoricalArrays", "Compat", "IteratorInterfaceExtensions", "Missings", "PooledArrays", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "StatsBase", "TableTraits", "Tables", "Unicode"]
-git-tree-sha1 = "7c0f86a01be0f77cc7f3f9096ed875f1217487e1"
+deps = ["CategoricalArrays", "Compat", "DataAPI", "InvertedIndices", "IteratorInterfaceExtensions", "Missings", "PooledArrays", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
+git-tree-sha1 = "271528230c65a4517522e2968c3deed76b92b998"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "0.18.4"
+version = "0.19.4"
 
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "0809951a1774dc724da22d26e4289bbaab77809a"
+git-tree-sha1 = "5a431d46abf2ef2a4d5d00bd0ae61f651cf854c8"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.17.0"
+version = "0.17.10"
 
 [[DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -79,17 +93,11 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
-[[DiffEqDiffTools]]
-deps = ["ArrayInterface", "LinearAlgebra", "Requires", "SparseArrays", "StaticArrays"]
-git-tree-sha1 = "21b855cb29ec4594f9651e0e9bdc0cdcfdcd52c1"
-uuid = "01453d9d-ee7c-5054-8395-0335cb756afa"
-version = "1.3.0"
-
 [[DiffResults]]
-deps = ["Compat", "StaticArrays"]
-git-tree-sha1 = "34a4a1e8be7bc99bc9c611b895b5baf37a80584c"
+deps = ["StaticArrays"]
+git-tree-sha1 = "da24935df8e0c6cf28de340b958f6aac88eaa0cc"
 uuid = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
-version = "0.0.4"
+version = "1.0.2"
 
 [[DiffRules]]
 deps = ["Random", "Test"]
@@ -104,26 +112,26 @@ uuid = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 version = "0.8.2"
 
 [[Distributed]]
-deps = ["LinearAlgebra", "Random", "Serialization", "Sockets"]
+deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[Distributions]]
-deps = ["LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns"]
-git-tree-sha1 = "baaf9e165ba8a2d11fb4fb3511782ee070ee3694"
+deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns"]
+git-tree-sha1 = "e063d0b5d27180b98edacd2b1cb90ecfbc171385"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.21.1"
+version = "0.21.12"
 
 [[DocStringExtensions]]
 deps = ["LibGit2", "Markdown", "Pkg", "Test"]
-git-tree-sha1 = "0513f1a8991e9d83255e0140aace0d0fc4486600"
+git-tree-sha1 = "88bb0edb352b16608036faadcc071adda068582a"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.8.0"
+version = "0.8.1"
 
 [[Documenter]]
-deps = ["Base64", "DocStringExtensions", "InteractiveUtils", "LibGit2", "Logging", "Markdown", "Pkg", "REPL", "Random", "Test", "Unicode"]
-git-tree-sha1 = "a8c41ba3d0861240dbec942ee1d0f86c57c37c1c"
+deps = ["Base64", "Dates", "DocStringExtensions", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "REPL", "Test", "Unicode"]
+git-tree-sha1 = "d497bcc45bb98a1fbe19445a774cfafeabc6c6df"
 uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.21.5"
+version = "0.24.5"
 
 [[DualNumbers]]
 deps = ["Calculus", "LinearAlgebra", "NaNMath", "SpecialFunctions", "Test"]
@@ -131,11 +139,21 @@ git-tree-sha1 = "e178a6768dad879ff1abfc1c612406856bb06ce0"
 uuid = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 version = "0.6.2"
 
+[[EllipsisNotation]]
+git-tree-sha1 = "65dad386e877850e6fce4fc77f60fe75a468ce9d"
+uuid = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
+version = "0.4.0"
+
+[[ExprTools]]
+git-tree-sha1 = "08c1f74d9ad03acf0ee84c12c9e665ab1a9a6e33"
+uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
+version = "0.1.0"
+
 [[EzXML]]
-deps = ["BinaryProvider", "Libdl", "Printf"]
-git-tree-sha1 = "aed48d722e528bc634bd36a7d0e090fa2952a3c0"
+deps = ["Printf", "XML2_jll"]
+git-tree-sha1 = "0fa3b52a04a4e210aeb1626def9c90df3ae65268"
 uuid = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
-version = "0.9.4"
+version = "1.1.0"
 
 [[FDM]]
 deps = ["LinearAlgebra", "Printf"]
@@ -145,29 +163,58 @@ version = "0.6.1"
 
 [[FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays"]
-git-tree-sha1 = "4c707c87ddd3199fc5624d5c98b2c706e4d00675"
+git-tree-sha1 = "85c6b57e2680fa28d5c8adc798967377646fbf66"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "0.7.0"
+version = "0.8.5"
+
+[[FiniteDiff]]
+deps = ["ArrayInterface", "LinearAlgebra", "Requires", "SparseArrays", "StaticArrays"]
+git-tree-sha1 = "aa78e468afa6a0fde472c3dba0782d1ab60b203d"
+uuid = "6a86dc24-6348-571c-b903-95158fe2bd41"
+version = "2.2.1"
 
 [[ForwardDiff]]
-deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "InteractiveUtils", "LinearAlgebra", "NaNMath", "Random", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test"]
-git-tree-sha1 = "4c4d727f1b7e0092134fabfab6396b8945c1ea5b"
+deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
+git-tree-sha1 = "88b082d492be6b63f967b6c96b352e25ced1a34c"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.3"
+version = "0.10.9"
 
 [[Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GPForecasting]]
-deps = ["DataFrames", "Distances", "Distributions", "FillArrays", "LineSearches", "LinearAlgebra", "Memento", "Metrics", "Nabla", "Optim", "Random", "SparseArrays", "Statistics", "StatsBase"]
+deps = ["BlockDiagonals", "DataFrames", "Distances", "Distributions", "FillArrays", "LineSearches", "LinearAlgebra", "Memento", "Metrics", "Nabla", "Optim", "Random", "SparseArrays", "Statistics", "StatsBase"]
 path = ".."
 uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
-version = "1.1.3"
+version = "2.6.0"
+
+[[IndexedDistributions]]
+deps = ["AxisArrays", "Distributions", "Random"]
+git-tree-sha1 = "62696ad02e70c79953dd78c01b8cc2934543f45c"
+uuid = "f8b19354-d7d2-57c1-87c2-c7771792bf73"
+version = "1.2.0"
 
 [[InteractiveUtils]]
-deps = ["LinearAlgebra", "Markdown"]
+deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
+[[IntervalSets]]
+deps = ["Dates", "EllipsisNotation", "Statistics"]
+git-tree-sha1 = "8a83c4788fdc2e32d08d90214834ec2dc1a54f57"
+uuid = "8197267c-284f-5f27-9208-e0e47529a953"
+version = "0.4.0"
+
+[[InvertedIndices]]
+deps = ["Test"]
+git-tree-sha1 = "15732c475062348b0165684ffe28e85ea8396afc"
+uuid = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
+version = "1.0.0"
+
+[[IterTools]]
+git-tree-sha1 = "05110a2ab1fc5f932622ffea2a003221f4782c18"
+uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+version = "1.3.0"
 
 [[IteratorInterfaceExtensions]]
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
@@ -185,6 +232,12 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+
+[[Libiconv_jll]]
+deps = ["Libdl", "Pkg"]
+git-tree-sha1 = "802f5b23c846cb4ed568cae0bfb0ce0d2ba1926d"
+uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
+version = "1.16.0+1"
 
 [[LineSearches]]
 deps = ["LinearAlgebra", "NLSolversBase", "NaNMath", "Parameters", "Printf", "Test"]
@@ -205,40 +258,41 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[Memento]]
 deps = ["Dates", "Distributed", "JSON", "Serialization", "Sockets", "Syslogs", "Test", "TimeZones", "UUIDs"]
-git-tree-sha1 = "090463b13da88689e5eae6468a6f531a21392175"
+git-tree-sha1 = "b1c3c6b26fe95d2e2f75818fcac8e628c33405ed"
 uuid = "f28f55f0-a522-5efc-85c2-fe41dfb9b2d9"
-version = "0.12.1"
+version = "0.13.1"
 
 [[Metrics]]
-deps = ["Distributions", "LinearAlgebra", "NamedDims", "Random", "SpecialFunctions", "Statistics", "StatsUtils", "Test"]
-git-tree-sha1 = "e8e9961ae62dfb171ecac59de36f8bf7554b06ad"
+deps = ["AxisArrays", "Distributions", "IndexedDistributions", "LinearAlgebra", "NamedDims", "PSDMats", "Random", "SpecialFunctions", "Statistics", "StatsUtils", "Test"]
+git-tree-sha1 = "465ebfd6a6cdaa3f89d029461fb5b52030e35653"
 uuid = "273c2e6c-7e43-11e9-12af-8fca11176a4c"
-version = "0.4.0"
+version = "0.6.5"
 
 [[Missings]]
-git-tree-sha1 = "29858ce6c8ae629cf2d733bffa329619a1c843d0"
+deps = ["DataAPI"]
+git-tree-sha1 = "de0a5ce9e5289f27df672ffabef4d1e5861247d5"
 uuid = "e1d29d7a-bbdc-5cf2-9ac0-f12de2c33e28"
-version = "0.4.2"
+version = "0.4.3"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[Mocking]]
-git-tree-sha1 = "bd2623f8b728af988d2afec53d611acb621f3bc4"
+deps = ["ExprTools"]
+git-tree-sha1 = "916b850daad0d46b8c71f65f719c49957e9513ed"
 uuid = "78c3b35d-d492-501b-9361-3d52fe80e533"
-version = "0.7.0"
+version = "0.7.1"
 
 [[NLSolversBase]]
-deps = ["Calculus", "DiffEqDiffTools", "DiffResults", "Distributed", "ForwardDiff"]
-git-tree-sha1 = "c430bd3f2dfcffc30688cf4a9cb61535e8d85f65"
+deps = ["DiffResults", "Distributed", "FiniteDiff", "ForwardDiff"]
+git-tree-sha1 = "7c4e66c47848562003250f28b579c584e55becc0"
 uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
-version = "7.4.1"
+version = "7.6.1"
 
 [[NaNMath]]
-deps = ["Compat"]
-git-tree-sha1 = "ce3b85e484a5d4c71dd5316215069311135fa9f2"
+git-tree-sha1 = "928b8ca9b2791081dc71a51c55347c27c618760f"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
-version = "0.3.2"
+version = "0.3.3"
 
 [[Nabla]]
 deps = ["DiffRules", "DualNumbers", "FDM", "LinearAlgebra", "SpecialFunctions", "Statistics"]
@@ -248,15 +302,27 @@ version = "0.12.1"
 
 [[NamedDims]]
 deps = ["LinearAlgebra", "Pkg", "Requires", "Statistics"]
-git-tree-sha1 = "fdf7f20b2b6afd07489aadfc9b49e302287f9d37"
+git-tree-sha1 = "fbbe5c898bbe5d7aee0d4b53a21e304499189241"
 uuid = "356022a1-0364-5f58-8944-0da4b18d706f"
-version = "0.2.4"
+version = "0.2.18"
+
+[[OpenBLAS_jll]]
+deps = ["Libdl", "Pkg"]
+git-tree-sha1 = "adc45e596df7007d48bf6829efb1dc64fdec3ddc"
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
+version = "0.3.7+6"
+
+[[OpenSpecFun_jll]]
+deps = ["CompilerSupportLibraries_jll", "Libdl", "Pkg"]
+git-tree-sha1 = "d110040968b9afe95c6bd9c6233570b0fe8abd22"
+uuid = "efe28fd5-8261-553b-a9e1-b2916fc3738e"
+version = "0.5.3+2"
 
 [[Optim]]
-deps = ["Calculus", "DiffEqDiffTools", "FillArrays", "ForwardDiff", "LineSearches", "LinearAlgebra", "NLSolversBase", "NaNMath", "Parameters", "PositiveFactorizations", "Printf", "Random", "SparseArrays", "StatsBase"]
-git-tree-sha1 = "2bda07c4b28036258d76729f06ef845a7d1d9daf"
+deps = ["FillArrays", "LineSearches", "LinearAlgebra", "NLSolversBase", "NaNMath", "Parameters", "PositiveFactorizations", "Printf", "SparseArrays", "StatsBase"]
+git-tree-sha1 = "08f170ff0dcf07f4edb567020fcab47f415da207"
 uuid = "429524aa-4258-5aef-a3af-852621145aeb"
-version = "0.19.3"
+version = "0.20.1"
 
 [[OrderedCollections]]
 deps = ["Random", "Serialization", "Test"]
@@ -266,15 +332,15 @@ version = "1.1.0"
 
 [[PDMats]]
 deps = ["Arpack", "LinearAlgebra", "SparseArrays", "SuiteSparse", "Test"]
-git-tree-sha1 = "9d6a9b3e19634612fb1edcafc4b1d75242b24bde"
+git-tree-sha1 = "5f303510529486bb02ac4d70da8295da38302194"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
-version = "0.9.9"
+version = "0.9.11"
 
 [[PSDMats]]
-deps = ["LinearAlgebra", "PDMats", "Random", "Test"]
-git-tree-sha1 = "b74dc5b4387d02f634e1dd8f40bb3cd88bfbe66a"
+deps = ["LinearAlgebra", "PDMats"]
+git-tree-sha1 = "9157263ab876c696218b52632f284474afcbfe5b"
 uuid = "d8364848-a99d-5bfe-b7b0-b4f035b9733f"
-version = "1.0.0"
+version = "1.0.1"
 
 [[Parameters]]
 deps = ["OrderedCollections"]
@@ -284,34 +350,35 @@ version = "0.12.0"
 
 [[Parsers]]
 deps = ["Dates", "Test"]
-git-tree-sha1 = "ef0af6c8601db18c282d092ccbd2f01f3f0cd70b"
+git-tree-sha1 = "0c16b3179190d3046c073440d94172cfc3bb0553"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "0.3.7"
+version = "0.3.12"
 
 [[Pkg]]
-deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
+deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Test", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[PooledArrays]]
-git-tree-sha1 = "6e8c38927cb6e9ae144f7277c753714861b27d14"
+deps = ["DataAPI"]
+git-tree-sha1 = "b1333d4eced1826e15adbdf01a4ecaccca9d353c"
 uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
-version = "0.5.2"
+version = "0.5.3"
 
 [[PositiveFactorizations]]
 deps = ["LinearAlgebra", "Test"]
-git-tree-sha1 = "957c3dd7c33895469760ce873082fbb6b3620641"
+git-tree-sha1 = "127c47b91990c101ee3752291c4f45640eeb03d1"
 uuid = "85a6dd25-e78a-55b7-8502-1745935b8125"
-version = "0.2.2"
+version = "0.2.3"
 
 [[Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[QuadGK]]
-deps = ["DataStructures", "LinearAlgebra", "Test"]
-git-tree-sha1 = "3ce467a8e76c6030d4c3786e7d3a73442017cdc0"
+deps = ["DataStructures", "LinearAlgebra"]
+git-tree-sha1 = "dc84e810393cfc6294248c9032a9cdacc14a3db4"
 uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
-version = "2.0.3"
+version = "2.3.1"
 
 [[REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets"]
@@ -321,6 +388,11 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 deps = ["Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
+[[RangeArrays]]
+git-tree-sha1 = "b9039e93773ddcfc828f12aadf7115b4b4d225f5"
+uuid = "b3c3ace0-ae52-54e7-9d0b-2c1406fd6b9d"
+version = "0.3.2"
+
 [[Reexport]]
 deps = ["Pkg"]
 git-tree-sha1 = "7b1d07f411bc8ddb7977ec7f377b97b158514fe0"
@@ -328,16 +400,22 @@ uuid = "189a3867-3050-52da-a836-e630ba90ab69"
 version = "0.2.0"
 
 [[Requires]]
-deps = ["Test"]
-git-tree-sha1 = "f6fbf4ba64d295e146e49e021207993b6b48c7d1"
+deps = ["UUIDs"]
+git-tree-sha1 = "d37400976e98018ee840e0ca4f9d20baa231dc6b"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
-version = "0.5.2"
+version = "1.0.1"
 
 [[Rmath]]
-deps = ["BinaryProvider", "Libdl", "Random", "Statistics", "Test"]
-git-tree-sha1 = "9a6c758cdf73036c3239b0afbea790def1dabff9"
+deps = ["Random", "Rmath_jll"]
+git-tree-sha1 = "86c5647b565873641538d8f812c04e4c9dbeb370"
 uuid = "79098fc4-a85e-5d69-aa6a-4863f24498fa"
-version = "0.5.0"
+version = "0.6.1"
+
+[[Rmath_jll]]
+deps = ["Libdl", "Pkg"]
+git-tree-sha1 = "1660f8fefbf5ab9c67560513131d4e933012fc4b"
+uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
+version = "0.2.2+0"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -363,16 +441,16 @@ deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SpecialFunctions]]
-deps = ["BinDeps", "BinaryProvider", "Libdl", "Test"]
-git-tree-sha1 = "0b45dc2e45ed77f445617b99ff2adf0f5b0f23ea"
+deps = ["OpenSpecFun_jll"]
+git-tree-sha1 = "268052ee908b2c086cc0011f528694f02f3e2408"
 uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "0.7.2"
+version = "0.9.0"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "db23bbf50064c582b6f2b9b043c8e7e98ea8c0c6"
+git-tree-sha1 = "5a3bcb6233adabde68ebc97be66e95dcb787424c"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "0.11.0"
+version = "0.12.1"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -380,21 +458,21 @@ uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[StatsBase]]
 deps = ["DataAPI", "DataStructures", "LinearAlgebra", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics"]
-git-tree-sha1 = "c53e809e63fe5cf5de13632090bc3520649c9950"
+git-tree-sha1 = "19bfcb46245f69ff4013b3df3b977a289852c3a1"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.32.0"
+version = "0.32.2"
 
 [[StatsFuns]]
-deps = ["Rmath", "SpecialFunctions", "Test"]
-git-tree-sha1 = "b3a4e86aa13c732b8a8c0ba0c3d3264f55e6bb3e"
+deps = ["Rmath", "SpecialFunctions"]
+git-tree-sha1 = "f290ddd5fdedeadd10e961eb3f4d3340f09d030a"
 uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
-version = "0.8.0"
+version = "0.9.4"
 
 [[StatsUtils]]
-deps = ["Distributions", "LinearAlgebra", "PDMats", "PSDMats", "Random", "Statistics", "StatsBase"]
-git-tree-sha1 = "73df2ae037b34d62332adb322bcbce0e1c9ee852"
+deps = ["Distributions", "IndexedDistributions", "LinearAlgebra", "PDMats", "PSDMats", "Random", "Statistics", "StatsBase"]
+git-tree-sha1 = "5ccda17f77945d69edb6c512b1f80aa717edd3c4"
 uuid = "d94fc345-0ff4-56ba-a2b2-f5d62e4638cc"
-version = "1.0.1"
+version = "1.2.0"
 
 [[SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -424,19 +502,25 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TimeZones]]
 deps = ["Dates", "EzXML", "Mocking", "Printf", "Serialization", "Unicode"]
-git-tree-sha1 = "2769a7ceffe237e651ed960a331a19258c8cf208"
+git-tree-sha1 = "f60a33649ef8380bafe6be7d1af1eeb8a3a3ea92"
 uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
-version = "0.10.0"
-
-[[URIParser]]
-deps = ["Test", "Unicode"]
-git-tree-sha1 = "6ddf8244220dfda2f17539fa8c9de20d6c575b69"
-uuid = "30578b45-9adc-5946-b283-645ec420af67"
-version = "0.4.0"
+version = "1.0.1"
 
 [[UUIDs]]
-deps = ["Random"]
+deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[XML2_jll]]
+deps = ["Libdl", "Libiconv_jll", "Pkg", "Zlib_jll"]
+git-tree-sha1 = "ed5603a695aefe3e9e404fc7b052e02cc72cfab6"
+uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
+version = "2.9.9+1"
+
+[[Zlib_jll]]
+deps = ["Libdl", "Pkg"]
+git-tree-sha1 = "fd36a6739e256527287c5444960d0266712cd49e"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version = "1.2.11+8"

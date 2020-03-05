@@ -1,8 +1,9 @@
-# Notes on our GP models
+# Model Notes
 
-This note is not intended to be a comprehensive introduction to GPs. For that, refer to
-["Gaussian Processes for Machine Learning" by Rasmussen](https://drive.google.com/open?id=1ScVvDzLu4bg13RjeLTBKnrAVxIZdbSNx).
+These are notes on our GP models.
 The intention here is to provide a quick overview of the model class we have been exploring.
+For a comprehensive introduction to GPs refer to
+["Gaussian Processes for Machine Learning" by Rasmussen](https://drive.google.com/open?id=1ScVvDzLu4bg13RjeLTBKnrAVxIZdbSNx).
 
 
 ## Our problem
@@ -85,7 +86,7 @@ discussed at length in [Wessel's 1st year report](https://drive.google.com/open?
 Most notably, this greatly decreases the computational cost.
 A benchmark using GPForecasting.jl can be seen in the figure below.
 
-![alt text](olmmscaling.png "OLMM vs LMM")
+![OLMM vs LMM](./assets/olmmscaling.png)
 
 In practice, the OLMM allows us to use a much larger number of latent processes.
 Also, it is simpler to combine with other methods such as the sparse GPs (discussed below).
@@ -149,7 +150,7 @@ this one, we make it such that the correlation between hours `h` of different da
 decays with the number of days separating them. Below we have a plot of this kernel
 as a function of the delta in hours.
 
-![alt text](POkernel.png "Time correlation")
+![Time correlation](./assets/POkernel.png)
 
 We have also had some limited success adding an analogous term that accounts for
 the correlation between days `d` belonging to different weeks. In practice, we have
@@ -203,9 +204,39 @@ feeding the predictive distributions for the prices into some decision engine
 (either Markowitz or ESPO) in order to generate a portfolio.
 Nevertheless, this is the final test to judge if the model is adequate or not for our prod system.
 
-## New model features
+## GOLMM Kernel
 
-### Neural Kernel Networks
+The kernel was initially proposed to impose some regularisation on the mixing matrix to support a richer (and possibly higher rank) latent function structure. A richer structure might be desirable where there is e.g. heterogeneity across tasks and some kind of sub-populations present, but without some structure on H is prone to overfitting.
+
+The final form of the “multi-kernel” captures grouping structure between nodes in a separable kernel by incorporating grouping structure in the mixing matrix.
+
+For each of the output time-series $`i \in \{1 \ldots p \}`$, let us introduce a learnable _group embedding_ $`h_i \in \reals^\ell`$ (where $`\ell \geq 1`$). These embeddings can be thought of as coordinates of that time-series in some space where similar series are located close by.
+
+To express this mathematically, we define a _group kernel_ $`k_\theta: \reals^\ell, \reals^\ell \rightarrow \reals`$ ($`\theta`$ being learnable hyperparameters) which we apply to the the group embeddings $`h_{i = 1}^p`$ to construct a Gram covariance matrix for the outputs:
+```math
+\mathbf{K} =
+\begin{bmatrix}
+k(h_1, h_1) & \cdots & k(h_1, h_p) \\
+\vdots & \ddots & \vdots \\
+k(h_p, h_1) & \cdots & k(h_p, h_p) \\
+\end{bmatrix}
+```
+
+Now, we perform eigendecomposition of this matrix:
+```math
+K = U S U^T
+```
+and define the mixing matrix $`H`$ using the $`m`$ dominant eigenvectors
+```math
+H = U_{\ldots, 1\ldots m} ~ S_{1\ldots m, 1\ldots m}
+```
+which are orthogonal, and hence compatible with OLMM, by construction.
+
+Intuitively, the above procedure can be understood as kernelised PCA in the learnable $`h`$-space of group embeddings.
+
+__NB__. The current implementation of `GOLMMKernel` in GPForecasting.jl!131 uses $`h \in \reals`$.
+
+## Neural Kernel Networks
 
 As already mentioned, designing kernels is an important part of doing GP regression.
 While one can adopt the approach of using heuristics for this task, for very complex
@@ -248,7 +279,7 @@ training job, in order to obtain a good kernel, and then simply use that one in 
 
 For proper details on the method, refer to the [original paper](https://drive.google.com/open?id=1-8x-HqiNyRDzLiejK2ASr7R42-mdUXVB).
 
-### HazardKernel
+## HazardKernel
 
 If we look at our historical returns, we see that there are some unusual days in
 which we have very pronounced losses. Empirically, we have verified that, at least in some cases,
@@ -282,7 +313,7 @@ in the [original MR](https://gitlab.invenia.ca/invenia/GPForecasting.jl/merge_re
 Challenges here are mostly due to the very high geographical granularity of the
 data and to the very large number of different hazards.
 
-### Sparse GPs
+## Sparse GPs
 
 GPs are memory hungry and our systems are large. Thus, we end up being forced to
 use less training data than we'd like to. Currently, we use 3 weeks (504 hours) of
@@ -309,7 +340,7 @@ As of [this MR](https://gitlab.invenia.ca/invenia/GPForecasting.jl/merge_request
 sparse posteriors will use `Input`-typed inputs, in order to control when to add
 observation noise (for more details on this, see [our documentation](https://invenia.pages.invenia.ca/GPForecasting.jl/EIS/)).
 
-### ManifoldGPs
+## ManifoldGPs
 
 All that ManifoldGPs (mGPs) do is learn a pre-transformation of the data such that
 the GP can be trained in the transformed input. In this sense, it is not really
