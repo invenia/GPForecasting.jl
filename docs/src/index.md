@@ -1,7 +1,6 @@
 # GPForecasting
 
 [![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://invenia.pages.invenia.ca/GPForecasting.jl/)
-[![Build Status](https://gitlab.invenia.ca/invenia/GPForecasting.jl/badges/develop/build.svg)](https://gitlab.invenia.ca/invenia/GPForecasting.jl/commits/master)
 [![Coverage](https://gitlab.invenia.ca/invenia/GPForecasting.jl/badges/develop/coverage.svg)](https://gitlab.invenia.ca/invenia/GPForecasting.jl/commits/master)
 
 See also [GPFExperiments.jl](https://gitlab.invenia.ca/invenia/GPFExperiments.jl)
