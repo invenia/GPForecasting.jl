@@ -11,7 +11,6 @@ makedocs(;
         "Kernels" => "kernels.md",
         "Extended Input Space" => "extended_input_space.md",
         "Model Notes" => "model_notes.md",
-        "FAQ" => "faq.md",
         "Developer Notes" => "developer_notes.md",
         "API" => "api.md",
     ],
