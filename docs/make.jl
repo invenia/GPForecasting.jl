@@ -14,7 +14,7 @@ makedocs(;
         "Developer Notes" => "developer_notes.md",
         "API" => "api.md",
     ],
-    repo="https://gitlab.invenia.ca/research/GPForecasting.jl/blob/{commit}{path}#L{line}",
+    repo="https://gitlab.invenia.ca/invenia/GPForecasting.jl/blob/{commit}{path}#L{line}",
     sitename="GPForecasting.jl",
     authors="Invenia Technical Computing",
     checkdocs=:exports,
