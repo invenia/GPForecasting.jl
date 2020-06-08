@@ -6,8 +6,39 @@
     return w
 end
 
-# TODO: REFACTOR TO EXPRESS IN TERMS OF RETURN
+# 8.2 Total negative log likelihood of validation set
+function lldeltas(
+        gp::GP{K, M},
+        x,
+        y,
+) where {K <: OLMMKernel, M <: Mean}
 
+    s = 0
+
+    for i=1:size(x, 1)
+        μ = gp.m(x[i:i, :])[:]
+        Σ = Symmetric(gp.k(x[i:i, :]))
+
+        L = cholesky(Σ).L
+        log_det = 2sum(log, diag(L))
+        vy = y[i, :] - μ
+        z = L \ vy
+        s -= 0.5 * (log_det + length(vy) * log(2π) + sum(abs2, z))
+    end
+
+    return s
+end
+
+function lldeltas_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+    return function f(params)
+        ngp = GP(gp.m, set(gp.k, params))
+        pos = condition(ngp, x_train, y_train)
+        obj = -lldeltas(pos::GP, x_val, y_val)
+        return obj
+    end
+end
+
+# 9.1 Total return of validation set
 function totalreturn(
     gp::GP{K, M},
     x,
@@ -32,6 +63,16 @@ function totalreturn(
     return s
 end
 
+function totalreturn_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+    return function f(params)
+        ngp = GP(gp.m, set(gp.k, params))
+        pos = condition(ngp, x_train, y_train)
+        obj = -totalreturn(pos, x_val, y_val)
+        return obj
+    end
+end
+
+# 9.3 MSE of returns of validation set
 function msereturns(
     gp::GP{K, M},
     x,
@@ -57,23 +98,78 @@ function msereturns(
     return s / size(x, 1)
 end
 
-# 9.1
-function totalreturn_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
-    return function f(params)
-        ngp = GP(gp.m, set(gp.k, params))
-        pos = condition(ngp, x_train, y_train)
-        obj = -totalreturn(pos, x_val, y_val)
-        return obj
-    end
-end
-
-# 9.3
 function msereturns_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
     return function f(params)
         ngp = GP(gp.m, set(gp.k, params))
         pos = condition(ngp, x_train, y_train)
-        obj = msereturns(pos::GP, x_val, y_val, w_val)
+        obj = msereturns(pos, x_val, y_val, w_val)
         return obj
     end
 end
 
+# 9.4 Total negative log likelihood of returns of validation set
+function llreturns(
+        gp::GP{K, M},
+        x,
+        y,
+        w,
+) where {K <: OLMMKernel, M <: Mean}
+
+    A = ones(size(y)[2])'
+    b = 0
+
+    s = 0
+
+    for i=1:size(x, 1)
+        μ = gp.m(x[i:i, :])[:]
+        Σ = Symmetric(gp.k(x[i:i, :]))
+        w_pred = GPForecasting.PO_analytical(μ, Σ, A, b)
+        r_pred = dot(w_pred, μ)
+        r_true = dot(w[i, :], y[i, :])
+        σ² = dot(w_pred, Σ*w_pred)
+        s -= 0.5 * (log(σ²) + (r_pred - r_true)^2 / σ² + log(2π))
+    end
+
+    return s
+end
+
+function llreturns_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+    return function f(params)
+        ngp = GP(gp.m, set(gp.k, params))
+        pos = condition(ngp, x_train, y_train)
+        obj = -llreturns(pos, x_val, y_val, w_val)
+        return obj
+    end
+end
+
+# 9.7 MSE of the weights of validation set
+function msevolumes(
+        gp::GP{K, M},
+        x,
+        y,
+        w,
+) where {K <: OLMMKernel, M <: Mean}
+
+    A = ones(size(y)[2])'
+    b = 0
+
+    s = 0
+
+    for i=1:size(x, 1)
+        μ = gp.m(x[i:i, :])[:]
+        Σ = Symmetric(gp.k(x[i:i, :]))
+        w_pred = GPForecasting.PO_analytical(μ, Σ, A, b)
+        s += mean((w_pred - w[i, :]).^2)
+    end
+
+    return s / size(x, 1)
+end
+
+function msevolumes_obj(gp, x_train, x_val, y_train, y_val, w_train, w_val)
+    return function f(params)
+        ngp = GP(gp.m, set(gp.k, params))
+        pos = condition(ngp, x_train, y_train)
+        obj = msevolumes(pos, x_val, y_val, w_val)
+        return obj
+    end
+end
