@@ -130,7 +130,7 @@ function llreturns(
         σ² = dot(w_pred, Σ*w_pred)
         r_true = dot(w[i, :], y[i, :])
         σ² = dot(w_pred, Σ*w_pred)
-        s -= 0.5 * (log(σ²) + (r_pred - r_true)^2 / σ² + log(2π))
+        s -= 0.5 * (log(σ²) + (\mu_r_pred - r_true)^2 / σ² + log(2π))
     end
 
     return s
