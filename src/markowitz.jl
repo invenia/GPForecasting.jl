@@ -57,7 +57,7 @@ function totalreturn(
         μ = gp.m(x[i:i, :])[:]
         Σ = Symmetric(gp.k(x[i:i, :]))
         w = PO_analytical(μ, Σ, A, b)
-        w /= norm(w)
+        w /= norm(w)  # normalization is required to have a bounded objective
         s += dot(w, y[i, :])
     end
     return s
@@ -72,7 +72,7 @@ function totalreturn_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
     end
 end
 
-# 9.3 MSE of returns of validation set
+# 9.3 MSE of predicted returns of validation set
 function msereturns(
     gp::GP{K, M},
     x,
@@ -92,8 +92,9 @@ function msereturns(
         μ = gp.m(x[i:i, :])[:]
         Σ = Symmetric(gp.k(x[i:i, :]))
         w_pred = PO_analytical(μ, Σ, A, b)
-        r_true = dot(w[i,:], y[i,:]) # TODO: Calculate prior to this
-        s += (dot(w_pred, y[i, :]) - r_true)^2
+        r_pred = dot(w_pred, μ)
+        r_true = dot(w[i, :], y[i, :]) # TODO: Calculate prior to this
+        s += (r_pred - r_true)^2
     end
     return s / size(x, 1)
 end
@@ -107,7 +108,7 @@ function msereturns_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
     end
 end
 
-# 9.4 Total negative log likelihood of returns of validation set
+# 9.4 Total negative log likelihood of predicted returns of validation set
 function llreturns(
         gp::GP{K, M},
         x,
