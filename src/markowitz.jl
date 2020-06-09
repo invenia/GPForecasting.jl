@@ -125,7 +125,9 @@ function llreturns(
         μ = gp.m(x[i:i, :])[:]
         Σ = Symmetric(gp.k(x[i:i, :]))
         w_pred = GPForecasting.PO_analytical(μ, Σ, A, b)
-        r_pred = dot(w_pred, μ)
+        # Translate the price distribution into the returns distribution through affine transformation
+        \mu_r_pred = dot(w_pred, μ)
+        σ² = dot(w_pred, Σ*w_pred)
         r_true = dot(w[i, :], y[i, :])
         σ² = dot(w_pred, Σ*w_pred)
         s -= 0.5 * (log(σ²) + (r_pred - r_true)^2 / σ² + log(2π))
