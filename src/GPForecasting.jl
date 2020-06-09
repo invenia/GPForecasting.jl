@@ -78,6 +78,13 @@ export GOLMMKernel,
     OLMMKernel
     # verynaiveLMMKernel
 
+# markowitz.jl
+export lldeltas_obj,
+    totalreturn_obj,
+    msereturns_obj,
+    llreturns_obj,
+    msevolumes_obj
+
 # core/pairwise
 export elwise_dist, pairwise_dist, sq_elwise_dist, sq_pairwise_dist
 

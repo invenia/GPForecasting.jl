@@ -6,8 +6,39 @@
     return w
 end
 
-# TODO: REFACTOR TO EXPRESS IN TERMS OF RETURN
+# 8.2 Total negative log likelihood of validation set
+function lldeltas(
+        gp::GP{K, M},
+        x,
+        y,
+) where {K <: OLMMKernel, M <: Mean}
 
+    s = 0
+
+    for i=1:size(x, 1)
+        μ = gp.m(x[i:i, :])[:]
+        Σ = Symmetric(gp.k(x[i:i, :]))
+
+        L = cholesky(Σ).L
+        log_det = 2sum(log, diag(L))
+        vy = y[i, :] - μ
+        z = L \ vy
+        s -= 0.5 * (log_det + length(vy) * log(2π) + sum(abs2, z))
+    end
+
+    return s
+end
+
+function lldeltas_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+    return function f(params)
+        ngp = GP(gp.m, set(gp.k, params))
+        pos = condition(ngp, x_train, y_train)
+        obj = -lldeltas(pos::GP, x_val, y_val)
+        return obj
+    end
+end
+
+# 9.1 Total return of validation set
 function totalreturn(
     gp::GP{K, M},
     x,
@@ -15,85 +46,23 @@ function totalreturn(
 ) where {K <: OLMMKernel, M <: Mean}
 
     A = ones(size(y)[2])'
+    b = 0
 
     # TODO: Explore whether defining these in one call or individually is more performant
     # COMMENT: Looks like many changes would be needed for this, mostly around
     # supporting Nabla
     s = 0
-    b = 0
 
     for i=1:size(x, 1)
         μ = gp.m(x[i:i, :])[:]
         Σ = Symmetric(gp.k(x[i:i, :]))
         w = PO_analytical(μ, Σ, A, b)
-        w /= norm(w)
+        w /= norm(w)  # normalization is required to have a bounded objective
         s += dot(w, y[i, :])
     end
     return s
 end
 
-function msereturns(
-    gp::GP{K, M},
-    x,
-    y,
-    w,
-) where {K <: OLMMKernel, M <: Mean}
-
-    A = ones(size(y)[2])'
-
-    # TODO: Explore whether defining these in one call or individually is more performant
-    # COMMENT: Looks like many changes would be needed for this, mostly around
-    # supporting Nabla
-    se = 0
-    b = 0
-
-    N = size(x, 1)
-
-    for i=1:N
-        μ = gp.m(x[i:i, :])[:]
-        Σ = Symmetric(gp.k(x[i:i, :]))
-        w_pred = PO_analytical(μ, Σ, A, b)
-        r_true = dot(w[i,:], y[i,:]) # TODO: Calculate prior to this
-        se += (dot(w_pred, y[i, :]) - r_true)^2
-    end
-    return se / N
-end
-
-# UNTESTED
-# function llreturns(
-#     gp::GP{K, M},
-#     x,
-#     y,
-#     w,
-# ) where {K <: OLMMKernel, M <: Mean}
-#
-#     α = 1.0
-#     A = ones(size(y)[2])'
-#
-#     # TODO: Explore whether defining these in one call or individually is more performant
-#     # COMMENT: Looks like many changes would be needed for this, mostly around
-#     # supporting Nabla
-#     ll = 0
-#     α = 1.0
-#     b = 0
-#
-#     N = size(x, 1)
-#
-#     for i=1:N
-#         μ = gp.m(x[i:i, :])[:]
-#         Σ = Symmetric(gp.k(x[i:i, :]))
-#         d = MvNormal(μ, Σ)
-#         ll += d(r_true)
-#     end
-#     return ll
-# end
-
-# For these Markowitz objectives, in each case, we pass in the training
-# and validation components of the features, prices and volumes respectively.
-# Although not all objectives use the volumes, this makes the experimentation
-# script simpler.
-
-# 9.1
 function totalreturn_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
     return function f(params)
         ngp = GP(gp.m, set(gp.k, params))
@@ -103,32 +72,106 @@ function totalreturn_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
     end
 end
 
-# # Presently breaking
-# function mle_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
-#     return function f(params)
-#         ngp = GP(gp.m, set(gp.k, params))
-#         pos = condition(ngp, x_train, y_train)
-#         obj = -logpdf(pos::GP, x_val, y_val, params)
-#         return obj
-#     end
-# end
+# 9.3 MSE of predicted returns of validation set
+function msereturns(
+    gp::GP{K, M},
+    x,
+    y,
+    w,
+) where {K <: OLMMKernel, M <: Mean}
 
-# 9.3
+    A = ones(size(y)[2])'
+    b = 0
+
+    # TODO: Explore whether defining these in one call or individually is more performant
+    # COMMENT: Looks like many changes would be needed for this, mostly around
+    # supporting Nabla
+    s = 0
+
+    for i=1:size(x, 1)
+        μ = gp.m(x[i:i, :])[:]
+        Σ = Symmetric(gp.k(x[i:i, :]))
+        w_pred = PO_analytical(μ, Σ, A, b)
+        μ_r_pred = dot(w_pred, μ)
+        r_true = dot(w[i, :], y[i, :]) # TODO: Calculate prior to this
+        s += (μ_r_pred - r_true)^2
+    end
+    return s / size(x, 1)
+end
+
 function msereturns_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
     return function f(params)
         ngp = GP(gp.m, set(gp.k, params))
         pos = condition(ngp, x_train, y_train)
-        obj = msereturns(pos::GP, x_val, y_val, w_val)
+        obj = msereturns(pos, x_val, y_val, w_val)
         return obj
     end
 end
 
-# 9.4
-# function llreturns_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
-#     return function f(params)
-#         ngp = GP(gp.m, set(gp.k, params))
-#         pos = condition(ngp, x_train, y_train)
-#         obj = -llreturns(pos::GP, x_val, y_val, w_val)
-#         return obj
-#     end
-# end
+# 9.4 Total negative log likelihood of predicted returns of validation set
+function llreturns(
+        gp::GP{K, M},
+        x,
+        y,
+        w,
+) where {K <: OLMMKernel, M <: Mean}
+
+    A = ones(size(y)[2])'
+    b = 0
+
+    s = 0
+
+    for i=1:size(x, 1)
+        μ = gp.m(x[i:i, :])[:]
+        Σ = Symmetric(gp.k(x[i:i, :]))
+        w_pred = GPForecasting.PO_analytical(μ, Σ, A, b)
+        # Translate the price distribution into the returns distribution through affine transformation
+        μ_r_pred = dot(w_pred, μ)
+        σ²_r_pred = dot(w_pred, Σ*w_pred)
+        r_true = dot(w[i, :], y[i, :])
+        s -= 0.5 * (log(σ²_r_pred) + (μ_r_pred - r_true)^2 / σ²_r_pred + log(2π))
+    end
+
+    return s
+end
+
+function llreturns_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+    return function f(params)
+        ngp = GP(gp.m, set(gp.k, params))
+        pos = condition(ngp, x_train, y_train)
+        obj = -llreturns(pos, x_val, y_val, w_val)
+        return obj
+    end
+end
+
+# 9.7 MSE of the weights of validation set
+function msevolumes(
+        gp::GP{K, M},
+        x,
+        y,
+        w,
+) where {K <: OLMMKernel, M <: Mean}
+
+    A = ones(size(y)[2])'
+    b = 0
+
+    s = 0
+
+    for i=1:size(x, 1)
+        μ = gp.m(x[i:i, :])[:]
+        Σ = Symmetric(gp.k(x[i:i, :]))
+        w_pred = GPForecasting.PO_analytical(μ, Σ, A, b)
+        s += mean((w_pred - w[i, :]).^2)
+    end
+
+    return s / size(x, 1)
+end
+
+function msevolumes_obj(gp, x_train, x_val, y_train, y_val, w_train, w_val)
+    return function f(params)
+        ngp = GP(gp.m, set(gp.k, params))
+        pos = condition(ngp, x_train, y_train)
+        obj = msevolumes(pos, x_val, y_val, w_val)
+        return obj
+    end
+end
