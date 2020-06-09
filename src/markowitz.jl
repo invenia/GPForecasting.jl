@@ -92,9 +92,9 @@ function msereturns(
         μ = gp.m(x[i:i, :])[:]
         Σ = Symmetric(gp.k(x[i:i, :]))
         w_pred = PO_analytical(μ, Σ, A, b)
-        r_pred = dot(w_pred, μ)
+        μ_r_pred = dot(w_pred, μ)
         r_true = dot(w[i, :], y[i, :]) # TODO: Calculate prior to this
-        s += (r_pred - r_true)^2
+        s += (μ_r_pred - r_true)^2
     end
     return s / size(x, 1)
 end
@@ -126,11 +126,10 @@ function llreturns(
         Σ = Symmetric(gp.k(x[i:i, :]))
         w_pred = GPForecasting.PO_analytical(μ, Σ, A, b)
         # Translate the price distribution into the returns distribution through affine transformation
-        \mu_r_pred = dot(w_pred, μ)
-        σ² = dot(w_pred, Σ*w_pred)
+        μ_r_pred = dot(w_pred, μ)
+        σ²_r_pred = dot(w_pred, Σ*w_pred)
         r_true = dot(w[i, :], y[i, :])
-        σ² = dot(w_pred, Σ*w_pred)
-        s -= 0.5 * (log(σ²) + (\mu_r_pred - r_true)^2 / σ² + log(2π))
+        s -= 0.5 * (log(σ²_r_pred) + (μ_r_pred - r_true)^2 / σ²_r_pred + log(2π))
     end
 
     return s
