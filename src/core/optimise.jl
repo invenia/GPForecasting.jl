@@ -213,6 +213,36 @@ function learn(
 
 end
 
+function learn(
+    ef::EF,
+    x::Tuple,
+    y::Tuple,
+    w::Tuple,
+    obj::Function=totalreturn_obj;
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+    kwargs...
+)
+
+    Θ_init = isempty(Θ_init) ? ef.k[:] : Θ_init
+    Θ_opt = minimise(
+        obj(ef, x[1], x[2], y[1], y[2], w[1], w[2]),
+        Θ_init,
+        its=its,
+        trace=trace,
+        algorithm=algorithm,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+        kwargs...
+    )
+
+    return EF(set(ef.k, Θ_opt), ef.estimator, ef.x, ef.y)
+end
+
 
 """
     learn_summary(gp::GP,
