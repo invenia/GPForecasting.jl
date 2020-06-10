@@ -1,13 +1,12 @@
 ### Functions required for differentiable EF
+import Base.rem, Statistics.cov
 
 # Nabla explicit_intercepts for reminder function
-import Base.rem
 @explicit_intercepts rem Tuple{Float64, Float64} [true, true]
 Nabla.∇(::typeof(rem), ::Type{Arg{1}}, _, z, z̄, x::Float64, y::Float64) = 0.0
 Nabla.∇(::typeof(rem), ::Type{Arg{2}}, _, z, z̄, x::Float64, y::Float64) = 0.0
 
 # Nabla explicit_intercepts for conditioned covariance
-import Statistics.cov
 @explicit_intercepts cov Tuple{CovarianceEstimator, AbstractArray} [false, true]
 Nabla.∇(::typeof(cov), ::Type{Arg{2}}, _, z, z̄, x::CovarianceEstimator, y::AbstractArray) = zeros(size(y))
 
