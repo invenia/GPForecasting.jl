@@ -79,7 +79,8 @@ export GOLMMKernel,
     # verynaiveLMMKernel
 
 # markowitz.jl
-export PO_tradeoff_anal,
+export PO,
+    PO_tradeoff_anal,
     PO_maxmu_anal,
     lldeltas_obj,
     totalreturn_obj,
@@ -164,7 +165,7 @@ include("multimean.jl")
 include("gp.jl")
 include("pdf.jl")
 include("ef.jl")
-include("core/optimise.jl")
 include("markowitz.jl")
+include("core/optimise.jl")
 
 end  # module
