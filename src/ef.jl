@@ -1,5 +1,6 @@
-### Functions required for differentiable EF
-import Base.rem, Statistics.cov
+# Functions required for differentiable EF
+import Base.rem
+import Statistics.cov
 
 # Nabla explicit_intercepts for reminder function
 @explicit_intercepts rem Tuple{Float64, Float64} [true, true]

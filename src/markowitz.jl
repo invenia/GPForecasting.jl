@@ -29,11 +29,11 @@ function lldeltas(
     return s
 end
 
-function lldeltas_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+function lldeltas_obj(gp::GP, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
         ngp = GP(gp.m, set(gp.k, params))
-        pos = condition(ngp, x_train, y_train)
-        obj = -lldeltas(pos::GP, x_val, y_val)
+        pos = condition(ngp, data_train.x, data_train.y)
+        obj = -lldeltas(pos::GP, data_val.x, data_val.y)
         return obj
     end
 end
@@ -59,10 +59,10 @@ function lldeltas(
     return s
 end
 
-function lldeltas_obj(ef::EF, x_train, x_val, y_train, y_val, w_train, w_val)
+function lldeltas_obj(ef::EF, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
-        nef = EF(set(ef.k, params), ef.estimator, x_train, y_train)
-        obj = -lldeltas(nef::EF, x_val, y_val)
+        nef = EF(set(ef.k, params), ef.estimator, data_train.x, data_train.y)
+        obj = -lldeltas(nef::EF, data_val.x, data_val.y)
         return obj
     end
 end
@@ -92,11 +92,11 @@ function totalreturn(
     return s
 end
 
-function totalreturn_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+function totalreturn_obj(gp::GP, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
         ngp = GP(gp.m, set(gp.k, params))
-        pos = condition(ngp, x_train, y_train)
-        obj = -totalreturn(pos, x_val, y_val)
+        pos = condition(ngp, data_train.x, data_train.y)
+        obj = -totalreturn(pos, data_val.x, data_val.y)
         return obj
     end
 end
@@ -124,10 +124,10 @@ function totalreturn(
     return s
 end
 
-function totalreturn_obj(ef::EF, x_train, x_val, y_train, y_val, w_train, w_val)
+function totalreturn_obj(ef::EF, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
-        nef = EF(set(ef.k, params), ef.estimator, x_train, y_train)
-        obj = -totalreturn(nef, x_val, y_val)
+        nef = EF(set(ef.k, params), ef.estimator, data_train.x, data_train.y)
+        obj = -totalreturn(nef, data_val.x, data_val.y)
         return obj
     end
 end
@@ -159,11 +159,11 @@ function msereturns(
     return s / size(x, 1)
 end
 
-function msereturns_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+function msereturns_obj(gp::GP, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
         ngp = GP(gp.m, set(gp.k, params))
-        pos = condition(ngp, x_train, y_train)
-        obj = msereturns(pos, x_val, y_val, w_val)
+        pos = condition(ngp, data_train.x, data_train.y)
+        obj = msereturns(pos, data_val.x, data_val.y, data_val.w)
         return obj
     end
 end
@@ -193,10 +193,10 @@ function msereturns(
     return s / size(x, 1)
 end
 
-function msereturns_obj(ef::EF, x_train, x_val, y_train, y_val, w_train, w_val)
+function msereturns_obj(ef::EF, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
-        nef = EF(set(ef.k, params), ef.estimator, x_train, y_train)
-        obj = msereturns(nef, x_val, y_val, w_val)
+        nef = EF(set(ef.k, params), ef.estimator, data_train.x, data_train.y)
+        obj = msereturns(nef, data_val.x, data_val.y, data_val.w)
         return obj
     end
 end
@@ -228,11 +228,11 @@ function llreturns(
     return s
 end
 
-function llreturns_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+function llreturns_obj(gp::GP, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
         ngp = GP(gp.m, set(gp.k, params))
-        pos = condition(ngp, x_train, y_train)
-        obj = -llreturns(pos, x_val, y_val, w_val)
+        pos = condition(ngp, data_train.x, data_train.y)
+        obj = -llreturns(pos, data_val.x, data_val.y, data_val.w)
         return obj
     end
 end
@@ -262,10 +262,10 @@ function llreturns(
     return s
 end
 
-function llreturns_obj(ef::EF, x_train, x_val, y_train, y_val, w_train, w_val)
+function llreturns_obj(ef::EF, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
-        nef = EF(set(ef.k, params), ef.estimator, x_train, y_train)
-        obj = -llreturns(nef, x_val, y_val, w_val)
+        nef = EF(set(ef.k, params), ef.estimator, data_train.x, data_train.y)
+        obj = -llreturns(nef, data_val.x, data_val.y, data_val.w)
         return obj
     end
 end
@@ -293,11 +293,11 @@ function msevolumes(
     return s / size(x, 1)
 end
 
-function msevolumes_obj(gp::GP, x_train, x_val, y_train, y_val, w_train, w_val)
+function msevolumes_obj(gp::GP, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
         ngp = GP(gp.m, set(gp.k, params))
-        pos = condition(ngp, x_train, y_train)
-        obj = msevolumes(pos, x_val, y_val, w_val)
+        pos = condition(ngp, data_train.x, data_train.y)
+        obj = msevolumes(pos, data_val.x, data_val.y, data_val.w)
         return obj
     end
 end
@@ -323,10 +323,10 @@ function msevolumes(
     return s / size(x, 1)
 end
 
-function msevolumes_obj(ef::EF, x_train, x_val, y_train, y_val, w_train, w_val)
+function msevolumes_obj(ef::EF, data_train::NamedTuple, data_val::NamedTuple)
     return function f(params)
-        nef = EF(set(ef.k, params), ef.estimator, x_train, y_train)
-        obj = msevolumes(nef, x_val, y_val, w_val)
+        nef = EF(set(ef.k, params), ef.estimator, data_train.x, data_train.y)
+        obj = msevolumes(nef, data_val.x, data_val.y, data_val.w)
         return obj
     end
 end

@@ -1,5 +1,6 @@
 """
-    minimise(f::Function,
+    minimise(
+        f::Function,
         x_init::Vector;
         its=200,
         trace=true,
@@ -50,7 +51,8 @@ function minimise(
 end
 
 """
-    minimise_summary(f::Function,
+    minimise_summary(
+        f::Function,
         x_init::Vector;
         its=200,
         trace=true,
@@ -97,7 +99,8 @@ function minimise_summary(
 end
 
 """
-    learn(gp::GP,
+    learn(
+        gp::GP,
         x,
         y,
         obj::Function;
@@ -184,9 +187,8 @@ end
 
 function learn(
     gp::GP,
-    x::Tuple,
-    y::Tuple,
-    w::Tuple,
+    data_train::NamedTuple,
+    data_val::NamedTuple,
     obj::Function=totalreturn_obj;
     Θ_init::Array=[],
     its=200,
@@ -195,12 +197,10 @@ function learn(
     alphaguess=LineSearches.InitialStatic(scaled=true),
     linesearch=LineSearches.BackTracking(),
     kwargs...
-
 )
-
     Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
     Θ_opt = minimise(
-        obj(gp, x[1], x[2], y[1], y[2], w[1], w[2]),
+        obj(gp, data_train, data_val),
         Θ_init,
         its=its,
         trace=trace,
@@ -209,15 +209,14 @@ function learn(
         linesearch=linesearch,
         kwargs...
     )
-    return GP(gp.m, set(gp.k, Θ_opt))
 
+    return GP(gp.m, set(gp.k, Θ_opt))
 end
 
 function learn(
     ef::EF,
-    x::Tuple,
-    y::Tuple,
-    w::Tuple,
+    data_train::NamedTuple,
+    data_val::NamedTuple,
     obj::Function=totalreturn_obj;
     Θ_init::Array=[],
     its=200,
@@ -227,10 +226,9 @@ function learn(
     linesearch=LineSearches.BackTracking(),
     kwargs...
 )
-
     Θ_init = isempty(Θ_init) ? ef.k[:] : Θ_init
     Θ_opt = minimise(
-        obj(ef, x[1], x[2], y[1], y[2], w[1], w[2]),
+        obj(ef, data_train, data_val),
         Θ_init,
         its=its,
         trace=trace,
@@ -245,7 +243,8 @@ end
 
 
 """
-    learn_summary(gp::GP,
+    learn_summary(
+        gp::GP,
         x,
         y,
         obj::Function;
