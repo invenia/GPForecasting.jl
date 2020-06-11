@@ -189,6 +189,8 @@ function learn(
     gp::GP,
     data_train::NamedTuple,
     data_val::NamedTuple,
+    po::PO,
+    transform::Function,
     obj::Function=totalreturn_obj;
     Θ_init::Array=[],
     its=200,
@@ -200,7 +202,7 @@ function learn(
 )
     Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
     Θ_opt = minimise(
-        obj(gp, data_train, data_val),
+        obj(gp, data_train, data_val, po, transform),
         Θ_init,
         its=its,
         trace=trace,
@@ -217,6 +219,8 @@ function learn(
     ef::EF,
     data_train::NamedTuple,
     data_val::NamedTuple,
+    po::PO,
+    transform::Function,
     obj::Function=totalreturn_obj;
     Θ_init::Array=[],
     its=200,
@@ -228,7 +232,7 @@ function learn(
 )
     Θ_init = isempty(Θ_init) ? ef.k[:] : Θ_init
     Θ_opt = minimise(
-        obj(ef, data_train, data_val),
+        obj(ef, data_train, data_val, po, transform),
         Θ_init,
         its=its,
         trace=trace,

@@ -79,14 +79,17 @@ export GOLMMKernel,
     # verynaiveLMMKernel
 
 # markowitz.jl
-export lldeltas_obj,
+export PO,
+    PO_tradeoff_anal,
+    PO_maxmu_anal,
+    lldeltas_obj,
     totalreturn_obj,
     msereturns_obj,
     llreturns_obj,
     msevolumes_obj
 
 # ef.jl
-export Kronecker, Weight, Ef, ef
+export Kronecker, Weight, EF, ef
 
 # core/pairwise
 export elwise_dist, pairwise_dist, sq_elwise_dist, sq_pairwise_dist
