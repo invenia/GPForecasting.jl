@@ -79,8 +79,7 @@ export GOLMMKernel,
     # verynaiveLMMKernel
 
 # markowitz.jl
-export PO,
-    PO_tradeoff_anal,
+export PO_tradeoff_anal,
     PO_maxmu_anal,
     lldeltas_obj,
     totalreturn_obj,
