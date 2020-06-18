@@ -315,8 +315,8 @@ function llreturns(
 
     for i=1:size(x, 1)
         μ, Σ = ef(x[i:i, :])
-        w_pred = po(μ, Σ)
         μ, Σ = transform(μ), transform(Σ)
+        w_pred = po(μ, Σ)
         # Translate the price distribution into the returns distribution through affine transformation
         μ_r_pred = dot(w_pred, μ)
         σ²_r_pred = dot(w_pred, Σ*w_pred)
