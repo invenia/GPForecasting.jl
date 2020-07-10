@@ -35,7 +35,7 @@ export balanced_return_obj,
     reglogpdf,
     return_obj,
     titsiasobj,
-    mll_block_posterior_obj
+    mll_pointwise_posterior_obj
 
 # kernel.jl
 export ▷,

@@ -181,7 +181,7 @@ function learn(
     y_train::AbstractArray{<:Real},
     x_val,
     y_val::AbstractArray{<:Real},
-    obj::Function=mll_block_posterior_obj;
+    obj::Function=mll_pointwise_posterior_obj;
     Θ_init::Array=[],
     its=200,
     trace=true,
