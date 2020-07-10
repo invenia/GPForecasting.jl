@@ -34,7 +34,8 @@ export balanced_return_obj,
     mle_obj,
     reglogpdf,
     return_obj,
-    titsiasobj
+    titsiasobj,
+    mll_pointwise_posterior_obj
 
 # kernel.jl
 export ▷,
@@ -152,6 +153,5 @@ include("multimean.jl")
 include("gp.jl")
 include("pdf.jl")
 include("core/optimise.jl")
-
 
 end  # module

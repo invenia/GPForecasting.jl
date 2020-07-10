@@ -118,17 +118,22 @@ is_not_noisy(k::NoiseKernel) = false
 # TODO: Allow the mixing of typed and untyped `Input`s.
 # TODO: Make this function also output BlockDiagonal.
 
-function fuse_equal(m::Matrix)
-   s1 = size(m)
-   s2 = size(m[1])
-   s = s1 .* s2
-   out = Matrix{Float64}(undef, s...)
-   for j in 1:s1[2]
-       for i in 1:s1[1]
-           out[(i-1)*s2[1]+1:i*s2[1], (j-1)*s2[2]+1:j*s2[2]] = m[i, j]
-       end
-   end
-   return out
+function fuse_equal(m::Matrix{T}) where {T}
+    s1 = size(m)
+    s2 = size(m[1])
+    s = s1 .* s2
+    out = Matrix{eltype(T)}(undef, s...)
+    for j in 1:s1[2]
+        for i in 1:s1[1]
+            out[(i-1)*s2[1]+1:i*s2[1], (j-1)*s2[2]+1:j*s2[2]] = m[i, j]
+        end
+    end
+    return out
+end
+
+function fuse_equal(m::Matrix{T}) where {T<:Branch}
+    # This only supports one element in the matrix at the moment.
+    @assert size(m) == (1,1) && return m[1,1]
 end
 
 function fuse(m::Matrix)
@@ -783,7 +788,6 @@ function (k::OLMMKernel)(x, y)
     m = unwrap(k.m)
     D = isa(D, Float64) ? fill(D, m) : D
     Σs = [lk(x, y) for lk in k.ks]
-    # mix them
     mix_Σs = Matrix(undef, n1, n2)
     for j in 1:n2
         for i in 1:n1
@@ -811,10 +815,13 @@ function (k::OLMMKernel)(x)
     D = isa(D, Float64) ? fill(D, m) : D
     Σs = [lk(x) for lk in k.ks]
     # mix them
-    mix_Σs = Matrix(undef, n, n)
+    T = eltype(Σs)
+    mix_Σs = Matrix{T}(undef, n, n)
     for j in 1:n
         for i in j:n
-            mix_Σs[i, j] = H * Diagonal([s[i, j] for s in Σs]) * H'
+            v = [s[i:i, j] for s in Σs]
+            # This vcat(...) looks redundant, but is essential for Nabla
+            mix_Σs[i, j] = H * Diagonal(vcat(v...)) * H'
             mix_Σs[j, i] = mix_Σs[i, j]
         end
     end
