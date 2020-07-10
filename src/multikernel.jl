@@ -124,11 +124,9 @@ function fuse_equal(m::Matrix{T}) where {T}
     s = s1 .* s2
     out = Matrix{eltype(T)}(undef, s...)
     for j in 1:s1[2]
-       for i in 1:s1[1]
-           idx1 = (i-1)*s2[1]+1:i*s2[1]
-           idx2 = (j-1)*s2[2]+1:j*s2[2]
-           out[idx1, idx2] = m[i,j]
-       end
+        for i in 1:s1[1]
+            out[(i-1)*s2[1]+1:i*s2[1], (j-1)*s2[2]+1:j*s2[2]] = m[i, j]
+        end
     end
     return out
 end
@@ -818,14 +816,12 @@ function (k::OLMMKernel)(x)
     Σs = [lk(x) for lk in k.ks]
     # mix them
     T = eltype(Σs)
-    # mix them
     mix_Σs = Matrix{T}(undef, n, n)
     for j in 1:n
         for i in j:n
-            _ar = [s[i:i, j] for s in Σs]
+            v = [s[i:i, j] for s in Σs]
             # This vcat(...) looks redundant, but is essential for Nabla
-            _ar = vcat(_ar...) 
-            mix_Σs[i, j] = H * Diagonal(_ar) * H'
+            mix_Σs[i, j] = H * Diagonal(vcat(v...)) * H'
             mix_Σs[j, i] = mix_Σs[i, j]
         end
     end
