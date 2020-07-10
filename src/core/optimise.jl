@@ -175,23 +175,13 @@ function learn(
     )
 end
 
-# TODO: Refactor learn and objective to hook in gp conditioning
-# function objval(gp::GP, x_train, x_val, y_train, y_val)
-#     return function f(params)
-#         ngp = GP(gp.m, set(gp.k, params))
-#         pos = condition(ngp, x_train, y_train)
-#         objval = obj(ngp, x_val, y_val)(params)
-#         return objval
-#     end
-# end
-
 function learn(
     gp::GP,
-    data_train::NamedTuple,
-    data_val::NamedTuple,
-    po::PO,
-    transform::Function,
-    obj::Function=totalreturn_obj;
+    x_train,
+    y_train::AbstractArray{<:Real},
+    x_val,
+    y_val::AbstractArray{<:Real},
+    obj::Function=mll_block_posterior_obj;
     Θ_init::Array=[],
     its=200,
     trace=true,
@@ -202,7 +192,7 @@ function learn(
 )
     Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
     Θ_opt = minimise(
-        obj(gp, data_train, data_val, po, transform),
+        obj(gp, x_train, y_train, x_val, y_val),
         Θ_init,
         its=its,
         trace=trace,
@@ -214,37 +204,6 @@ function learn(
 
     return GP(gp.m, set(gp.k, Θ_opt))
 end
-
-function learn(
-    ef::EF,
-    data_train::NamedTuple,
-    data_val::NamedTuple,
-    po::PO,
-    transform::Function,
-    obj::Function=totalreturn_obj;
-    Θ_init::Array=[],
-    its=200,
-    trace=true,
-    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
-    alphaguess=LineSearches.InitialStatic(scaled=true),
-    linesearch=LineSearches.BackTracking(),
-    kwargs...
-)
-    Θ_init = isempty(Θ_init) ? ef.k[:] : Θ_init
-    Θ_opt = minimise(
-        obj(ef, data_train, data_val, po, transform),
-        Θ_init,
-        its=its,
-        trace=trace,
-        algorithm=algorithm,
-        alphaguess=alphaguess,
-        linesearch=linesearch,
-        kwargs...
-    )
-
-    return EF(set(ef.k, Θ_opt), ef.estimator, ef.x, ef.y)
-end
-
 
 """
     learn_summary(

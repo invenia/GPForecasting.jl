@@ -34,7 +34,8 @@ export balanced_return_obj,
     mle_obj,
     reglogpdf,
     return_obj,
-    titsiasobj
+    titsiasobj,
+    mll_block_posterior_obj
 
 # kernel.jl
 export ▷,
@@ -77,19 +78,6 @@ export GOLMMKernel,
     NoiseKernel,
     OLMMKernel
     # verynaiveLMMKernel
-
-# markowitz.jl
-export PO,
-    PO_tradeoff_anal,
-    PO_maxmu_anal,
-    lldeltas_obj,
-    totalreturn_obj,
-    msereturns_obj,
-    llreturns_obj,
-    msevolumes_obj
-
-# ef.jl
-export Kronecker, Weight, EF, ef
 
 # core/pairwise
 export elwise_dist, pairwise_dist, sq_elwise_dist, sq_pairwise_dist
@@ -164,8 +152,6 @@ include("mean.jl")
 include("multimean.jl")
 include("gp.jl")
 include("pdf.jl")
-include("ef.jl")
-include("markowitz.jl")
 include("core/optimise.jl")
 
 end  # module

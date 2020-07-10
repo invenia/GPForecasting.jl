@@ -312,6 +312,46 @@ end
 end
 
 """
+    mll_block_posterior_obj(gp::GP, x_train, y_train::AbstractArray, x_val, y_val::AbstractArray) -> Function
+
+Maximum log likelihood of posterior distribution conditioned on training data (using
+`x_train` and `y_train`) and computed on validation data (using `x_val` and `y_val`).
+The function considers only block diagonals so it is a sum of the log likelihood of individual
+posterior distribution of each validation point (i.e. covariance elements between validation
+points are neglected).
+"""
+
+@unionise function mll_block_posterior_obj(
+    gp::GP,
+    x_train,
+    y_train::AbstractArray,
+    x_val,
+    y_val::AbstractArray
+)
+
+    return function f(params)
+        ngp = GP(gp.m, set(gp.k, params))
+        pos = condition(ngp, x_train, y_train)
+
+        s = 0
+
+        for i=1:size(x_val, 1)
+            if isa(x_val, AbstractVector)
+                μ = pos.m(x_val[i, :])[:]
+                Σ = Symmetric(pos.k(x_val[i, :]))
+            else
+                μ = pos.m(x_val[i:i, :])[:]
+                Σ = Symmetric(pos.k(x_val[i:i, :]))
+            end
+
+            s += logpdf(Gaussian(μ, Σ), y_val[i, :])
+        end
+
+        return -s
+    end
+end
+
+"""
     titsiasELBO(gp::GP, x, y::AbstractArray{<:Real})
 
 Compute the lower bound for the posterior logpdf under Titsias' approach. See:
