@@ -34,7 +34,8 @@ export balanced_return_obj,
     mle_obj,
     reglogpdf,
     return_obj,
-    titsiasobj
+    titsiasobj,
+    mll_pointwise_posterior_obj
 
 # kernel.jl
 export ▷,
@@ -52,6 +53,7 @@ export ▷,
     ManifoldKernel,
     PeriodicKernel,
     PosteriorKernel,
+    ProductKernel,
     RQ,
     RootLog,
     ScaledKernel,
@@ -120,14 +122,6 @@ __init__() = Memento.register(LOGGER)  # Register the Logger
 
 @deprecate(∿, ↻, true)
 
-"""
-    Process
-
-Abstract supertype for all stochastic processes.
-"""
-abstract type Process end
-
-# must be included after defining `Process` and before subtyping `AbstractNode`
 include("core/node.jl")
 include("core/optimisedalgebra.jl")
 using .OptimisedAlgebra
@@ -159,6 +153,5 @@ include("multimean.jl")
 include("gp.jl")
 include("pdf.jl")
 include("core/optimise.jl")
-
 
 end  # module

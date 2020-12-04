@@ -199,7 +199,7 @@ julia> typeof(k.scale)
 GPForecasting.Bounded{Int64}
 ```
 
-For a list of all `Parameter` subtypes, see [Functions](Functions.md).
+For a list of all `Parameter` subtypes, see the [API](@ref).
 
 In order to get the tunable parameters of a kernel, one only needs a simple call:
 

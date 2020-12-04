@@ -1,5 +1,6 @@
 """
-    minimise(f::Function,
+    minimise(
+        f::Function,
         x_init::Vector;
         its=200,
         trace=true,
@@ -50,7 +51,8 @@ function minimise(
 end
 
 """
-    minimise_summary(f::Function,
+    minimise_summary(
+        f::Function,
         x_init::Vector;
         its=200,
         trace=true,
@@ -97,7 +99,8 @@ function minimise_summary(
 end
 
 """
-    learn(gp::GP,
+    learn(
+        gp::GP,
         x,
         y,
         obj::Function;
@@ -172,8 +175,39 @@ function learn(
     )
 end
 
+function learn(
+    gp::GP,
+    x_train,
+    y_train::AbstractArray{<:Real},
+    x_val,
+    y_val::AbstractArray{<:Real},
+    obj::Function=mll_pointwise_posterior_obj;
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+    kwargs...
+)
+    Θ_init = isempty(Θ_init) ? gp.k[:] : Θ_init
+    Θ_opt = minimise(
+        obj(gp, x_train, y_train, x_val, y_val),
+        Θ_init,
+        its=its,
+        trace=trace,
+        algorithm=algorithm,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+        kwargs...
+    )
+
+    return GP(gp.m, set(gp.k, Θ_opt))
+end
+
 """
-    learn_summary(gp::GP,
+    learn_summary(
+        gp::GP,
         x,
         y,
         obj::Function;
@@ -394,7 +428,7 @@ and positive). Thus, `U * S = U̅ * V̅' * V̅ * S * V̅`. Now, we know that `U`
 differ only by the direction of the eigenvectors, thus, `V̅` can only differ from the
 identity by having flipped signals in the main diagonal. Since both `V̅` and `S` 
 are diagonal, `V̅ * S` will be equal to `S` with some values with flipped signals, so
-`V̅ * S * V̅ = V̅`, meaning that `U = U̅ * V̅'`.
+`V̅ * S * V̅ = S`, meaning that `U = U̅ * V̅'`.
 """
 function _constrain_H!(gp::GP{<:OLMMKernel})
     isa(gp.k.H, Fixed) && return gp  # nothing to do

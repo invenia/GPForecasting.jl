@@ -1,8 +1,7 @@
 # GPForecasting
 
-[![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://research.pages.invenia.ca/GPForecasting.jl/)
-[![Build Status](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/master/build.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
-[![Coverage](https://gitlab.invenia.ca/research/GPForecasting.jl/badges/master/coverage.svg)](https://gitlab.invenia.ca/research/GPForecasting.jl/commits/master)
+[![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://invenia.pages.invenia.ca/GPForecasting.jl/)
+[![Coverage](https://gitlab.invenia.ca/invenia/GPForecasting.jl/badges/master/coverage.svg)](https://gitlab.invenia.ca/invenia/GPForecasting.jl/commits/master)
 
 ## Extra documentation
 Besides the usual package documentation, we have some extras docs that may be useful.

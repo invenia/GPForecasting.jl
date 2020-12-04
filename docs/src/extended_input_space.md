@@ -1,4 +1,4 @@
-# Noisy observations and extended input space
+# Noisy Observations and Extended Input Space
 
 One might want to add noise to observed measurements, while keeping predictions noiseless. For such task, we have defined `NoiseKernel` and two different `Input` types, `Observed` and `Latent`. Whenever `NoiseKernel` receives two inputs of type `Observed`, it will add noise, while it will not for any other combination of `Inputs`. Example:
 

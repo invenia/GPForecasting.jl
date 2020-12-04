@@ -24,7 +24,13 @@
     reg(gp, x, y) = sum(abs.(gp.k.H))
     @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_ rtol = _RTOL_
     @test mle_obj(gp, x, y)(gp.k[:]) + reg(gp, x, y) ≈ map_obj(reg, gp, x, y)(gp.k[:]) atol = _ATOL_ rtol = _RTOL_
-    @test  map_obj(reg, gp, x, y)(gp.k[:]) ≈ map_obj(reg)(gp, x, y)(gp.k[:]) atol = _ATOL_ rtol = _RTOL_
+    @test map_obj(reg, gp, x, y)(gp.k[:]) ≈ map_obj(reg)(gp, x, y)(gp.k[:]) atol = _ATOL_ rtol = _RTOL_
+
+    x_train, x_val = x[1:5], x[6:10]
+    y_train, y_val = y[1:5, :], y[6:10, :]
+    pos = condition(gp, x_train, y_train)
+    mll = sum([-logpdf(Gaussian(pos.m(x_val[i, :])[:], pos.k(x_val[i, :])), y_val[i, :]) for i=1:5])
+    @test mll_pointwise_posterior_obj(gp, x_train, y_train, x_val, y_val)(gp.k[:]) ≈ mll atol = _ATOL_ rtol = _RTOL_
 
     @testset "Titsias" begin
         # 1D
