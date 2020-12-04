@@ -489,10 +489,22 @@
             gp = learn(gp, ts, ys, mle_obj, its=50, trace=false)
 
             # test that group embeddings have been updated
-            @test all(abs.(group_embs_init - gp.k.group_embeddings) .> 0.01)
+            @test !all(
+                isapprox.(
+                    group_embs_init,
+                    gp.k.group_embeddings;
+                    atol = _ATOL_,
+                    rtol = _RTOL_,
+                )
+            )
 
             # test that group kernel has been updated
-            @test abs(eq_ls_init - GPForecasting.unwrap(gp.k.group_kernel.stretch)) > 0.01
+            @test !isapprox(
+                eq_ls_init,
+                GPForecasting.unwrap(gp.k.group_kernel.stretch);
+                atol = _ATOL_,
+                rtol = _RTOL_,
+            )
         end
 
         ### try to do inference, make sure it does not break
