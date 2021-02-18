@@ -75,7 +75,7 @@
         @test joint_mean_logloss(g, x) ≈ marginal_mean_logloss(g, x) atol = _ATOL_ rtol = _RTOL_
     end
     @test joint_gaussian_loglikelihood(nondiagonal_gaussian, xs) ==
-        loglikelihood(nondiagonal_gaussian, xs) !=
+        Distributions.loglikelihood(nondiagonal_gaussian, xs) !=
         marginal_gaussian_loglikelihood(nondiagonal_gaussian, xs)
     for f in (
         Distributions.loglikelihood,
@@ -116,7 +116,7 @@
         @test sprint(show, g) == """
             Gaussian{Array{Float64,2}, $(typeof(Eye(6)))}(
                 μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
-                Σ: [1.0 0.0 … 0.0 0.0; 0.0 1.0 … 0.0 0.0; … ; 0.0 0.0 … 1.0 0.0; 0.0 0.0 … 0.0 1.0]
+                Σ: 6×6 Eye{Float64}
                 chol: <not yet computed>
             )"""
         c = cholesky(g)
@@ -124,7 +124,7 @@
         @test sprint(show, g) == """
             Gaussian{Array{Float64,2}, $(typeof(Eye(6)))}(
                 μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
-                Σ: [1.0 0.0 … 0.0 0.0; 0.0 1.0 … 0.0 0.0; … ; 0.0 0.0 … 1.0 0.0; 0.0 0.0 … 0.0 1.0]
+                Σ: 6×6 Eye{Float64}
                 chol: $(sprint(show, c, context=context))
             )"""
     end
