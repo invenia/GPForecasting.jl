@@ -1,5 +1,6 @@
 @unionise function pairwise_dist(x::AbstractArray, y::AbstractArray)
-    return sqrt.(sq_pairwise_dist(x, y))
+    # based on GPflow implementation
+    return sqrt.(max.(sq_pairwise_dist(x, y), 1.0e-40))
 end
 
 @unionise pairwise_dist(x::Number, y::AbstractArray) = pairwise_dist([x], y)
