@@ -821,9 +821,6 @@ end
 function (k::DiagonalKernel)(x::DataFrameRow, y::AbstractDataFrame)
     return k(DataFrame(x), y)
 end
-# (k::DiagonalKernel)(x::Number, y) = k([x], y)
-# (k::DiagonalKernel)(x, y::Number) = k(x, [y])
-# (k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])
 (k::DiagonalKernel)(x) = k(x, x)
 
 function elwise(k::DiagonalKernel, x, y)
