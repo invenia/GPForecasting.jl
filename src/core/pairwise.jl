@@ -1,8 +1,4 @@
-@unionise function pairwise_dist(x::AbstractVector, y::AbstractVector)
-    return sqrt.(sq_pairwise_dist(x, y))
-end
-
-@unionise function pairwise_dist(x::AbstractMatrix, y::AbstractMatrix)
+@unionise function pairwise_dist(x::AbstractArray, y::AbstractArray)
     return sqrt.(sq_pairwise_dist(x, y))
 end
 
