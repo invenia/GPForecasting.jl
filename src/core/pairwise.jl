@@ -12,9 +12,7 @@ function sq_pairwise_dist(x::AbstractMatrix, y::AbstractMatrix)
 end
 
 function sq_pairwise_dist(x::AbstractVector, y::AbstractVector)
-    yᵀ = y'
-    xyᵀ = x*yᵀ
-    return @. abs2(x) + abs2(yᵀ) - 2*xyᵀ
+    return pairwise(SqEuclidean(), x, y)
 end
 
 sq_pairwise_dist(x::Number, y::AbstractArray) = sq_pairwise_dist([x], y)

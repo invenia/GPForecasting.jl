@@ -809,9 +809,7 @@ Diagonal kernel. Has unitary variance.
 """
 struct DiagonalKernel <: Kernel end
 function (::DiagonalKernel)(x, y)
-    xl = [x[i, :] for i in 1:size(x, 1)]
-    yl = [y[i, :]' for i in 1:size(y, 1)]
-    return float.(isapprox.(xl, yl'))
+    return float.(isapprox.(sq_pairwise_dist(x, y), 0))
 end
 (k::GPForecasting.DiagonalKernel)(x::DataFrame, y::DataFrame) = k(Matrix(x), Matrix(y))
 function (k::DiagonalKernel)(x::DataFrameRow, y::DataFrameRow)
@@ -823,9 +821,6 @@ end
 function (k::DiagonalKernel)(x::DataFrameRow, y::AbstractDataFrame)
     return k(DataFrame(x), y)
 end
-(k::DiagonalKernel)(x::Number, y) = k([x], y)
-(k::DiagonalKernel)(x, y::Number) = k(x, [y])
-(k::DiagonalKernel)(x::Number, y::Number) = k([x], [y])
 (k::DiagonalKernel)(x) = k(x, x)
 
 function elwise(k::DiagonalKernel, x, y)
