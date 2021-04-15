@@ -4,5 +4,10 @@ include:
     file: /templates/julia.yml
 
 variables:
-  # Only include Mac and Linux 64-bit jobs in the job matrix         
+  # Only include Mac and Linux 64-bit jobs in the job matrix
   platform: "x86_64"
+
+# Remove when the package becomes compatible with this version of Julia:
+# https://gitlab.invenia.ca/invenia/GPForecasting.jl/-/issues/81
+.test_1_6:
+  allow_failure: true
