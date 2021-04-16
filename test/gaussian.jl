@@ -114,42 +114,27 @@
     @testset "show" begin
         g = Gaussian(Float64[1 2; 3 4; 5 6], Eye(6))
 
-        shown = if VERSION >= v"1.6.0"
-            """
-            Gaussian{Matrix{Float64}, $(typeof(Eye(6)))}(
+        g_type = VERSION >= v"1.6" ? "Matrix{Float64}" : "Array{Float64,2}"
+
+        shown = """
+            Gaussian{$g_type, $(typeof(Eye(6)))}(
                 μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
                 Σ: 6×6 Eye{Float64}
                 chol: <not yet computed>
             )"""
-        else
-            """
-            Gaussian{Array{Float64,2}, $(typeof(Eye(6)))}(
-                μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
-                Σ: 6×6 Eye{Float64}
-                chol: <not yet computed>
-            )"""
-        end
+
 
         @test sprint(show, g) == shown
 
         c = cholesky(g)
         context = IOContext(IOBuffer(), :compact=>true, :limit=>true)
 
-        shown = if VERSION >= v"1.6.0"
-            """
-            Gaussian{Matrix{Float64}, $(typeof(Eye(6)))}(
+        shown = """
+            Gaussian{$g_type, $(typeof(Eye(6)))}(
                 μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
                 Σ: 6×6 Eye{Float64}
                 chol: $(sprint(show, c, context=context))
             )"""
-        else
-            """
-            Gaussian{Array{Float64,2}, $(typeof(Eye(6)))}(
-                μ: [1.0 2.0; 3.0 4.0; 5.0 6.0]
-                Σ: 6×6 Eye{Float64}
-                chol: $(sprint(show, c, context=context))
-            )"""
-        end
 
         @test sprint(show, g) == shown
     end
