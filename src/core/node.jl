@@ -189,7 +189,7 @@ then return `result`.
 
 ```jldoctest; setup = :(import GPForecasting: TreeNode, flatten)
 julia> b = TreeNode([1, 2], [TreeNode([3, 4]), TreeNode([5, 6])]); flatten(b, Int64[])
-6-element Array{Int64,1}:
+6-element Vector{Int64}:
  1
  2
  3
@@ -199,7 +199,7 @@ julia> b = TreeNode([1, 2], [TreeNode([3, 4]), TreeNode([5, 6])]); flatten(b, In
 
 julia> c = TreeNode([[1, 2], [3, 4]],
                [TreeNode([[5, 6], [7, 8]]), TreeNode([[9, 10], [11, 12]])]); flatten(c)
-6-element Array{Any,1}:
+6-element Vector{Any}:
  [1, 2]
  [3, 4]
  [5, 6]
@@ -238,7 +238,7 @@ data to `result`, then return `result`.
 
 ```jldoctest; setup = :(import GPForecasting: TreeNode, flatten2)
 julia> b = TreeNode([1, 2], [TreeNode([3, 4]), TreeNode([5, 6])]); flatten2(b, Int64[])
-6-element Array{Int64,1}:
+6-element Vector{Int64}:
  1
  2
  3
@@ -248,7 +248,7 @@ julia> b = TreeNode([1, 2], [TreeNode([3, 4]), TreeNode([5, 6])]); flatten2(b, I
 
 julia> c = TreeNode([[1, 2], [3, 4]],
                [TreeNode([[5, 6], [7, 8]]), TreeNode([[9, 10], [11, 12]])]); flatten2(c)
-12-element Array{Any,1}:
+12-element Vector{Any}:
   1
   2
   3
