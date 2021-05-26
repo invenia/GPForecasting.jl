@@ -17,6 +17,10 @@
             periodicise(EQ(), 5),
             CosineKernel(),
             HeteroskedasticDiagonalKernel(10),
+            NKN(
+                [EQ(), 2EQ(), RQ(0.5)],
+                (LinearLayer((4, 3)), ProductLayer((2, 4)), LinearLayer((1, 2)))
+            ),
         ]
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_ rtol = _RTOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_ rtol = _RTOL_
@@ -41,6 +45,18 @@
             @test_throws Any elwise(k, [1., 2., 3.], [1., 2., 3., 4.])
         end
         @test_throws ArgumentError MA(6)([4.])
+
+        @testset "NKN" begin
+            k = NKN(
+                [EQ(), 2EQ(), RQ(0.5)],
+                (LinearLayer((4, 3)), ProductLayer((2, 4)), LinearLayer((1, 2)))
+            )
+            @test isa(GPForecasting.equivalent_kernel(k), Kernel)
+            @test isa(logpdf(GP(k), [1., 2., 3.], [11., 23., 45.]), Real)
+            x = [1, 2, 3]
+            @test k(x, x) ≈ k(x) atol = _ATOL_
+            @test GPForecasting.equivalent_kernel(k)(x) ≈ k(x) atol = _ATOL_
+        end
 
         @testset "DotKernel" begin
             k = DotKernel()

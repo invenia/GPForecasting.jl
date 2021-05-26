@@ -73,4 +73,16 @@
     mk = ManifoldKernel(k, nn)
     obj = mle_obj(GP(mk), rand(5), rand(5))
     @test isa(∇(obj)(mk[:])[1], Vector)
+
+    # NeuralKernelNetworks
+    k = NKN(
+        [EQ(), 2EQ(), RQ(0.5)],
+        (LinearLayer((4, 3)), ProductLayer((2, 4)), LinearLayer((1, 2)))
+    )
+    x = collect(0:0.01:8);
+    y = 2x;
+    gp = GP(k)
+    obj = mle_obj(gp, x, y)
+    @test isa(obj(gp.k[:]), Float64)
+    @test isa(∇(obj)(gp.k[:])[1][1], Float64)
 end

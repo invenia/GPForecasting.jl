@@ -51,8 +51,10 @@ export ▷,
     HazardKernel,
     HeteroskedasticDiagonalKernel,
     Kernel,
+    LinearLayer,
     MA,
     ManifoldKernel,
+    NKN,
     PeriodicKernel,
     PosteriorKernel,
     ProductKernel,
@@ -94,7 +96,15 @@ export minimise, learn, learn_summary, learn_sparse, minimise_summary
 export Bounded, DynamicBound, Fixed, Named, Parameter, Positive, isconstrained
 
 #NN.jl
-export GPFNN, NNLayer, BatchNormLayer, relu, noisy_relu, leaky_relu, softplus, sigmoid
+export GPFNN,
+    NNLayer,
+    BatchNormLayer,
+    ProductLayer,
+    relu,
+    noisy_relu,
+    leaky_relu,
+    softplus,
+    sigmoid
 
 # reexport so as not be breaking from when BlockDiagonals was part of this package.
 export BlockDiagonal, blocks

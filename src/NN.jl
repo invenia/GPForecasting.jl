@@ -7,6 +7,8 @@ mutable struct NNLayer <: AbstractNode
     σ::Fixed{<:Function} # activation function
 end
 (layer::NNLayer)(x) = unwrap(layer.σ).(unwrap(layer.W) * x + unwrap(layer.b))
+Base.size(l::NNLayer) = size(unwrap(l.W))
+Base.size(l::NNLayer, i::Int) = size(unwrap(l.W), i)
 
 mutable struct BatchNormLayer <: AbstractNode
     γ # if you want to use different values for each dimension, use a RowVector
@@ -30,6 +32,15 @@ function (nn::GPFNN)(x)
     end
     return out
 end
+
+# This type of layer is just really meant to be used by the neural kernel networks, so we'll
+# only define it acting on kernels
+mutable struct ProductLayer <: AbstractNode
+    C::Fixed{Matrix{Bool}} # connectivity
+end
+(layer::ProductLayer)(x::Vector{<:Kernel}) = p_layer(unwrap(layer.C), x)
+Base.size(l::ProductLayer) = size(unwrap(l.C))
+Base.size(l::ProductLayer, i::Int) = size(unwrap(l.C), i)
 
 # Just a few activation functions that may be handy
 relu(x) = max(0, x)
