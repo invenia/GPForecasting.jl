@@ -83,21 +83,6 @@ struct TreeNode <: AbstractNode
     children::Vector{TreeNode}
 end
 
-# TreeNode(x) = TreeNode(x, TreeNode[])
-
-# Base.:(==)(tn1::TreeNode, tn2::TreeNode) = tn1.x == tn2.x && tn1.children == tn2.children
-
-# function Base.show(io::IO, tn::TreeNode)
-#     print(io, "TreeNode(", tn.x)
-#     if isempty(tn.children)
-#         print(io, ")")
-#     else
-#         print(io, ", [")
-#         join(io, tn.children, ", ")
-#         print(io, "])")
-#     end
-# end
-
 """
     map(f, ns::TreeNode...) -> TreeNode
 
