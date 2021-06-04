@@ -74,7 +74,7 @@ function reconstruct(x, others, children)
 end
 
 """
-    TreeNode(x, children=TreeNode[])
+    TreeNode(x, children)
 
 A recursive tree structure for `AbstractNode`.
 """
