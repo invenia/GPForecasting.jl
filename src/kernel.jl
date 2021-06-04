@@ -698,7 +698,7 @@ end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractMatrix) = k(x, x)
 
 function elwise(k::SpecifiedQuantityKernel, x::AbstractMatrix)
-    return [k(x[i, :]')[1] for i in 1:size(x, 1)] # Gotta keep the shape 
+    return [k(x[i, :]')[1] for i in 1:size(x, 1)] # Gotta keep the shape
 end
 
 @unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
@@ -1037,9 +1037,14 @@ mutable struct NKN <: Kernel
         if size(layers[end], 1) != 1
             throw(DimensionMismatch("Output of last layer must be of length 1."))
         end
-        if any([size(layers[i], 1) != size(layers[i + 1], 2) for i in 1:length(layers)-1])
-            println([size(layers[i], 2) != size(layers[i + 1], 1) for i in 1:length(layers)-1])
-            throw(DimensionMismatch("Incompatible layer dimensions."))
+        mismatch = [size(layers[i], 1) != size(layers[i + 1], 2) for i in 1:length(layers)-1]
+        if any(mismatch)
+            throw(DimensionMismatch(
+                """
+                Incompatible layer dimensions between layers $(findall(mismatch)) and their
+                following layers.
+                """
+            ))
         end
         return new(base_kernels, layers)
     end
