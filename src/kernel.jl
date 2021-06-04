@@ -1019,3 +1019,48 @@ SparseKernel(k::Kernel, Xm, σ²) = SparseKernel(k, Xm, Fixed(size(unwrap(Xm), 1
 (k::SparseKernel)(x) = k.k(x, unwrap(k.Xm))
 (k::SparseKernel)() = k.k(unwrap(k.Xm))
 Base.show(io::IO, k::SparseKernel) = print(io, "Sparse(", k.k, ")")
+
+"""
+    CosineKernel <: Kernel
+
+Kernel that computes cos(|x - y|). Allows for negative correlations.
+"""
+struct CosineKernel <: Kernel end
+(::CosineKernel)(x, y) = cos.(pairwise_dist(x, y))
+(k::CosineKernel)(x) = k(x, x)
+elwise(::CosineKernel, x, y) = cos.(elwise_dist(x, y))
+elwise(::CosineKernel, x) = ones(size(x, 1))
+
+"""
+    HeteroskedasticDiagonalKernel <: Kernel
+
+Diagonal kernel which has different variances for each input location. *Only accepts integer
+inputs in the interval [0, N]*. All variances in [0, N] must be specified.
+"""
+struct HeteroskedasticDiagonalKernel <: Kernel
+    vars
+
+    function HeteroskedasticDiagonalKernel(vars)
+        vs = isconstrained(vars) ? vars : Positive(vars)
+        return new(vs)
+    end
+end
+HeteroskedasticDiagonalKernel(n::Int) = HeteroskedasticDiagonalKernel(ones(n))
+# Gradiente aqui nao faz sentido...
+function (k::HeteroskedasticDiagonalKernel)(x::ArrayOrReal, y::ArrayOrReal)
+    K = DiagonalKernel()(x, y)
+    n = length(unwrap(k.vars)) - 1
+    hodx = Int.(x)
+    hody = Int.(y)
+    if any(0 .> hodx) || any(n .< hodx) || any(0 .> hody) || any(n .< hody)
+        throw(ArgumentError(
+            "Kernel $k only takes inputs between 0 and $n."
+        ))
+    end
+    vx = unwrap(k.vars)[hodx .+ 1]
+    vy = unwrap(k.vars)[hody .+ 1]
+    covs = vx * vy' # Outer product
+    # Multiplying by the DiagonalKernel eliminates all cross-products
+    return covs .* K
+end
+(k::HeteroskedasticDiagonalKernel)(x::ArrayOrReal) = k(x, x)
