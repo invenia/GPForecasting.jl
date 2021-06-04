@@ -74,7 +74,7 @@ function reconstruct(x, others, children)
 end
 
 """
-    TreeNode(x, children)
+    TreeNode(x, children=TreeNode[])
 
 A recursive tree structure for `AbstractNode`.
 """
@@ -82,6 +82,8 @@ struct TreeNode <: AbstractNode
     x
     children::Vector{TreeNode}
 end
+
+TreeNode(x) = TreeNode(x, TreeNode[])
 
 """
     map(f, ns::TreeNode...) -> TreeNode
