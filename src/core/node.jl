@@ -94,7 +94,7 @@ Recurses through parallel trees and applies a function to parallel nodes.
 
 ```jldoctest; setup = :(import GPForecasting: TreeNode)
 julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); map(+, a, a)
-TreeNode(2, [TreeNode(4), TreeNode(6)])
+TreeNode(2, GPForecasting.TreeNode[TreeNode(4, GPForecasting.TreeNode[]), TreeNode(6, GPForecasting.TreeNode[])])
 ```
 """
 function Base.map(f, ns::TreeNode...)
@@ -114,7 +114,7 @@ Equivalent to `map(tuple, ns...)`.
 
 ```jldoctest; setup = :(import GPForecasting: TreeNode)
 julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); zip(a, a)
-TreeNode((1, 1), [TreeNode((2, 2)), TreeNode((3, 3))])
+TreeNode((1, 1), GPForecasting.TreeNode[TreeNode((2, 2), GPForecasting.TreeNode[]), TreeNode((3, 3), GPForecasting.TreeNode[])])
 ```
 """
 Base.Iterators.zip(ns::TreeNode...) = map((xs...) -> xs, ns...)
