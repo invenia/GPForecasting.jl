@@ -15,6 +15,8 @@
             DiagonalKernel(),
             ZeroKernel(),
             periodicise(EQ(), 5),
+            CosineKernel(),
+            HeteroskedasticDiagonalKernel(10),
         ]
             @test (0.0 * k)([5.]) ≈ [0.0] atol = _ATOL_ rtol = _RTOL_
             @test k([5., 6.]) ≈ k([5., 6.], [5., 6.]) atol = _ATOL_ rtol = _RTOL_
