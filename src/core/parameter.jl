@@ -115,7 +115,7 @@ reconstruct(p::Parameter, parameter, others) = typeof(p)(parameter, others...)
 unwrap(p::Parameter) = unwrap(parameter(p))
 name(p::Parameter) = name(parameter(p))
 function Base.show(io::IO, p::Parameter)
-    return get(io, :compact, false) ? show(io, parameter(p)) : Base.show_default(io, p)
+    return get(io, :compact, true) ? show(io, parameter(p)) : Base.show_default(io, p)
 end
 
 """
