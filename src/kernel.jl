@@ -1050,7 +1050,7 @@ function LinearLayer(s::Tuple{Int, Int})
     return NNLayer(
         # Initialisation heuristics stolen directly from the original implementation:
         # https://github.com/ssydasheng/GPflow-Slim/blob/223b9e30e8a7969496a3a53acd3a39835f5a3f8b/gpflowSlim/neural_kernel_network/neural_kernel_network_wrapper.py#L99
-        Positive(rand(1.0 / (2 * s[2]):1e-4:3.0 / (2 * s[2]), s...)),
+        Positive(rand(Uniform(1.0 / (2 * s[2]), 3.0 / (2 * s[2])), s...)),
         Positive(0.01 * ones(s[1])),
         Fixed(x -> x) # no non-linearity
     )
