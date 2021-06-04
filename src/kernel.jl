@@ -1012,15 +1012,8 @@ applications. Based on https://arxiv.org/abs/1806.04326.
 * Fields:
 - `base_kernels::Vector{<:Kernel}`: Base kernels to be combined. Can be any valid `Kernel`
 and have tunable parameters.
-- `n_layers::Fixed{Int}`: Number of layers of the kernel network. The base layer is not
-counted here.
-- `configuration::Fixed{Vector{Symbol}}`: Specifies the type of each layer, being either
-`:L` for linear or `:P` for product.
-- `coeffs::Vector{Parameter}`: Coefficients of the network, corresponding to one matrix per
-layer. `:P` layers should have a corresponding `Matrix{Bool}` that determines the
-\"connectivity\", i.e., which kernels are multiplied by which. `:P` layers are fixed and
-not optimised. `:L` layers should have a corresponding `Matrix{Float64}` that may be
-optimised and that must always have only non-negative values (hint: use `Positive`).
+- `layers::Tuple{Vararg{Union{NNLayer, ProductLayer}}}`: Tuple containing `NNLayer` and 
+`ProductLayer` objects which specify the NKN geometry.
 """
 mutable struct NKN <: Kernel
     base_kernels::Vector{<:Kernel}
