@@ -104,7 +104,7 @@ abstract type Parameter end
 # first field. We could do something similar to the kernels to make this fully flexible,
 # but I think this suffices.
 parameter(p::Parameter) = getfield(p, 1)
-others(p::Parameter) = collect(Iterators.rest(getfields(p), 1))
+others(p::Parameter) = collect(Iterators.rest(getfields(p), 2))
 Base.getindex(p::Parameter, i) = getindex(unwrap(p), i)
 Base.length(p::Parameter) = length(unwrap(p))
 Base.size(p::Parameter) = size(unwrap(p))

@@ -698,7 +698,7 @@ end
 @unionise (k::SpecifiedQuantityKernel)(x::AbstractMatrix) = k(x, x)
 
 function elwise(k::SpecifiedQuantityKernel, x::AbstractMatrix)
-    return [k(x[i, :]')[1] for i in 1:size(x, 1)] # Gotta keep the shape 
+    return [k(x[i, :]')[1] for i in 1:size(x, 1)] # Gotta keep the shape
 end
 
 @unionise function (k::SpecifiedQuantityKernel)(x::DataFrameRow, y::DataFrameRow)
@@ -1004,6 +1004,164 @@ Base.zero(::Kernel) = ZeroKernel()
 Base.zero(::Type{Kernel}) = ZeroKernel()
 
 """
+    NKN <: Kernel
+
+Neural Network Kernel. Especial kind of kernel designed for automatic kernel design
+applications. Based on https://arxiv.org/abs/1806.04326.
+
+* Fields:
+- `base_kernels::Vector{<:Kernel}`: Base kernels to be combined. Can be any valid `Kernel`
+and have tunable parameters.
+- `layers::Tuple{Vararg{Union{NNLayer, ProductLayer}}}`: Tuple containing `NNLayer` and 
+`ProductLayer` objects which specify the NKN geometry.
+"""
+mutable struct NKN <: Kernel
+    base_kernels::Vector{<:Kernel}
+    layers::Tuple{Vararg{Union{NNLayer, ProductLayer}}}
+
+    function NKN(base_kernels, layers)
+        # bunch of checks
+        if size(layers[1], 2) != length(base_kernels)
+            throw(DimensionMismatch("""
+                First layer has dimensions $(size(layers[1])), base kernels have length
+                $(length(base_kernels)).
+            """))
+        end
+        if size(layers[end], 1) != 1
+            throw(DimensionMismatch("Output of last layer must be of length 1."))
+        end
+        mismatch = [size(layers[i], 1) != size(layers[i + 1], 2) for i in 1:length(layers)-1]
+        if any(mismatch)
+            throw(DimensionMismatch(
+                """
+                Incompatible layer dimensions between layers $(findall(mismatch)) and their
+                following layers.
+                """
+            ))
+        end
+        return new(base_kernels, layers)
+    end
+end
+
+# Some convenient constructors to help with the initialisation of NKNs
+function LinearLayer(s::Tuple{Int, Int})
+    return NNLayer(
+        # Initialisation heuristics stolen directly from the original implementation:
+        # https://github.com/ssydasheng/GPflow-Slim/blob/223b9e30e8a7969496a3a53acd3a39835f5a3f8b/gpflowSlim/neural_kernel_network/neural_kernel_network_wrapper.py#L99
+        Positive(rand(Uniform(1.0 / (2 * s[2]), 3.0 / (2 * s[2])), s...)),
+        Positive(0.01 * ones(s[1])),
+        Fixed(x -> x) # no non-linearity
+    )
+end
+
+function ProductLayer(s::Tuple{Int, Int})
+    C = rand(Bool, s...)
+    # Here we avoid entire lines of `false`s. Not very efficient, but this
+    # constructor will only be called once every run.
+    # We still might have repeated lines, which is not ideal.
+    for i in 1:s[1]
+        if sum(C[i, :]) == 0
+            C[i, rand(1:s[2])] = true
+        end
+    end
+    return ProductLayer(Fixed(C))
+end
+
+# One has to be careful here when setting `unique = true`, as this will loop indefinitely
+# in case s[1] is larger than the total number of unique permutations of the seed.
+# That is s[2]! / (step! (s[2] - step)!). The check is not executed here because factorials
+# blow up really fast.
+function ProductLayer(s::Tuple{Int, Int}, step::Int; unique=false)
+    if step > s[2] || step < 2
+        throw(ArgumentError("step must be > 2 and <= $(s[2])"))
+    end
+    seed = Vector{Bool}(vcat(fill(true, step), fill(false, s[2] - step)))
+    all_rows = Vector{Adjoint{Bool,Array{Bool,1}}}()
+    for i in 1:s[1]
+        if unique
+            r = shuffle(seed)
+            if !in(r, all_rows)
+                push!(all_rows, r')
+            else
+                i -= 1
+            end
+        else
+            push!(all_rows, shuffle(seed)')
+        end
+    end
+    return ProductLayer(Fixed(vcat(all_rows...)))
+end
+
+# hadprod(v) = reduce((x, y) -> x .* y, [v[i] for i in 1:length(v)])
+hadprod(v) = reduce((x, y) -> x .* y, v)
+
+function (k::NKN)(x, y)
+    # The type declaration here is because of Nabla, otherwise it breaks on the backward
+    # pass.
+    covs::AbstractArray{Any} = [bk(x, y) for bk in k.base_kernels]
+    for layer in k.layers
+        if layer isa NNLayer
+            W = unwrap(layer.W)
+            b = unwrap(layer.b)
+            c = covs
+            # This reshaping is also because of Nabla. It turns a Nabla-wrapped array into
+            # an array of Nabla-wrapped objects, which allow proper dispatching.
+            covs = reshape([W[i] for i = 1:length(W)], size(W)...) * c +
+                reshape([b[i] for i = 1:length(b)], size(b)...) .*
+                fill(ones(size(x, 1), size(y, 1)), length(b))
+        else
+            C = unwrap(layer.C)
+            covs = map([covs[C[i, :]] for i in 1:size(C, 1)]) do c
+                if isempty(c)
+                    # This is necessary for the case in which we have an entire line of
+                    # `false`s. In that case, we are not combining any of the kernels, so
+                    # we default the result to the equivalent of a ConstantKernel.
+                    # Ideally one wouldn't feed lines like this to the kernel, but it may
+                    # happen when generating those randomly.
+                    return Ones(size(covs[1]))
+                else
+                    return hadprod(c)
+                end
+            end
+        end
+    end
+    length(covs) > 1 && throw(
+        error("Final output has length $(length(covs)), something went wrong.")
+    )
+    return covs[1]
+end
+
+(k::NKN)(x) = k(x, x)
+Base.show(io::IO, k::NKN) = show(io, equivalent_kernel(k))
+
+"""
+    equivalent_kernel(k::NKN)
+
+Obtain the `Kernel` that corresponds to the current specific state of a `NKN`, `k`.
+"""
+function equivalent_kernel(k::NKN)
+    ek::Vector{Kernel} = k.base_kernels
+    for layer in k.layers
+        if layer isa NNLayer
+            W = unwrap(layer.W)
+            b = unwrap(layer.b)
+            ek = Vector{Kernel}(
+                W * ek::Vector{Kernel} + b .* fill(ConstantKernel(), length(b))
+            )
+        else
+            ek = p_layer(unwrap(layer.C), ek)
+        end
+    end
+    length(ek) > 1 && throw(
+        error("Final output has length $(length(ek)), something went wrong.")
+    )
+    return ek[1]
+end
+function p_layer(cf::Matrix{Bool}, ek::Vector{<:Kernel})::Vector{Kernel}
+    return Kernel[prod(ek[cf[i, :]]) for i in 1:size(cf, 1)]
+end
+
+"""
     SparseKernel{K <: Kernel} <: Kernel
 
 Not supposed to be used directly by the user. This is automatically called under the hood,
@@ -1064,3 +1222,6 @@ function (k::HeteroskedasticDiagonalKernel)(x::ArrayOrReal, y::ArrayOrReal)
     return covs .* K
 end
 (k::HeteroskedasticDiagonalKernel)(x::ArrayOrReal) = k(x, x)
+
+Base.one(::Kernel) = ConstantKernel()
+Base.one(::Type{GPForecasting.Kernel}) = ConstantKernel()

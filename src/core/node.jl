@@ -1,4 +1,4 @@
-getfields(x) = (getfield(x, i) for i in 1:nfields(x))
+getfields(x) = broadcast(y -> getfield(x, y), fieldnames(typeof(x)))
 
 abstract type AbstractNode end
 
@@ -16,23 +16,26 @@ Base.broadcastable(tn::AbstractNode) = Ref(tn)
 extract_children(x) = AbstractNode[]
 extract_children(x::AbstractNode) = [x]
 extract_children(x::AbstractArray{<:AbstractNode}) = x[:]
+extract_children(x::Tuple) = vcat(extract_children.(x)...)
 extract_others(x) = [x]
 extract_others(x::AbstractNode) = []
 extract_others(x::AbstractArray{<:AbstractNode}) = []
+extract_others(x::Tuple) = vcat(extract_others.(x)...)
+
 
 """
     children(x) -> Vector{AbstractNode}
 
 Return a vector of all nodes directly referenced by `x`, including those in arrays.
 """
-children(x) = reduce(vcat, (extract_children(field) for field in getfields(x)), init=AbstractNode[])
+children(x) = vcat(extract_children.(getfields(x))...)
 
 """
     others(x) -> Vector{Any}
 
 Return all non-node fields (leaves) of `x`, i.e., everything not returned by [`children`](@ref).
 """
-others(x) = reduce(vcat, (extract_others(field) for field in getfields(x)), init=Any[])
+others(x) = vcat(extract_others.(getfields(x))...)
 
 """
     create_instance(T::Type, args...)
@@ -46,6 +49,11 @@ _reconstruct!(field, others, children) = pop!(others)
 _reconstruct!(field::AbstractNode, others, children) = pop!(children)
 function _reconstruct!(field::AbstractArray{<:AbstractNode}, others, children)
     return reshape([pop!(children) for _ in 1:length(field)], size(field)...)
+end
+function _reconstruct!(field::Tuple, others, children)
+    return ntuple(length(field)) do i
+        _reconstruct!(field[i], others, children)
+    end
 end
 
 """
@@ -61,7 +69,7 @@ function reconstruct(x, others, children)
 
     return create_instance(
         typeof(x),
-        (_reconstruct!(field, others, children) for field in getfields(x))...
+        [_reconstruct!(field, others, children) for field in getfields(x)]...
     )
 end
 
@@ -77,19 +85,6 @@ end
 
 TreeNode(x) = TreeNode(x, TreeNode[])
 
-Base.:(==)(tn1::TreeNode, tn2::TreeNode) = tn1.x == tn2.x && tn1.children == tn2.children
-
-function Base.show(io::IO, tn::TreeNode)
-    print(io, "TreeNode(", tn.x)
-    if isempty(tn.children)
-        print(io, ")")
-    else
-        print(io, ", [")
-        join(io, tn.children, ", ")
-        print(io, "])")
-    end
-end
-
 """
     map(f, ns::TreeNode...) -> TreeNode
 
@@ -99,13 +94,13 @@ Recurses through parallel trees and applies a function to parallel nodes.
 
 ```jldoctest; setup = :(import GPForecasting: TreeNode)
 julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); map(+, a, a)
-TreeNode(2, [TreeNode(4), TreeNode(6)])
+TreeNode(2, GPForecasting.TreeNode[TreeNode(4, GPForecasting.TreeNode[]), TreeNode(6, GPForecasting.TreeNode[])])
 ```
 """
 function Base.map(f, ns::TreeNode...)
     return TreeNode(
-        f((n.x for n in ns)...),
-        TreeNode[map.(f, ps...) for ps in zip((n.children for n in ns)...)]
+        f([n.x for n in ns]...),
+        [map.(f, ps...) for ps in zip(getfield.(ns, :children)...)]
     )
 end
 
@@ -119,12 +114,12 @@ Equivalent to `map(tuple, ns...)`.
 
 ```jldoctest; setup = :(import GPForecasting: TreeNode)
 julia> a = TreeNode(1, [TreeNode(2), TreeNode(3)]); zip(a, a)
-TreeNode((1, 1), [TreeNode((2, 2)), TreeNode((3, 3))])
+TreeNode((1, 1), GPForecasting.TreeNode[TreeNode((2, 2), GPForecasting.TreeNode[]), TreeNode((3, 3), GPForecasting.TreeNode[])])
 ```
 """
-Base.Iterators.zip(ns::TreeNode...) = map(tuple, ns...)
+Base.Iterators.zip(ns::TreeNode...) = map((xs...) -> xs, ns...)
 Base.reduce(op, n::TreeNode) = op(n.x, _reduce(op, n)...)
-_reduce(op, n::TreeNode) = (op(p.x, _reduce(op, p)...) for p in n.children)
+_reduce(op, n::TreeNode) = [op(p.x, _reduce(op, p)...) for p in n.children]
 
 """
     reduce(f, ns::TreeNode...) -> TreeNode
@@ -208,10 +203,10 @@ julia> c = TreeNode([[1, 2], [3, 4]],
  [11, 12]
 ```
 """
-function flatten(t::TreeNode, result::Vector=[])
-    append!(result, t.x)
-    foreach(p -> flatten(p, result), t.children)
-    return result
+function flatten(t::TreeNode, res::Vector=Any[])
+    append!(res, t.x)
+    foreach(p -> flatten(p, res), t.children)
+    return res
 end
 
 """
@@ -263,10 +258,10 @@ julia> c = TreeNode([[1, 2], [3, 4]],
  12
 ```
 """
-function flatten2(t::TreeNode, result::Vector=[])
-    foreach(x -> append!(result, x), t.x)
-    foreach(p -> flatten2(p, result), t.children)
-    return result
+function flatten2(t::TreeNode, res::Vector=[])
+    foreach(x -> append!(res, x), t.x)
+    foreach(p -> flatten2(p, res), t.children)
+    return res
 end
 
 """
