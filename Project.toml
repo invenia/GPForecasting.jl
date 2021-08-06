@@ -1,7 +1,7 @@
 name = "GPForecasting"
 uuid = "13ebecde-e90f-535b-8a48-12ba364a85f9"
 authors = ["Invenia Technical Computing"]
-version = "2.15.0"
+version = "2.16.0"
 
 [deps]
 BlockDiagonals = "0a1fb500-61f7-11e9-3c65-f5ef3456f9f0"
@@ -27,7 +27,7 @@ Distances = "0.10"
 Distributions = "0.16, 0.17, 0.18, 0.19, 0.20, 0.21, 0.22, 0.23, 0.24"
 LineSearches = "7"
 Memento = "0.11, 0.12, 0.13, 1"
-Metrics = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13"
+Metrics = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13, 0.14"
 Nabla = "0.11, 0.12"
 Optim = "0.17, 0.18, 0.19, 0.20, 0.21, 0.22, 1"
 julia = "1"
