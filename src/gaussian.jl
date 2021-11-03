@@ -63,27 +63,6 @@ function Base.getproperty(g::Gaussian, x::Symbol)
     end
 end
 
-# We can't use the default printing for `Distribution`s because it calls `print` on the
-# internal fields, which errors for `Gaussian` as it might contain a `nothing`
-function Base.show(io::IO, g::Gaussian{T, G}) where {T, G}
-    println(io, "Gaussian{", T, ", ", G, "}(")
-    print(io, "    μ: ")
-    # Use compact and limited printing to ensure we don't spit out entire huge matrices
-    show(IOContext(io, :compact=>true, :limit=>true), g.μ)
-    print(io, "\n    Σ: ")
-    show(IOContext(io, :compact=>true, :limit=>true), g.Σ)
-    print(io, "\n    chol: ")
-    if g.chol === nothing
-        # `nothing` can't be `print`ed, but even if we `show` it, just saying that it's
-        # nothing is not particularly informative, so we can instead show what it means
-        # for it to be nothing
-        print(io, "<not yet computed>")
-    else
-        show(IOContext(io, :compact=>true, :limit=>true), g.chol)
-    end
-    print(io, "\n)")
-end
-
 Statistics.mean(g::Gaussian) = g.μ
 Statistics.cov(g::Gaussian) = g.Σ
 function Statistics.var(g::Gaussian)
