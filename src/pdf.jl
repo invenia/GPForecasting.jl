@@ -33,7 +33,15 @@ for a design matrix `y`.
 Update `gp` parameter values with `params` and then call logpdf(ngp, x, y), where `ngp` is
 the updated `GP`. Does NOT affect `gp`.
 """
-@unionise function Distributions.logpdf(dist::Gaussian, x::AbstractArray)
+# Note we explicitly create these four signatures rather than use `@unionise` in order to
+# avoid method ambiguity with `Distributions.logpdf`
+# https://gitlab.invenia.ca/invenia/GPForecasting.jl/-/issues/83
+Distributions.logpdf(dist::Gaussian, x::AbstractArray{<:Real}) = _logpdf(dist, x)
+Distributions.logpdf(dist::Node{<:Gaussian}, x::AbstractArray{<:Real}) = _logpdf(dist, x)
+Distributions.logpdf(dist::Gaussian, x::Node{<:AbstractArray{<:Real}}) = _logpdf(dist, x)
+Distributions.logpdf(dist::Node{<:Gaussian}, x::Node{<:AbstractArray{<:Real}}) = _logpdf(dist, x)
+
+@unionise function _logpdf(dist::Gaussian, x::AbstractArray)
     L = cholesky(dist).L
     log_det = 2sum(log, diag(L))
     if size(x, 2) > 1 && size(L, 2) == length(x) # This means that the covariance matrix has entries for
