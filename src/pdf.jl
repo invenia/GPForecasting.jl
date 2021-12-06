@@ -33,27 +33,17 @@ for a design matrix `y`.
 Update `gp` parameter values with `params` and then call logpdf(ngp, x, y), where `ngp` is
 the updated `GP`. Does NOT affect `gp`.
 """
-@unionise function Distributions.logpdf(dist::Gaussian, x::AbstractArray)
-    L = cholesky(dist).L
-    log_det = 2sum(log, diag(L))
-    if size(x, 2) > 1 && size(L, 2) == length(x) # This means that the covariance matrix has entries for
-    # all outputs and timestamps.
-        z = L \ vec((x .- dist.μ)')
-    elseif size(L, 2) == size(x, 2) # This means we have a covariance matrix that has entries
-    # only for the different outputs, but for a single timestamp. This allows for the
-    # automatic computation of the logpdf of a set of realisations, i.e. p(x[1, :], ... x[n, :]|dist)
-        z = L \ (x .- dist.μ')'
-        return (-size(x, 1) * (log_det + size(x, 2) * log(2π)) - sum(abs2, z)) / 2
-    else
-        z = L \ (x .- dist.μ)
-    end
-    return -(log_det + length(x) * log(2π) + sum(abs2, z)) / 2
-end
+# Note we explicitly create these four signatures rather than use `@unionise` in order to
+# avoid method ambiguity with `Distributions.logpdf`
+# https://gitlab.invenia.ca/invenia/GPForecasting.jl/-/issues/83
+Distributions.logpdf(dist::Gaussian, x::AbstractArray{<:Real}) = _logpdf(dist, x)
+Distributions.logpdf(dist::Node{<:Gaussian}, x::AbstractArray{<:Real}) = _logpdf(dist, x)
+Distributions.logpdf(dist::Gaussian, x::Node{<:AbstractArray{<:Real}}) = _logpdf(dist, x)
+Distributions.logpdf(dist::Node{<:Gaussian}, x::Node{<:AbstractArray{<:Real}}) = _logpdf(dist, x)
 
-# This looks quite redundant, but is necessary to remove the ambiguity introduced above due
-# to the unionise, since Distributions.jl has its own logpdf methods that can be as
-# especialised as the above.
-function Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real})
+# (Related to the comment above) It's fine to unionise this internal method because
+# it doesn't conflict with anything in `Distributions`.
+@unionise function _logpdf(dist::Gaussian, x::AbstractArray)
     L = cholesky(dist).L
     log_det = 2sum(log, diag(L))
     if size(x, 2) > 1 && size(L, 2) == length(x) # This means that the covariance matrix has entries for
