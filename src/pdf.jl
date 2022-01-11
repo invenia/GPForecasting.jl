@@ -40,6 +40,9 @@ Distributions.logpdf(dist::Gaussian, x::AbstractArray{<:Real}) = _logpdf(dist, x
 Distributions.logpdf(dist::Node{<:Gaussian}, x::AbstractArray{<:Real}) = _logpdf(dist, x)
 Distributions.logpdf(dist::Gaussian, x::Node{<:AbstractArray{<:Real}}) = _logpdf(dist, x)
 Distributions.logpdf(dist::Node{<:Gaussian}, x::Node{<:AbstractArray{<:Real}}) = _logpdf(dist, x)
+# This one is to avoid method ambiguity when using Distritions <0.25
+# https://gitlab.invenia.ca/invenia/GPForecasting.jl/-/issues/85
+Distributions.logpdf(dist::Gaussian, x::AbstractMatrix{<:Real}) = _logpdf(dist, x)
 
 # (Related to the comment above) It's fine to unionise this internal method because
 # it doesn't conflict with anything in `Distributions`.
