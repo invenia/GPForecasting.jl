@@ -1,7 +1,7 @@
 using DataFrames
 using Dates
 using Distributions
-using FillArrays
+using FillArrays: Eye, Zeros
 using GPForecasting
 using LineSearches
 using LinearAlgebra
