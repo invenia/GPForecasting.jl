@@ -113,7 +113,7 @@ using BlockDiagonals: BlockDiagonal, blocks
 using DataFrames
 using Distances
 using Distributions
-using FillArrays
+using FillArrays: Eye, Ones, Zeros
 using LineSearches
 using LinearAlgebra
 using Memento
