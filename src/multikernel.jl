@@ -835,6 +835,204 @@ end
 isMulti(k::OLMMKernel) = unwrap(k.p) > 1
 Base.size(k::OLMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
 
+"""
+    LSOLMMKernel <: MultiOutputKernel
+
+Latent Space OLMM kernel, which uses positions defined in a latent space to define the
+mixing matrix `H`. These latent positions are input to a kernel, `Hk`, which outputs a
+distance matrix whose first `m` eigenvectors and eigenvalues construct `H`.
+
+* Fields:
+
+- `m`: Number of latent processes.
+- `p`: Number of outputs.
+- `σ²`: Observation noise variance. Same for all processes (so you should normalise the data
+    first).
+- `D`: Noise variance for the latent processes.
+- `H`: Mixing matrix of shape `p`x`m`.
+- `P`: Projection matrix. `PH=I`.
+- `U`: Orthogonal component of the mixing matrix, i.e. its eigenvectors.
+- `S_sqrt`: Eigenvalues of the mixing matrix.
+- `ks`: Vector containing the kernel for each latent process.
+
+* Constructors:
+
+    LSOLMMKernel(m, p, σ², H, k::Vector{Kernel})
+
+Default constructor.
+
+    LSOLMMKernel(m::Int, p::Int, σ²::Float64, H::Matrix, k::Kernel)
+
+Make `m`, `p` and `H` `Fixed` and `σ²` `Positive`, while repeating `k` for all latent
+processes.
+"""
+mutable struct LSOLMMKernel <: MultiOutputKernel
+    Hk::Kernel # Kernel for building mixing matrix
+    lat_pos # Latent positions for latent processes
+    out_pos # Latent positions for output processes
+    olmm::OLMMKernel # Corresponding OLMM kernel
+
+    global function _unsafe_LSOLMMKernel(
+        m, # Number of latent processes
+        p, # Number of outputs
+        σ², # Observation noise
+        D, # latent noise(s)
+        Hk::Kernel, # Kernel for building mixing matrix
+        lat_pos, # Latent positions for latent processes
+        out_pos, # Latent positions for output processes
+        H, # Mixing matrix, (p x m)
+        P, # Projection matrix, (m x p)
+        U, # Orthogonal component of the mixing matrix. This is already truncated!
+        S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+        ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
+    )
+        return new(
+            Hk, # Kernel for building mixing matrix
+            lat_pos, # Latent positions for latent processes
+            out_pos, # Latent positions for output processes
+            _unsafe_OLMMKernel(
+                m, # Number of latent processes
+                p, # Number of outputs
+                σ², # Observation noise
+                D, # latent noise(s)
+                H, # Mixing matrix, (p x m)
+                P, # Projection matrix, (m x p)
+                U, # Orthogonal component of the mixing matrix. This is already truncated!
+                S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+                ks, # Kernels for the latent processes, m-long or the same for all
+            )
+        )
+    end
+
+    global function _unsafe_LSOLMMKernel(
+        Hk::Kernel, # Kernel for building mixing matrix
+        lat_pos, # Latent positions for latent processes
+        out_pos, # Latent positions for output processes
+        olmm::OLMMKernel,
+    )
+        return new(
+            Hk, # Kernel for building mixing matrix
+            lat_pos, # Latent positions for latent processes
+            out_pos, # Latent positions for output processes
+            olmm,
+        )
+    end
+
+    function LSOLMMKernel(
+        m, # Number of latent processes
+        p, # Number of outputs
+        σ², # Observation noise
+        D, # latent noise(s)
+        Hk::Kernel, # Kernel for building mixing matrix
+        lat_pos, # Latent positions for latent processes
+        out_pos, # Latent positions for output processes
+        ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
+    )
+        # Do a bunch of consistency checks
+        n_m = unwrap(m)
+        n_p = unwrap(p)
+        n_k = isa(ks, Kernel) ? 1 : length(ks)
+        n_out = length(unwrap(out_pos))
+        n_lat = length(unwrap(lat_pos))
+
+        # We must be able to initialise the kernel without knowing the number of outputs
+        # because that's what happens in prod.
+        if n_out == 0
+            info(
+                LOGGER,
+                "Initialising OLMMKernel with placeholder `H`, `P`, `U`, and `S_sqrt`."
+            )
+        elseif n_out != n_p
+            throw(
+                ArgumentError(
+                    "Expected $n_p latent positions for the outputs. Got $n_out."
+                )
+            )
+        end
+
+        if n_lat != n_m
+            throw(
+                ArgumentError(
+                    "Expected $n_m latent positions for the latent processes. Got $n_lat."
+                )
+            )
+        end
+
+        n_k == 0 && info("Initialising OLMMKernel with placeholder `ks`.")
+
+        (n_k != 0 && n_k != 1 && n_k != n_m) && throw(
+            ArgumentError("""
+                Expected $n_m kernels, got $(n_k). Each latent process needs a kernel.
+            """)
+        )
+
+        H, P, U, S_sqrt = if n_out == 0
+            [Fixed(Matrix{Float64}(undef, 0, 0)) for i in 1:4] # Placeholders
+        else
+            Fixed.(_build_H_from_kernel(Hk, unwrap(out_pos), unwrap(lat_pos)))
+        end
+
+        return new(
+            Hk, # Kernel for building mixing matrix
+            lat_pos, # Latent positions for latent processes
+            out_pos, # Latent positions for output processes
+            _unsafe_OLMMKernel(
+                m, # Number of latent processes
+                p, # Number of outputs
+                σ², # Observation noise
+                D, # latent noise(s)
+                H, # Mixing matrix, (p x m)
+                P, # Projection matrix, (m x p)
+                U, # Orthogonal component of the mixing matrix. This is already truncated!
+                S_sqrt, # Eigenvalues of the latent processes. This is already truncated!
+                ks, # Kernels for the latent processes, m-long or the same for all
+            )
+        )
+    end
+end
+create_instance(T::Type{LSOLMMKernel}, args...) = _unsafe_LSOLMMKernel(args...)
+
+function Base.getproperty(k::LSOLMMKernel, p::Symbol)
+    if p in fieldnames(LSOLMMKernel)
+        return getfield(k, p)
+    else
+        return getproperty(k.olmm, p)
+    end
+end
+
+function _build_H_from_kernel(Hk, out_pos, lat_pos)
+    m = length(lat_pos)
+    M = Hk(out_pos, lat_pos)
+    U, S, _ = svd(M)
+    S_sqrt = sqrt.(S)
+    U = U
+    H = U * Diagonal(S_sqrt)
+    P = Diagonal(S_sqrt.^(-1.0)) * U'
+    return H, P, U, S_sqrt
+end
+
+"""
+    update_LSOLMM!(k::LSOLMMKernel)
+
+Use current latent positions stored in `k` to update the mixing matrix. Operates inplace.
+"""
+function update_LSOLMM!(k::LSOLMMKernel)
+    H, P, U, S_sqrt = Fixed.(
+        _build_H_from_kernel(k.Hk, unwrap(k.out_pos), unwrap(k.lat_pos))
+    )
+    k.olmm.H = H
+    k.olmm.P = P
+    k.olmm.U = U
+    k.olmm.S_sqrt = S_sqrt
+end
+
+(k::LSOLMMKernel)(x, y) = k.olmm(x, y)
+(k::LSOLMMKernel)(x) = k.olmm(x)
+
+isMulti(k::LSOLMMKernel) = unwrap(k.p) > 1
+Base.size(k::LSOLMMKernel, i::Int) = i < 1 ? BoundsError() : (i < 3 ? unwrap(k.p) : 1)
+
+
 # Groupped OLMM kernel
 """
     GOLMMKernel <: MultiOutputKernel
