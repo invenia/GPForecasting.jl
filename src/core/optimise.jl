@@ -406,6 +406,39 @@ function learn(
     return ngp
 end
 
+# Will not implement any of the meta-learning-like learning procedures for now, as they
+# haven't really been used.
+function learn(
+    gp::GP{LSOLMMKernel, <:Mean},
+    obj::Function;
+    Θ_init::Array=[],
+    its=200,
+    trace=true,
+    algorithm::Type{<:Optim.FirstOrderOptimizer}=LBFGS,
+    alphaguess=LineSearches.InitialStatic(scaled=true),
+    linesearch=LineSearches.BackTracking(),
+    kwargs...
+)
+    ngp = deepcopy(gp)
+    Θ_init = isempty(Θ_init) ? ngp.k[:] : Θ_init
+    Θ_opt = minimise(
+        obj,
+        Θ_init,
+        its=its,
+        trace=trace,
+        algorithm=algorithm,
+        alphaguess=alphaguess,
+        linesearch=linesearch,
+        kwargs...
+    )
+    ngp = GP(ngp.m, set(ngp.k, Θ_opt))
+    # We need to do one last updating in the H matrix.
+    # (isa(ngp.k.lat_pos, Fixed) && isa(ngp.k.out_pos, Fixed)) || update_LSOLMM!(ngp.k)
+    update_LSOLMM!(ngp.k)
+    return ngp # Again, assuming we are only optimising kernels
+# Got to overload if we want parameters in the means as well
+end
+
 """
     constrain_H!(gp::GP{<:OLMMKernel})
 
