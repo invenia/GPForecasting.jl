@@ -508,16 +508,17 @@
         @testset "1D latent positions" begin
             lat_pos = rand(3)
             out_pos = rand(5)
-            k = LSOLMMKernel(
-                Fixed(3), Fixed(5), Fixed(0.02), Fixed([0.05 for i in 1:3]),
-                stretch(EQ(), Positive(5.0)), lat_pos, out_pos,
-                [stretch(EQ(), Positive(5.0)) for i in 1:3]
-            )
-            gp = GP(k)
 
             A = rand(5, 3);
             U, S, V = svd(A);
             H = U * Diagonal(S);
+
+            k = LSOLMMKernel(
+                Fixed(3), Fixed(5), Fixed(0.02), Fixed([0.05 for i in 1:3]),
+                stretch(EQ(), Positive(5.0)), lat_pos, out_pos,
+                [stretch(EQ(), Positive(5.0)) for i in 1:3], Fixed(S)
+            )
+
             ok = OLMMKernel(
                 3, 5, 0.02, [0.05 for i in 1:3], H,
                 [stretch(EQ(), Positive(5.0)) for i in 1:3]
@@ -527,6 +528,7 @@
             @test unwrap(k.P) ≈ unwrap(k2.P)
             @test unwrap(k.U) ≈ unwrap(k2.U)
 
+            gp = GP(k)
             ngp = learn(gp, rand(4), rand(4, 5); trace=false)
             H = unwrap(ngp.k.H)
             P = unwrap(ngp.k.P)
@@ -540,12 +542,18 @@
             @test !(unwrap(gp.k.H) ≈ H)
             @test !(unwrap(gp.k.P) ≈ P)
             @test !(unwrap(gp.k.U) ≈ U)
-            @test !(unwrap(gp.k.S_sqrt) ≈ S_sqrt)
+            @test (unwrap(gp.k.S_sqrt) ≈ S_sqrt) # S_sqrt was Fixed
 
             # Check that the final mixing matrix has the right properties
             @test H ≈ U * Diagonal(S_sqrt)
             @test diag(H' * H) ≈ S_sqrt.^2
             @test diag(P * H) ≈ ones(size(P, 1))
+
+            # Let S_sqrt change
+            k.olmm.S_sqrt = Positive(S)
+            ngp = learn(GP(k), rand(4), rand(4, 5); trace=false)
+            S_sqrt = unwrap(ngp.k.S_sqrt)
+            @test !(unwrap(gp.k.S_sqrt) ≈ S_sqrt)
         end
 
         @testset "3D latent positions" begin
@@ -570,7 +578,7 @@
             @test !(unwrap(gp.k.H) ≈ H)
             @test !(unwrap(gp.k.P) ≈ P)
             @test !(unwrap(gp.k.U) ≈ U)
-            @test !(unwrap(gp.k.S_sqrt) ≈ S_sqrt)
+            @test (unwrap(gp.k.S_sqrt) ≈ S_sqrt) # S_sqrt is Fixed by default
 
             # Check that the final mixing matrix has the right properties
             @test H ≈ U * Diagonal(S_sqrt)

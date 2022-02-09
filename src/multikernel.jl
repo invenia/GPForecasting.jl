@@ -930,6 +930,7 @@ mutable struct LSOLMMKernel <: MultiOutputKernel
         lat_pos, # Latent positions for latent processes
         out_pos, # Latent positions for output processes
         ks::Union{Kernel, Vector{<:Kernel}}, # Kernels for the latent processes, m-long or the same for all
+        S_sqrt=Fixed(ones(unwrap(m))), # By default incorporate in the latent process variances
     )
         # Do a bunch of consistency checks
         n_m = unwrap(m)
@@ -969,12 +970,27 @@ mutable struct LSOLMMKernel <: MultiOutputKernel
             """)
         )
 
-        H, P, U, S_sqrt = if n_out == 0
-            [Fixed(Matrix{Float64}(undef, 0, 0)) for i in 1:4] # Placeholders
+        H0, P0 = if n_out == 0
+            [Fixed(Matrix{Float64}(undef, 0, 0)) for i in 1:2] # Placeholders
         else
             Fixed.(_build_H_from_kernel(Hk, unwrap(out_pos), unwrap(lat_pos)))
         end
 
+        U = if n_out == 0
+            Fixed(Matrix{Float64}(undef, 0, 0)) # Placeholder
+        else
+           H0
+        end
+
+        H, P = if size(H0, 1) > 0
+            Fixed.([
+                unwrap(H0) * Diagonal(unwrap(S_sqrt)),
+                Diagonal(unwrap(S_sqrt).^(-1.0)) * unwrap(P0)
+            ])
+        else
+            H0, P0
+        end
+# @show H0;@show P0; @show H; @show P
         return new(
             Hk, # Kernel for building mixing matrix
             lat_pos, # Latent positions for latent processes
@@ -1003,14 +1019,23 @@ function Base.getproperty(k::LSOLMMKernel, p::Symbol)
     end
 end
 
+"""
+    _build_H_from_kernel(Hk, out_pos, lat_pos)
+
+Construct the mixing matrix from the kernel `Hk` and the latent positions for the outputs,
+`out_pos`, and for the latent processes, `lat_pos`. Here `S_sqrt` is taken as identically
+ones, such that it can be optmised independently (or simply incorporated into the variance
+of the latent processes). We parameterise the orthogonal matrix `H` as `U * V` (instead of
+simply as `U`) to avoid 180 degree rotations of the eigenvectors, making it more numerically
+stable.
+"""
 function _build_H_from_kernel(Hk, out_pos, lat_pos)
     m = length(lat_pos)
     M = Hk(out_pos, lat_pos)
-    U, S, _ = svd(M)
-    S_sqrt = sqrt.(S)
-    H = U * Diagonal(S_sqrt)
-    P = Diagonal(S_sqrt.^(-1.0)) * U'
-    return H, P, U, S_sqrt
+    U, _, V = svd(M)
+    H = U * V
+    P = H'
+    return H, P
 end
 
 """
@@ -1019,13 +1044,14 @@ end
 Use current latent positions stored in `k` to update the mixing matrix. Operates inplace.
 """
 function update_LSOLMM!(k::LSOLMMKernel)
-    H, P, U, S_sqrt = Fixed.(
-        _build_H_from_kernel(k.Hk, unwrap(k.out_pos), unwrap(k.lat_pos))
-    )
-    k.olmm.H = H
-    k.olmm.P = P
-    k.olmm.U = U
-    k.olmm.S_sqrt = S_sqrt
+    H, P = _build_H_from_kernel(k.Hk, unwrap(k.out_pos), unwrap(k.lat_pos))
+    # @show H
+    # @show P
+    S_sqrt = unwrap(k.S_sqrt)
+    k.olmm.U = Fixed(H) # Because S_sqrt
+    k.olmm.H = Fixed(H * Diagonal(S_sqrt))
+    k.olmm.P = Fixed(Diagonal(S_sqrt.^(-1.0)) * P)
+    # @show k.olmm.P
 end
 
 (k::LSOLMMKernel)(x, y) = k.olmm(x, y)
