@@ -1045,13 +1045,10 @@ Use current latent positions stored in `k` to update the mixing matrix. Operates
 """
 function update_LSOLMM!(k::LSOLMMKernel)
     H, P = _build_H_from_kernel(k.Hk, unwrap(k.out_pos), unwrap(k.lat_pos))
-    # @show H
-    # @show P
     S_sqrt = unwrap(k.S_sqrt)
     k.olmm.U = Fixed(H) # Because S_sqrt
     k.olmm.H = Fixed(H * Diagonal(S_sqrt))
     k.olmm.P = Fixed(Diagonal(S_sqrt.^(-1.0)) * P)
-    # @show k.olmm.P
 end
 
 (k::LSOLMMKernel)(x, y) = k.olmm(x, y)
