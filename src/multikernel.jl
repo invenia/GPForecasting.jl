@@ -1030,7 +1030,6 @@ simply as `U`) to avoid 180 degree rotations of the eigenvectors, making it more
 stable.
 """
 function _build_H_from_kernel(Hk, out_pos, lat_pos)
-    m = length(lat_pos)
     M = Hk(out_pos, lat_pos)
     U, _, V = svd(M)
     H = U * V
@@ -1046,7 +1045,7 @@ Use current latent positions stored in `k` to update the mixing matrix. Operates
 function update_LSOLMM!(k::LSOLMMKernel)
     H, P = _build_H_from_kernel(k.Hk, unwrap(k.out_pos), unwrap(k.lat_pos))
     S_sqrt = unwrap(k.S_sqrt)
-    k.olmm.U = Fixed(H) # Because S_sqrt
+    k.olmm.U = Fixed(H) # Because S_sqrt hasn't been added yet
     k.olmm.H = Fixed(H * Diagonal(S_sqrt))
     k.olmm.P = Fixed(Diagonal(S_sqrt.^(-1.0)) * P)
 end
