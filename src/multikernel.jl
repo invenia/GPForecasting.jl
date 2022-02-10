@@ -990,7 +990,6 @@ mutable struct LSOLMMKernel <: MultiOutputKernel
         else
             H0, P0
         end
-# @show H0;@show P0; @show H; @show P
         return new(
             Hk, # Kernel for building mixing matrix
             lat_pos, # Latent positions for latent processes
