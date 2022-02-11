@@ -1021,12 +1021,13 @@ end
 """
     _build_H_from_kernel(Hk, out_pos, lat_pos)
 
-Construct the mixing matrix from the kernel `Hk` and the latent positions for the outputs,
-`out_pos`, and for the latent processes, `lat_pos`. Here `S_sqrt` is taken as identically
-ones, such that it can be optmised independently (or simply incorporated into the variance
-of the latent processes). We parameterise the orthogonal matrix `H` as `U * V` (instead of
-simply as `U`) to avoid 180 degree rotations of the eigenvectors, making it more numerically
-stable.
+Construct the mixing matrix, `H = U * S_sqrt`, from the kernel `Hk` and the latent positions
+for the outputs,
+`out_pos`, and for the latent processes, `lat_pos`. Here `S_sqrt` (see [`OLMMKernel`](@ref))
+is taken as identically ones, such that it can be optmised independently (or simply
+incorporated into the variance of the latent processes). We parameterise the orthogonal
+matrix `H` as `U * V` (instead of simply as `U`) to avoid 180 degree rotations of the
+eigenvectors, making it more numerically stable.
 """
 function _build_H_from_kernel(Hk, out_pos, lat_pos)
     M = Hk(out_pos, lat_pos)
@@ -1039,7 +1040,8 @@ end
 """
     update_LSOLMM!(k::LSOLMMKernel)
 
-Use current latent positions stored in `k` to update the mixing matrix. Operates inplace.
+Use current latent positions and kernel `Hk` stored in `k` to update the mixing matrix.
+Operates inplace.
 """
 function update_LSOLMM!(k::LSOLMMKernel)
     H, P = _build_H_from_kernel(k.Hk, unwrap(k.out_pos), unwrap(k.lat_pos))
