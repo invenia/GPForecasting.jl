@@ -3,6 +3,7 @@ using Dates
 using Distributions
 using FillArrays: Eye, Zeros
 using GPForecasting
+using GPForecasting: unwrap
 using LineSearches
 using LinearAlgebra
 using Memento

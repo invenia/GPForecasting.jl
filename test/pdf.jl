@@ -32,6 +32,19 @@
     mll = sum([-logpdf(Gaussian(pos.m(x_val[i, :])[:], pos.k(x_val[i, :])), y_val[i, :]) for i=1:5])
     @test mll_pointwise_posterior_obj(gp, x_train, y_train, x_val, y_val)(gp.k[:]) ≈ mll atol = _ATOL_ rtol = _RTOL_
 
+    # LSOLMM
+    k = LSOLMMKernel(
+            Fixed(3), Fixed(5), Fixed(0.02), Fixed([0.05 for i in 1:3]),
+            stretch(EQ(), Positive(5.0)), rand(3), rand(5),
+            [stretch(EQ(), Positive(5.0)) for i in 1:3]
+        )
+    gp = GP(k)
+    y = sample(gp(x));
+    reg(gp, x, y) = sum(abs.(unwrap(gp.k.H)))
+    @test logpdf(gp, x, y, gp.k[:]) - reg(gp, x, y) ≈ reglogpdf(reg, gp, x, y, gp.k[:]) atol = _ATOL_ rtol = _RTOL_
+    @test mle_obj(gp, x, y)(gp.k[:]) + reg(gp, x, y) ≈ map_obj(reg, gp, x, y)(gp.k[:]) atol = _ATOL_ rtol = _RTOL_
+    @test map_obj(reg, gp, x, y)(gp.k[:]) ≈ map_obj(reg)(gp, x, y)(gp.k[:]) atol = _ATOL_ rtol = _RTOL_
+
     @testset "Titsias" begin
         # 1D
         x = collect(0:0.01:2)

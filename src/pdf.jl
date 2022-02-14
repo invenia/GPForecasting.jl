@@ -260,6 +260,28 @@ end
 end
 
 @unionise function Distributions.logpdf(
+    gp::GP{K, M},
+    x,
+    y::AbstractMatrix{<:Real}
+) where {K <: LSOLMMKernel, M <: Mean}
+    return logpdf(GP(gp.m, gp.k.olmm), x, y)
+end
+
+@unionise function reglogpdf(
+    reg::Function,
+    gp::GP{K, M},
+    x,
+    y::AbstractArray{<:Real},
+    params::Vector{G}
+) where {K <: LSOLMMKernel, M <: Mean, G <: Real}
+    # This has the updated Hk, lat_pos, and out_pos, but we must update H, U, P, and S_sqrt.
+    ngp = GP(gp.m, set(gp.k, params))
+    update_LSOLMM!(ngp.k)
+    return logpdf(ngp::GP, x, y::AbstractArray) - reg(ngp, x, y)
+end
+
+
+@unionise function Distributions.logpdf(
     gp::GP{<:GOLMMKernel},
     x,
     y::AbstractMatrix{<:Real}
