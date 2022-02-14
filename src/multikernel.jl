@@ -1018,6 +1018,14 @@ function Base.getproperty(k::LSOLMMKernel, p::Symbol)
     end
 end
 
+function Base.setproperty!(k::LSOLMMKernel, p::Symbol, v)
+    if p in fieldnames(LSOLMMKernel)
+        return setfield!(k, p, v)
+    else
+        return setproperty!(k.olmm, p, v)
+    end
+end
+
 """
     _build_H_from_kernel(Hk, out_pos, lat_pos)
 
@@ -1046,9 +1054,9 @@ Operates inplace.
 function update_LSOLMM!(k::LSOLMMKernel)
     H, P = _build_H_from_kernel(k.Hk, unwrap(k.out_pos), unwrap(k.lat_pos))
     S_sqrt = unwrap(k.S_sqrt)
-    k.olmm.U = Fixed(H) # Because S_sqrt hasn't been added yet
-    k.olmm.H = Fixed(H * Diagonal(S_sqrt))
-    k.olmm.P = Fixed(Diagonal(S_sqrt.^(-1.0)) * P)
+    k.U = Fixed(H) # Because S_sqrt hasn't been added yet
+    k.H = Fixed(H * Diagonal(S_sqrt))
+    k.P = Fixed(Diagonal(S_sqrt.^(-1.0)) * P)
 end
 
 (k::LSOLMMKernel)(x, y) = k.olmm(x, y)
