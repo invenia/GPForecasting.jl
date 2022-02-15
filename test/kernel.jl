@@ -584,6 +584,12 @@
             @test H ≈ U * Diagonal(S_sqrt)
             @test diag(H' * H) ≈ S_sqrt.^2
             @test diag(P * H) ≈ ones(size(P, 1))
+
+            pgp = condition(ngp, rand(4), rand(4, 5))
+            @test pgp isa GP
+            @test pgp.k isa LSOLMMKernel
+            gaus = pgp(rand(4))
+            @test gaus isa Gaussian
         end
     end
 
