@@ -190,6 +190,18 @@ function condition(
     return GP(pos_m, pos_k)
 end
 
+function condition(
+    gp::GP{T, G},
+    x,
+    y::AbstractMatrix{<:Real}
+) where {T <: LSOLMMKernel, G <: Mean}
+    pgp = condition(GP(gp.m, gp.k.olmm), x, y)
+    pos_m = pgp.m # Posterior mean
+    pos_olmm = pgp.k # Posterior OLMM
+    k = gp.k # Prior LSOLMM
+    return GP(pos_m, _unsafe_LSOLMMKernel(k.Hk, k.lat_pos, k.out_pos, pos_olmm))
+end
+
 """
     condition_sparse(gp::GP, x, Xm, y::AbstractArray{<:Real}, σ²)
 
