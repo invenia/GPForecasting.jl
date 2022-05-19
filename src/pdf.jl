@@ -382,7 +382,7 @@ Compute the lower bound for the posterior logpdf under Titsias' approach. See:
     # Compute first term
     Kmm = k(Xm, Xm)
     Kmn = k(Xm, x)
-    Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
+    Umm = cholesky(Symmetric(Kmm) + _EPSILON_^2 * Eye(num_m)).U
     T = Umm' \ Kmn
     P = Eye(num_m) + (T * T') ./ σ²
     Up = cholesky(P).U
@@ -408,7 +408,7 @@ end
     # Compute Qnn
     Kmm = k(Xm, Xm)
     Kmn = k(Xm, x)
-    Umm = cholesky(Kmm + _EPSILON_^2 * Eye(num_m)).U
+    Umm = cholesky(Symmetric(Kmm) + _EPSILON_^2 * Eye(num_m)).U
     Q_sqrt = Umm' \ Kmn
     Qnn = Q_sqrt' * Q_sqrt
     # Compute first term
