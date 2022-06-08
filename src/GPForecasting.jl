@@ -126,6 +126,12 @@ using SparseArrays
 using Statistics
 using StatsBase
 
+const MODULE = "GPForecasting"
+
+function __init__()
+    ParamTracer.register(["$MODULE.Optim"])
+end
+
 const LOGGER = getlogger(@__MODULE__)
 const _EPSILON_ = 1e-6 # Precision constant
 const packagehomedir = dirname(@__DIR__) #dirname ascends the directory...

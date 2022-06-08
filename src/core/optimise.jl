@@ -31,7 +31,7 @@ function minimise(
     function grad!(storage::Vector, x::Vector)
         storage[:] = ∇grad(x)[1]
     end
-    res = optimize(
+    res = @trace "$MODULE.Optim" optimize(
         f,
         grad!,
         x_init,
@@ -79,7 +79,7 @@ function minimise_summary(
     function grad!(storage::Vector, x::Vector)
         storage[:] = ∇grad(x)[1]
     end
-    res = optimize(
+    res = @trace "$MODULE.Optim" optimize(
         f,
         grad!,
         x_init,
