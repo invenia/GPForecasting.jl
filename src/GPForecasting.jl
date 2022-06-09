@@ -121,6 +121,8 @@ using Memento
 using Metrics
 using Nabla
 using Optim
+using ParamTracer
+using ParamTracer: @trace, register
 using Random
 using SparseArrays
 using Statistics
