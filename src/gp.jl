@@ -33,6 +33,7 @@ function GP(n::Real, k::Kernel)
 end
 GP(k::Kernel) = GP(0.0, k)
 
+Base.:(==)(a::GP, b::GP) = GPForecasting.get(a) == GPForecasting.get(b)
 Base.:*(gp::GP, x) = GP(x * gp.m, x * gp.k * x')
 Base.:*(n, gp::GP) = gp * n
 Base.:+(g1::GP, g2::GP) = GP(g1.m + g2.m, g1.k + g2.k)
