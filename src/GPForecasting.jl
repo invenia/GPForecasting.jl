@@ -121,17 +121,24 @@ using Memento
 using Metrics
 using Nabla
 using Optim
+using ParamTracer
+using ParamTracer: @trace, register
 using Random
 using SparseArrays
 using Statistics
 using StatsBase
 
+const MODULE = "GPForecasting"
+
+function __init__()
+    Memento.register(LOGGER) # Register the Logger
+    ParamTracer.register(["$MODULE.Optim"])
+end
+
 const LOGGER = getlogger(@__MODULE__)
 const _EPSILON_ = 1e-6 # Precision constant
 const packagehomedir = dirname(@__DIR__) #dirname ascends the directory...
 const Wrapped{T} = Union{T, Node{T}}
-
-__init__() = Memento.register(LOGGER)  # Register the Logger
 
 @deprecate(∿, ↻, true)
 
