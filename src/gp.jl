@@ -127,8 +127,8 @@ function optcondition(
     U = cholesky(Hermitian(K + _EPSILON_^2 * Eye(K))).U
     ms = [PosteriorMean(gp.k.ks, ZeroMean(), x, U, yp[:, i]) for i in 1:m]
     ks = PosteriorKernel(gp.k.ks, x, U)
-    # create the posterior mean
-    pos_m = OLMMPosMean(gp.k, ms, x, yp)
+    # create the posterior mean (storing y rather than yp is useful for downstream analysis)
+    pos_m = OLMMPosMean(gp.k, ms, x, y)
     # create another OLMMKernel
     pos_k = _unsafe_OLMMKernel(
         gp.k.m,
@@ -173,8 +173,8 @@ function condition(
     Us = [cholesky(Symmetric(K + _EPSILON_^2 * Eye(size(K, 1)))).U for K in Ks]
     ms = [PosteriorMean(k, ZeroMean(), x, U, yp[:, i]) for (U, k, i) in zip(Us, gp.k.ks, 1:m)]
     ks = [PosteriorKernel(k, x, U) for (U, k) in zip(Us, gp.k.ks)]
-    # create the posterior mean
-    pos_m = OLMMPosMean(gp.k, ms, x, yp)
+    # create the posterior mean (storing y rather than yp is useful for downstream analysis)
+    pos_m = OLMMPosMean(gp.k, ms, x, y)
     # create another OLMMKernel
     pos_k = _unsafe_OLMMKernel(
         gp.k.m,
