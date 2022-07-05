@@ -16,6 +16,7 @@
 
     posterior = condition(gp, x, y)
 
+    @test_broken posterior == deepcopy(posterior)
     @test isa(posterior, GP)
     @test isa(posterior.m, Mean)
     @test isa(posterior.k, Kernel)
