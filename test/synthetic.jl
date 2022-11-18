@@ -129,18 +129,18 @@
     # end
 
     @testset "Multidimensional output problems" begin
-        seed!(314159265)
+        rng = MersenneTwister(314159265)
 
         n = 100
         p = 5
 
-        C = rand(p, p)
+        C = rand(rng, p, p)
 
-        x = sort(rand(2n))
+        x = sort(rand(rng, 2n))
         y = zeros(2n, p)
-        y[1,:] = rand(p)
+        y[1,:] = rand(rng, p)
         for i=2:2n
-            y[i,:] = y[i-1,:] .+ rand(p) .- 0.5
+            y[i,:] = y[i-1,:] .+ rand(rng, p) .- 0.5
         end
 
         y = y*C
@@ -190,8 +190,8 @@
         @test mse(vec(b), vec(y_test)) ≈ 0.8846475452351197  rtol = _RTOL_
         @test mse(vec(a), vec(y_test)) ≈ 0.11874106402148683 rtol = _RTOL_
 
-        seed!(314159265)
-        H = rand(p, 7)
+        rng = MersenneTwister(314159265)
+        H = rand(rng, p, 7)
         k = [(EQ() ▷ 10.0) for i=1:7]
         gp = GP(LMMKernel(Fixed(7), Fixed(p), Positive(0.001), Fixed(H), k))
         b = condition(gp, x_train, y_train).m(x_test)
@@ -202,7 +202,7 @@
     end
 
     @testset "Comparison of LMM/OLMM/SOLMM models" begin
-        seed!(314159265)
+        rng = MersenneTwister(314159265)
 
         n = 100
         p = 5
@@ -211,13 +211,13 @@
         obs_noise = 0.1
         lat_noise = 0.02
 
-        C = rand(p, p)
+        C = rand(rng, p, p)
 
-        x = sort(rand(2n))
+        x = sort(rand(rng, 2n))
         y = zeros(2n, p)
-        y[1,:] = rand(p)
+        y[1,:] = rand(rng, p)
         for i=2:2n
-            y[i,:] = y[i-1,:] .+ rand(p) .- 0.5
+            y[i,:] = y[i-1,:] .+ rand(rng, p) .- 0.5
         end
 
         y = y*C
@@ -322,6 +322,7 @@
     end
 
     @testset "Sparse GPs" begin
+        rng = MersenneTwister(314159265)
         f = open("sgp_train_inputs")
         s = read(f, String);
         x_train = parse.(Float64, split(s, "\n")[1:end-1]);
@@ -340,8 +341,8 @@
         means, lb, ub = credible_interval(pos, x_test)
 
         # Let's force this to be a DataFrame just make the test more thorough
-        xtrain = DataFrame([x_train, rand(size(x_train, 1))], [:data, :bs])
-        Xm_i = xtrain[rand(1:size(xtrain, 1), 15), :]
+        xtrain = DataFrame([x_train, rand(rng, size(x_train, 1))], [:data, :bs])
+        Xm_i = xtrain[rand(rng, 1:size(xtrain, 1), 15), :]
 
         sgp, Xm, σ² = GPForecasting.learn_sparse(
             GP((1.0 * (EQ() ▷ 0.5)) ← :data),
@@ -354,7 +355,7 @@
         )
         spos = GPForecasting.condition_sparse(sgp, xtrain, Xm, y_train, σ²)
 
-        xtest = DataFrame([x_test, rand(size(x_test, 1))], [:data, :bs])
+        xtest = DataFrame([x_test, rand(rng, size(x_test, 1))], [:data, :bs])
         smeans, slb, sub = credible_interval(spos, Observed(xtest));
 
         @test mean(abs.(means .- smeans)) / mean(abs.(means)) < 0.01

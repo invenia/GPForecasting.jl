@@ -6,3 +6,4 @@ include:
 variables:
   # Only include Mac and Linux 64-bit jobs in the job matrix
   platform: "x86_64"
+  julia: "1.6, 1.8"  # TODO: Remove when default version is 1.8
